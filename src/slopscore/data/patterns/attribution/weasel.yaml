@@ -1,0 +1,33 @@
+# Vague attribution and overgeneralization of opinions. WP:AIWEASEL.
+# LLMs attribute claims to vague authorities, or inflate one source into "many".
+
+rules:
+  - rule_id: WEASEL_EXPERTS_ARGUE
+    severity: medium
+    pattern: "\\b(?:experts?|scholars?|analysts?|observers?|critics?|researchers?|commentators?) (?:argue|say|note|believe|suggest|contend|point out|have (?:cited|noted|argued))\\b"
+    explanation: "Opinion attributed to an unnamed authority (weasel wording)."
+    source: "WP:AIWEASEL"
+
+  - rule_id: WEASEL_STUDIES_SHOW
+    severity: medium
+    pattern: "\\b(?:studies|research|reports?|data|evidence|sources?|surveys?) (?:show|shows|suggest|suggests|indicate|indicates|reveal|reveals|demonstrate|demonstrates|find|finds)\\b"
+    explanation: "'studies show' style claim with no specific citation."
+    source: "WP:AIWEASEL"
+
+  - rule_id: WEASEL_WIDELY
+    severity: low
+    pattern: "\\b(?:widely|generally|commonly|broadly|universally) (?:regarded|considered|recognized|believed|acknowledged|seen|viewed|known) (?:as|to be)\\b"
+    explanation: "'widely regarded as' overgeneralized opinion."
+    source: "WP:AIWEASEL"
+
+  - rule_id: WEASEL_INDUSTRY_REPORTS
+    severity: medium
+    pattern: "\\b(?:industry|market|trade|media) (?:reports?|publications?|observers?|outlets?|insiders?)\\b"
+    explanation: "Vague appeal to 'industry reports / trade publications'."
+    source: "WP:AIWEASEL"
+
+  - rule_id: WEASEL_SOME_MANY
+    severity: low
+    pattern: "\\b(?:some|many|several|numerous|various) (?:critics|observers|commentators|sources|experts|scholars|reviewers) (?:have )?(?:argue|argued|note|noted|believe|suggest|claim|feel)\\b"
+    explanation: "Few-or-one source presented as 'many'."
+    source: "WP:AIWEASEL"

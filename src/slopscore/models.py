@@ -10,12 +10,15 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-SCHEMA_VERSION = "0.1.0"
+SCHEMA_VERSION = "0.2.0"
 
-# The two disclaimers that every report carries, per the spec.
+# Disclaimers every report carries. The middle line encodes the core conservatism principle
+# (corroborated by research: single tells are weak; ESL writers are over-flagged).
 STANDARD_WARNINGS: tuple[str, ...] = (
-    "This is not proof of AI authorship.",
-    "Scores are less reliable on short, translated, or non-native English text.",
+    "This flags writing patterns, not authorship. It cannot prove text was written by AI.",
+    "A single tell (one fancy word, one em dash) is weak alone; scores rise when tells co-occur.",
+    "Scores are unreliable on short, translated, or non-native English text, "
+    "which detectors over-flag (up to ~61% false positives in one study).",
 )
 
 
@@ -42,6 +45,7 @@ class SourceType(StrEnum):
 class Dimension(StrEnum):
     """The scored dimensions. Values match the JSON keys in ``Dimensions``."""
 
+    # v0.1 dimensions
     lexical_markers = "lexical_markers"
     formulaic_structure = "formulaic_structure"
     genericity = "genericity"
@@ -49,6 +53,15 @@ class Dimension(StrEnum):
     cadence_sameness = "cadence_sameness"
     unsupported_claims = "unsupported_claims"
     prompt_residue = "prompt_residue"
+    # v0.2 dimensions (mapped to WP:AISIGNS sections)
+    significance_inflation = "significance_inflation"
+    superficial_analysis = "superficial_analysis"
+    weasel_attribution = "weasel_attribution"
+    parallelism = "parallelism"
+    copula_avoidance = "copula_avoidance"
+    formatting_tells = "formatting_tells"
+    # Negative signal: high score => more human-writing markers => LOWERS SlopScore.
+    human_writing_signals = "human_writing_signals"
 
 
 class Evidence(BaseModel):
@@ -86,7 +99,21 @@ class Dimensions(BaseModel):
     cadence_sameness: float = Field(default=0.0, ge=0.0, le=1.0)
     unsupported_claims: float = Field(default=0.0, ge=0.0, le=1.0)
     prompt_residue: float = Field(default=0.0, ge=0.0, le=1.0)
+    significance_inflation: float = Field(default=0.0, ge=0.0, le=1.0)
+    superficial_analysis: float = Field(default=0.0, ge=0.0, le=1.0)
+    weasel_attribution: float = Field(default=0.0, ge=0.0, le=1.0)
+    parallelism: float = Field(default=0.0, ge=0.0, le=1.0)
+    copula_avoidance: float = Field(default=0.0, ge=0.0, le=1.0)
+    formatting_tells: float = Field(default=0.0, ge=0.0, le=1.0)
+    human_writing_signals: float = Field(default=0.0, ge=0.0, le=1.0)
     optional_ai_detector: float | None = None
+
+
+class BaselineComparison(BaseModel):
+    """Per-dimension z-score deviation from a user's personal baseline profile."""
+
+    profile_name: str
+    deviations: dict[str, float] = Field(default_factory=dict)
 
 
 class Score(BaseModel):
@@ -94,6 +121,9 @@ class Score(BaseModel):
     label: Label
     confidence: float = Field(ge=0.0, le=1.0)
     strictness: str
+    # Set when the input is too short/uncertain to assign a confident label.
+    abstained: bool = False
+    abstention_reason: str | None = None
 
 
 class Report(BaseModel):
@@ -103,6 +133,7 @@ class Report(BaseModel):
     dimensions: Dimensions
     evidence: list[Evidence] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=lambda: list(STANDARD_WARNINGS))
+    baseline: BaselineComparison | None = None
 
     def to_json(self, *, indent: int = 2) -> str:
         return self.model_dump_json(indent=indent)

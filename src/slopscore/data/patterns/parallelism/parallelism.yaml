@@ -1,0 +1,39 @@
+# Negative parallelisms (WP:AIPARALLEL) and rule-of-three (WP:RO3). tropes.fyi flags negative
+# parallelism as a highest-confidence tell. Regex defaults; the [nlp] path adds tricolon precision.
+
+rules:
+  - rule_id: PARALLEL_NOT_ONLY_BUT_ALSO
+    severity: low
+    pattern: "\\bnot only\\b[^.?!]{1,80}?\\bbut (?:it |they |also )?(?:also )?\\b"
+    explanation: "'Not only X, but also Y' paired-contrast scaffold."
+    source: "WP:AIPARALLEL"
+
+  - rule_id: PARALLEL_ITS_NOT_ITS
+    severity: medium
+    pattern: "\\bit(?:'s| is| was)\\s+not\\s+(?:just\\s+)?[^.?!,;]{1,60}[,;—-]+\\s*it(?:'s| is| was)\\b"
+    explanation: "'It's not X, it's Y' negative parallelism."
+    source: "WP:AIPARALLEL"
+
+  - rule_id: PARALLEL_NOT_JUST
+    severity: medium
+    pattern: "\\b(?:is|are|was|were)\\s+not\\s+just\\b[^.?!]{1,60}?[,;—-]\\s*(?:it(?:'s| is)|they(?:'re| are))\\b"
+    explanation: "'X is not just Y, it's Z' inflation parallelism."
+    source: "WP:AIPARALLEL"
+
+  - rule_id: PARALLEL_NOT_X_BUT_Y
+    severity: low
+    pattern: "\\bis not (?:a |an |the )?[^.?!,;]{1,40} but (?:a |an |rather )\\b"
+    explanation: "'X is not A but B' contrast parallelism."
+    source: "WP:AIPARALLEL"
+
+  - rule_id: PARALLEL_NO_NO_JUST
+    severity: medium
+    pattern: "\\bno\\s+\\w+[^.?!]{1,40}?,\\s*no\\s+\\w+[^.?!]{1,40}?,\\s*(?:just|only)\\b"
+    explanation: "'No X, no Y, just Z' parallel-negation cadence."
+    source: "WP:AIPARALLEL"
+
+  - rule_id: PARALLEL_RATHER_THAN_PRIORITIZE
+    severity: low
+    pattern: "\\b(?:prioritiz(?:es|ing)|emphasiz(?:es|ing)|focus(?:es|ing) on|chose)\\b[^.?!]{1,60}?\\brather than\\b"
+    explanation: "'X rather than Y' construction (common in Grok output)."
+    source: "WP:AIPARALLEL"

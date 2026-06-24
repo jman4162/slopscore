@@ -1,0 +1,28 @@
+# Copula avoidance (WP:AICOPULA): "serves/stands as" replacing plain "is/are", and marketing
+# verbs ("boasts/features/offers") replacing "has". Geng & Trotta: ~10-15% "is/are" decline
+# post-2023. Regex default; [nlp] path adds lemma + subject-not-technical filtering.
+
+rules:
+  - rule_id: COPULA_SERVES_AS
+    severity: low
+    pattern: "\\b(?:serves?|served|serving|stands?|stood|acts?|acted|functions?|operates?) as (?:a |an |the )\\b"
+    explanation: "'serves/stands/acts as a' replacing a plain 'is'."
+    source: "WP:AICOPULA"
+
+  - rule_id: COPULA_REPRESENTS
+    severity: low
+    pattern: "\\b(?:represents?|represented|constitutes?|embodies|exemplifies) (?:a |an |the )\\b"
+    explanation: "'represents/embodies a' replacing a plain 'is'."
+    source: "WP:AICOPULA"
+
+  - rule_id: COPULA_BOASTS
+    severity: medium
+    pattern: "\\bboasts? (?:a |an |its |the |over |more than )?\\b"
+    explanation: "'boasts' (meaning 'has') marketing copula."
+    source: "WP:AIVOCAB"
+
+  - rule_id: COPULA_FEATURES_OFFERS
+    severity: low
+    pattern: "\\b(?:features?|offers?|provides?|delivers?|showcases?) (?:a |an |its |the )(?:wide |diverse |vast |comprehensive |stunning )?\\b"
+    explanation: "'features/offers a' marketing verb replacing 'has'."
+    source: "WP:AICOPULA"

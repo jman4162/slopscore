@@ -1,0 +1,28 @@
+# Canned emphasis on notability, attribution, and media coverage. WP:AIATTR / WP:OVERATTRIBUTION.
+# LLMs "prove" notability by listing outlets and echoing notability-guideline wording, and note
+# that subjects "maintain an active social media presence". More common in 2025+ output.
+
+rules:
+  - rule_id: OVERATTR_FEATURED_IN
+    severity: medium
+    pattern: "\\b(?:featured|profiled|covered|cited|mentioned) in\\b[^.?!]{0,80}?\\band (?:other|various|several|numerous|prominent) (?:media |news |prominent )?(?:outlets?|publications?|sources?|platforms?)\\b"
+    explanation: "'featured in X and other media outlets' notability padding."
+    source: "WP:AIATTR"
+
+  - rule_id: OVERATTR_INDEPENDENT_COVERAGE
+    severity: medium
+    pattern: "\\b(?:significant|substantial|independent|reliable|in-depth|widely-read) (?:and )?(?:significant |substantial |independent |reliable )?(?:secondary )?coverage\\b"
+    explanation: "Echoes Wikipedia notability wording ('independent/significant coverage')."
+    source: "WP:AIATTR"
+
+  - rule_id: OVERATTR_SOCIAL_PRESENCE
+    severity: high
+    pattern: "\\bmaintains? (?:a |an )?(?:strong |active |significant |robust |notable )?(?:social media|online|digital|instagram|twitter) presence\\b"
+    explanation: "'maintains an active social media presence' — idiosyncratic AI phrasing."
+    source: "WP:AIATTR"
+
+  - rule_id: OVERATTR_TRADE_PUBLICATIONS
+    severity: low
+    pattern: "\\b(?:trade|industry|regional|national|local) (?:publications?|media outlets?|press coverage)\\b[^.?!]{0,40}?\\b(?:such as|including|like)\\b"
+    explanation: "Lists source TYPES to assert notability ('trade publications such as...')."
+    source: "WP:AIATTR"

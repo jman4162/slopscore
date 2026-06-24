@@ -110,6 +110,8 @@ module = [
     "lingua.*",
     "sklearn.*",
     "regex.*",
+    "spacy.*",
+    "spacy",
 ]
 ignore_missing_imports = true
 

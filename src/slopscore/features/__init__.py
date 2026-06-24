@@ -4,9 +4,11 @@ from slopscore.features import (  # noqa: F401  (imported for registration side 
     cadence,
     formulaic_patterns,
     lexical_markers,
+    phrase_packs,
     prompt_residue,
     redundancy,
     specificity,
+    syntactic_tells,
 )
 from slopscore.features.base import Feature, registry
 

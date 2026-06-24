@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 import regex as re
 import yaml
@@ -18,21 +19,42 @@ class Rule:
     severity: Severity
     pattern: re.Pattern[str]
     explanation: str
+    source: str = ""  # optional citation (e.g. "Kobak 2025"), for the model card
 
 
-def load_rules(*parts: str) -> list[Rule]:
-    with data_path(*parts).open(encoding="utf-8") as fh:
-        raw = yaml.safe_load(fh)
+def _rules_from_yaml(raw: dict[str, Any]) -> list[Rule]:
     rules = []
-    for entry in raw.get("rules", []):
+    for entry in raw.get("rules", []) or []:
         rules.append(
             Rule(
                 rule_id=entry["rule_id"],
                 severity=Severity(entry.get("severity", "low")),
                 pattern=re.compile(entry["pattern"], re.IGNORECASE | re.MULTILINE),
                 explanation=entry["explanation"],
+                source=entry.get("source", ""),
             )
         )
+    return rules
+
+
+def load_rules(*parts: str) -> list[Rule]:
+    with data_path(*parts).open(encoding="utf-8") as fh:
+        raw = yaml.safe_load(fh)
+    return _rules_from_yaml(raw)
+
+
+def load_rules_from_directory(*parts: str) -> list[Rule]:
+    """Merge every ``*.yaml`` rule file under a packaged ``data/`` subdirectory.
+
+    Lets a growing rule pack be split into small, themed files (the way Vale/proselint
+    organize styles) without changing the loading feature.
+    """
+    directory = data_path(*parts)
+    rules: list[Rule] = []
+    for entry in sorted(directory.iterdir(), key=lambda p: p.name):
+        if entry.name.endswith(".yaml"):
+            with entry.open(encoding="utf-8") as fh:
+                rules.extend(_rules_from_yaml(yaml.safe_load(fh)))
     return rules
 
 

@@ -1,0 +1,64 @@
+# Significance inflation: undue emphasis on importance, legacy, and broader trends.
+# WP:AILEGACY / WP:AITREND. LLMs puff up arbitrary subjects by asserting they represent or
+# contribute to some broader theme. Distinct, easily identified repertoire (Juzek; Reinhart PNAS).
+
+rules:
+  - rule_id: SIGNIF_STANDS_AS_TESTAMENT
+    severity: high
+    pattern: "\\b(?:stands|serves) as a (?:testament|reminder|symbol|beacon|cornerstone|hallmark)\\b"
+    explanation: "'stands/serves as a testament' significance-inflation scaffold."
+    source: "WP:AILEGACY"
+
+  - rule_id: SIGNIF_PIVOTAL_ROLE
+    severity: medium
+    pattern: "\\b(?:plays?|played|playing) (?:a |an )?(?:vital|crucial|pivotal|key|significant|central|important) role\\b"
+    explanation: "'plays a pivotal role' inflated-importance claim."
+    source: "WP:AILEGACY"
+
+  - rule_id: SIGNIF_MARKS_MOMENT
+    severity: medium
+    pattern: "\\b(?:marking|marks|marked|represents?|represented) (?:a )?(?:pivotal|significant|key|major|important|turning) (?:moment|point|shift|milestone|chapter)\\b"
+    explanation: "'marking a pivotal moment / represents a significant shift' template."
+    source: "WP:AILEGACY"
+
+  - rule_id: SIGNIF_BROADER_MOVEMENT
+    severity: medium
+    pattern: "\\b(?:was |is |were |are )?part of a (?:broader|wider|larger|growing) (?:movement|trend|effort|shift|initiative|context)\\b"
+    explanation: "Ties the subject to a vague 'broader movement'."
+    source: "WP:AITREND"
+
+  - rule_id: SIGNIF_REFLECTS_BROADER
+    severity: medium
+    pattern: "\\b(?:reflects?|reflecting|underscores?|highlights?|symboliz(?:es|ing)|embod(?:ies|ying)) (?:its |the )?(?:broader|wider|enduring|lasting|ongoing|growing) (?:significance|importance|legacy|trend|impact|appeal)\\b"
+    explanation: "'reflects/underscores its broader significance' inflation."
+    source: "WP:AILEGACY"
+
+  - rule_id: SIGNIF_INDELIBLE_MARK
+    severity: high
+    pattern: "\\b(?:left|leaving|made|making) (?:an |its )?(?:indelible|lasting|enduring|profound) (?:mark|impact|impression|legacy)\\b"
+    explanation: "'left an indelible mark' cliche."
+    source: "WP:AILEGACY"
+
+  - rule_id: SIGNIF_DEEPLY_ROOTED
+    severity: low
+    pattern: "\\b(?:deeply rooted|firmly rooted|deeply embedded) in\\b"
+    explanation: "'deeply rooted in' vague-significance modifier."
+    source: "WP:AILEGACY"
+
+  - rule_id: SIGNIF_RICH_HERITAGE
+    severity: medium
+    pattern: "\\b(?:rich|vibrant|diverse|storied) (?:cultural )?(?:heritage|history|tapestry|tradition|legacy)\\b"
+    explanation: "'rich cultural heritage / vibrant tapestry' travel-guide puffery."
+    source: "WP:AIPUFFERY"
+
+  - rule_id: SIGNIF_CONTRIBUTING_BROADER
+    severity: low
+    pattern: "\\bcontribut(?:es|ing|ed) to (?:the )?(?:broader|wider|overall|larger) (?:history|understanding|context|narrative|development)\\b"
+    explanation: "'contributing to the broader history' tenuous-connection scaffold."
+    source: "WP:AITREND"
+
+  - rule_id: SIGNIF_SETTING_STAGE
+    severity: low
+    pattern: "\\bsetting the (?:stage|scene|foundation|groundwork) for\\b"
+    explanation: "'setting the stage for' transition puffery."
+    source: "WP:AILEGACY"
