@@ -12,6 +12,8 @@ categories:
     severity: medium
     explanation: "Over-polished verb associated with LLM prose."
     profile_weights: { academic: 0.6, technical: 0.5, marketing: 0.7 }
+    era: "gpt-4 (2023-mid2024)"
+    source: "Juzek & Ward 2024 (arXiv:2412.11385); Kobak et al. 2025 (Science Advances)"
     terms:
       - delve
       - delves
@@ -35,12 +37,24 @@ categories:
       - elevating
       - illuminate
       - illuminating
+      - garner
+      - garners
+      - garnering
+      - bolster
+      - bolstered
+      - bolstering
+      - harness
+      - harnessing
+      - streamline
+      - streamlining
 
   generic_importance:
     weight: 0.8
     severity: low
     explanation: "Generic importance term used without concrete support."
     profile_weights: { academic: 0.4, technical: 0.3 }
+    era: "persistent (all eras)"
+    source: "Russell et al. 2025 (ACL); Kobak et al. 2025"
     terms:
       - crucial
       - vital
@@ -50,26 +64,41 @@ categories:
       - significant
       - essential
       - transformative
+      - key
+      - integral
+      - paramount
+      - notable
+      - valuable
 
   synthetic_sophistication:
     weight: 1.0
     severity: medium
     explanation: "Inflated sophistication adjective common in generic LLM writing."
     profile_weights: { academic: 0.5, technical: 0.5 }
+    era: "gpt-4 / gpt-4o"
+    source: "Juzek & Ward 2024; Reinhart et al. 2025 (PNAS)"
     terms:
       - intricate
+      - intricacies
       - nuanced
       - multifaceted
       - dynamic
       - seamless
       - holistic
       - tapestry
+      - interplay
+      - meticulous
+      - meticulously
+      - vibrant
+      - enduring
 
   template_transitions:
     weight: 0.7
     severity: low
     explanation: "Template transition word that pads structure."
     profile_weights: { academic: 0.5, essay: 0.6 }
+    era: "persistent; 'Additionally' especially gpt-4o+"
+    source: "Geng et al. 2025; WP:AIVOCAB"
     terms:
       - moreover
       - furthermore
@@ -78,11 +107,29 @@ categories:
       - notably
       - additionally
 
+  abstract_nouns:
+    weight: 0.8
+    severity: low
+    explanation: "Abstract LLM noun used in place of a concrete one."
+    profile_weights: { academic: 0.6, technical: 0.6 }
+    era: "persistent"
+    source: "Russell et al. 2025; tropes.fyi"
+    terms:
+      - landscape
+      - ecosystem
+      - realm
+      - paradigm
+      - synergy
+      - testament
+      - cornerstone
+
   marketing_uplift:
     weight: 1.0
     severity: medium
     explanation: "Marketing-style uplift verb that inflates without evidence."
     profile_weights: { marketing: 0.4 }
+    era: "persistent"
+    source: "WP:AIPUFFERY; Walker Rettberg 2026"
     terms:
       - unlock
       - unlocks

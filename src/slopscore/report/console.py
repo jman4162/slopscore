@@ -28,12 +28,17 @@ def render(report: Report, console: Console | None = None) -> None:
         (f"{s.slop_score}/100 ", f"bold {style}"),
         (f"({s.label.value})", style),
     )
+    if s.abstained:
+        header.append("  ABSTAINED", style="bold yellow")
     meta = (
         f"confidence {s.confidence}  ·  profile {report.input.profile}  ·  "
         f"strictness {s.strictness}  ·  {report.input.word_count} words  ·  "
         f"{report.input.language}"
     )
-    console.print(Panel(Text.assemble(header, "\n", (meta, "dim")), expand=False))
+    body = Text.assemble(header, "\n", (meta, "dim"))
+    if s.abstained and s.abstention_reason:
+        body.append("\n" + s.abstention_reason, style="yellow")
+    console.print(Panel(body, expand=False))
 
     table = Table(title="Dimensions", show_edge=False, pad_edge=False)
     table.add_column("Dimension")

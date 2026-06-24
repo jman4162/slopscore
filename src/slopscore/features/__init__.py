@@ -2,7 +2,9 @@
 
 from slopscore.features import (  # noqa: F401  (imported for registration side effects)
     cadence,
+    formatting,
     formulaic_patterns,
+    human_signals,
     lexical_markers,
     phrase_packs,
     prompt_residue,
