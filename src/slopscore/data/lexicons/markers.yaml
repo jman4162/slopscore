@@ -1,0 +1,98 @@
+# AI-slop lexical markers, grouped by category. Each entry lists surface forms (matched as
+# whole words, case-insensitively). `weight` scales a category's contribution; `profile_weights`
+# overrides the multiplier per genre (1.0 = full weight, lower = more tolerated in that genre).
+#
+# Seeded from the spec's marker lists and excess-word studies (Kobak et al. 2024;
+# "Why Does ChatGPT Delve So Much?" arXiv:2412.11385). Lexical markers are a population-level
+# signal only: a single word is never proof. Scoring is frequency- and cluster-aware.
+
+categories:
+  overpolished_verbs:
+    weight: 1.0
+    severity: medium
+    explanation: "Over-polished verb associated with LLM prose."
+    profile_weights: { academic: 0.6, technical: 0.5, marketing: 0.7 }
+    terms:
+      - delve
+      - delves
+      - delving
+      - delved
+      - underscore
+      - underscores
+      - underscoring
+      - showcase
+      - showcases
+      - showcasing
+      - leverage
+      - leverages
+      - leveraging
+      - navigate
+      - navigating
+      - foster
+      - fostering
+      - elevate
+      - elevates
+      - elevating
+      - illuminate
+      - illuminating
+
+  generic_importance:
+    weight: 0.8
+    severity: low
+    explanation: "Generic importance term used without concrete support."
+    profile_weights: { academic: 0.4, technical: 0.3 }
+    terms:
+      - crucial
+      - vital
+      - pivotal
+      - robust
+      - comprehensive
+      - significant
+      - essential
+      - transformative
+
+  synthetic_sophistication:
+    weight: 1.0
+    severity: medium
+    explanation: "Inflated sophistication adjective common in generic LLM writing."
+    profile_weights: { academic: 0.5, technical: 0.5 }
+    terms:
+      - intricate
+      - nuanced
+      - multifaceted
+      - dynamic
+      - seamless
+      - holistic
+      - tapestry
+
+  template_transitions:
+    weight: 0.7
+    severity: low
+    explanation: "Template transition word that pads structure."
+    profile_weights: { academic: 0.5, essay: 0.6 }
+    terms:
+      - moreover
+      - furthermore
+      - ultimately
+      - importantly
+      - notably
+      - additionally
+
+  marketing_uplift:
+    weight: 1.0
+    severity: medium
+    explanation: "Marketing-style uplift verb that inflates without evidence."
+    profile_weights: { marketing: 0.4 }
+    terms:
+      - unlock
+      - unlocks
+      - unlocking
+      - empower
+      - empowers
+      - empowering
+      - unleash
+      - unleashes
+      - supercharge
+      - revolutionize
+      - revolutionizes
+      - revolutionized

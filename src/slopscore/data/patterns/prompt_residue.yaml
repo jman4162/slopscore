@@ -1,0 +1,48 @@
+# Prompt residue and assistant artifacts: high-confidence signs that LLM output was pasted in
+# unedited. A single high-severity hit is a strong signal. Case-insensitive `regex` patterns.
+
+rules:
+  - rule_id: RESIDUE_AS_AN_AI
+    severity: high
+    pattern: "\\bas an? (?:ai|large )?(?:language )?(?:model|ai)\\b"
+    explanation: "Assistant self-reference ('as an AI language model')."
+
+  - rule_id: RESIDUE_CANNOT_BROWSE
+    severity: high
+    pattern: "\\bI (?:can(?:'t|not)|am unable to) (?:browse|access) (?:the )?internet\\b"
+    explanation: "Assistant capability disclaimer."
+
+  - rule_id: RESIDUE_REVISED_VERSION
+    severity: high
+    pattern: "\\bhere(?:'s| is) (?:a |the )?(?:revised|updated|improved|rewritten) version\\b"
+    explanation: "Assistant meta-commentary introducing a rewrite."
+
+  - rule_id: RESIDUE_CERTAINLY
+    severity: medium
+    pattern: "^\\s*(?:certainly|sure|absolutely|of course)[!,.]"
+    explanation: "Affirmative assistant preamble at the start of a line."
+
+  - rule_id: RESIDUE_LET_ME_KNOW
+    severity: medium
+    pattern: "\\blet me know if (?:you(?:'d| would) like|you need|there(?:'s| is) anything)\\b"
+    explanation: "Assistant sign-off offering further help."
+
+  - rule_id: RESIDUE_HOPE_THIS_HELPS
+    severity: medium
+    pattern: "\\bI hope this helps\\b"
+    explanation: "Assistant sign-off."
+
+  - rule_id: RESIDUE_PLACEHOLDER
+    severity: high
+    pattern: "\\[(?:insert[^\\]]*|placeholder|your \\w+ here|citation needed)\\]"
+    explanation: "Unfilled placeholder left in the text."
+
+  - rule_id: RESIDUE_CODE_FENCE
+    severity: medium
+    pattern: "```(?:markdown|json|text|html)?"
+    explanation: "Stray Markdown code-fence artifact."
+
+  - rule_id: RESIDUE_KNOWLEDGE_CUTOFF
+    severity: high
+    pattern: "\\b(?:my )?(?:knowledge|training) (?:cut[- ]?off|data) (?:is|extends|goes up to)\\b"
+    explanation: "Assistant knowledge-cutoff disclaimer."

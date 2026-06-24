@@ -1,0 +1,31 @@
+# Local working docs (specs, references) — keep out of the repo
+*.local.md
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+*.so
+
+# Virtual env (uv.lock IS committed for reproducible dev installs)
+.venv/
+
+# Test / coverage / type-check caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Claude Code runtime artifacts
+.claude/scheduled_tasks.lock
+.slopscore/

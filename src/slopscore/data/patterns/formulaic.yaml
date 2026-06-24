@@ -1,0 +1,64 @@
+# Formulaic scaffolding patterns: templated phrases that read as machine-generated. Each rule
+# is a case-insensitive regex (Python `regex` syntax) with a rule_id, severity, and explanation.
+# Keep patterns specific enough to avoid false positives on ordinary prose.
+
+rules:
+  - rule_id: FORMULAIC_OPENING_FASTPACED
+    severity: medium
+    pattern: "in today's (?:fast[- ]paced|rapidly (?:evolving|changing)|digital) (?:world|landscape|era|age)"
+    explanation: "Generic 'in today's fast-paced world' opening scaffold."
+
+  - rule_id: FORMULAIC_WHETHER_BEGINNER
+    severity: medium
+    pattern: "whether you(?:'re| are) a (?:seasoned|complete )?\\w+ or (?:an? )?\\w+"
+    explanation: "Templated 'whether you're a beginner or an expert' framing."
+
+  - rule_id: FORMULAIC_MORE_THAN_JUST
+    severity: medium
+    pattern: "\\bis (?:much )?more than just\\b"
+    explanation: "'X is more than just Y' inflation template."
+
+  - rule_id: FORMULAIC_NOT_ONLY_BUT_ALSO
+    severity: low
+    pattern: "\\bnot only\\b[^.?!]{1,80}?\\bbut (?:it )?also\\b"
+    explanation: "'Not only X, but also Y' paired-contrast scaffold."
+
+  - rule_id: FORMULAIC_AT_ITS_CORE
+    severity: low
+    pattern: "\\bat its core\\b"
+    explanation: "'At its core' generic framing."
+
+  - rule_id: FORMULAIC_COMPREHENSIVE_GUIDE
+    severity: medium
+    pattern: "in this (?:comprehensive |ultimate |complete )?(?:guide|article|post|blog)"
+    explanation: "Self-referential 'in this comprehensive guide' framing."
+
+  - rule_id: FORMULAIC_LETS_DELVE
+    severity: high
+    pattern: "let(?:'s| us) (?:delve|dive|explore|take a (?:closer )?look) (?:into|in)\\b"
+    explanation: "'Let's delve into' invitation scaffold."
+
+  - rule_id: FORMULAIC_FROM_TO_OFFERS
+    severity: low
+    pattern: "\\bfrom \\w+ to \\w+,[^.?!]{1,60}?\\boffers\\b"
+    explanation: "'From A to B, X offers...' enumeration template."
+
+  - rule_id: FORMULAIC_WHEN_IT_COMES_TO
+    severity: low
+    pattern: "\\bwhen it comes to\\b"
+    explanation: "'When it comes to' filler transition."
+
+  - rule_id: FORMULAIC_IN_CONCLUSION
+    severity: low
+    pattern: "\\bin conclusion\\b"
+    explanation: "'In conclusion' formulaic closer."
+
+  - rule_id: FORMULAIC_GAME_CHANGER
+    severity: medium
+    pattern: "\\b(?:game[- ]changer|game[- ]changing)\\b"
+    explanation: "'Game-changer' empty-uplift cliche."
+
+  - rule_id: FORMULAIC_EVER_EVOLVING
+    severity: low
+    pattern: "\\bever[- ](?:evolving|changing|growing)\\b"
+    explanation: "'Ever-evolving' filler modifier."
