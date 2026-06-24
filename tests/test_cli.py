@@ -96,9 +96,7 @@ def test_calibrate_builds_and_scan_uses_baseline(tmp_path: Path, monkeypatch) ->
         "robust, holistic tapestry and underscoring its enduring significance throughout.",
         encoding="utf-8",
     )
-    scan_out = runner.invoke(
-        app, ["scan", str(target), "--baseline", "me", "--format", "json"]
-    )
+    scan_out = runner.invoke(app, ["scan", str(target), "--baseline", "me", "--format", "json"])
     assert scan_out.exit_code == 0
     payload = json.loads(scan_out.stdout)
     assert payload["baseline"]["profile_name"] == "me"

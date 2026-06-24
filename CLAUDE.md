@@ -7,47 +7,59 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 `uv`-managed, src-layout. Common workflows:
 
 ```bash
-uv sync                          # create .venv and install deps + dev group
-uv run slopscore scan FILE       # scan a file/URL/'-' (stdin); --format console|json|markdown
-uv run pytest                    # tests + coverage (configured in pyproject)
-uv run pytest tests/test_scorer.py::test_report_shape   # a single test
-uv run ruff check . && uv run ruff format --check .      # lint + format
-uv run mypy src                  # type check (strict)
+uv pip install -e . --no-deps    # editable install (see install-stability note below)
+uv run --no-sync slopscore scan FILE   # scan a file/URL/'-' (stdin); --format console|json|markdown
+uv run --no-sync pytest          # tests + coverage (pytest imports from src via pythonpath)
+uv run --no-sync pytest tests/test_scorer.py::test_report_shape   # a single test
+uv run --no-sync ruff check . && uv run --no-sync ruff format --check .   # lint + format
+uv run --no-sync mypy src        # type check (strict)
 ```
 
-Optional features live behind extras: `uv sync --extra web` (trafilatura website extraction),
-`--extra nlp` (spaCy/sentence-transformers), `--extra lang` (lingua language detection). The
-default install is intentionally lean; `scan <url>` without `[web]` exits 3 with an install hint.
+**Install stability:** `uv sync` installs the project NON-editable and the rebuild can land in a
+broken namespace state (`slopscore.__file__` becomes `None` → `ModuleNotFoundError`). Do an
+editable install once (`uv pip install -e . --no-deps`) and use `uv run --no-sync` so uv does not
+re-sync and clobber it. pytest is insulated regardless via `pythonpath = ["src"]` in pyproject.
 
-## Architecture (v0.1 implemented)
+Optional features live behind extras: `[web]` (trafilatura), `[nlp]` (spaCy + sentence-transformers),
+`[lang]` (lingua). Default install is lean; `scan <url>` without `[web]` exits 3 with a hint. For
+the spaCy path: `uv pip install spacy && uv run --no-sync python -m spacy download en_core_web_sm`
+(`is_nlp_available()` gates it; syntactic features auto-upgrade when present).
 
-Pipeline in `src/slopscore/`: `ingest/` (text, markdown via marko, json via jsonpath-ng,
-website) → `normalize/` (ftfy `clean` + offset-preserving `OffsetMapper`, pysbd `segment`,
-`language`) → `features/` → `scoring/` → `report/`. Orchestrated by `core.py:build_document`
-then `scoring/scorer.py:score_document`; public API (`SlopScorer`, `scan_text/_path/_url`) in
-`__init__.py`.
+## Architecture (v0.2)
+
+Pipeline in `src/slopscore/`: `ingest/` (text, markdown via marko, json via jsonpath-ng, website)
+→ `normalize/` (ftfy `clean` + offset-preserving `OffsetMapper`, pysbd `segment`, `language`) →
+`features/` → `scoring/` → `report/`. Orchestrated by `core.py:build_document` then
+`scoring/scorer.py:score_document`; public API (`SlopScorer`, `scan_text/_path/_url`) in `__init__.py`.
 
 Key invariants when extending:
 - **Every feature is a `Feature`** (`features/base.py`): `extract(doc, profile) -> FeatureResult`
   with a [0,1] score and `Evidence` spans. Importing `slopscore.features` registers them; add a
-  dimension by writing a class and calling `register()`. The scorer iterates the registry.
+  dimension by writing a class + `register()` AND a field in `models.Dimension`/`Dimensions` AND a
+  weight in `scoring/weights.py`. The scorer iterates the registry.
 - **Evidence offsets index the original text, not the cleaned text.** Features run on
-  `doc.cleaned_text` and MUST build spans via `doc.evidence(...)`, which maps offsets back
-  through `OffsetMapper`. The round-trip is enforced by `tests/test_normalize_offsets.py` and
-  `test_features.py` — keep it green.
-- **`TextSpan` lives in `spans.py`** (not `document.py`) to avoid a normalize↔document import
-  cycle. Don't move it back.
-- Live dimensions: lexical_markers, formulaic_structure, prompt_residue (rule data in
-  `data/*.yaml`). genericity/redundancy/cadence are thin real implementations; unsupported_claims
-  has no feature yet (contributes 0). Weights/bias in `scoring/weights.py`, genre reweighting in
-  `scoring/profiles.py`, sigmoid + label in `scorer.py`.
-- Rule data is YAML under `src/slopscore/data/` (force-included into the wheel via pyproject).
-  Add markers/patterns there, not in code.
+  `doc.cleaned_text` and MUST build spans via `doc.evidence(...)`, which maps offsets back through
+  `OffsetMapper`. The round-trip is enforced across the feature tests — keep it green.
+- **`TextSpan` lives in `spans.py`** (not `document.py`) to avoid a normalize↔document import cycle.
+- **Conservatism is in the scorer, not the features.** `scoring/scorer.py` applies a corroboration
+  gate (`WEAK_DIMENSIONS` damped when they fire alone), `human_writing_signals` enters with a
+  NEGATIVE weight, and `scoring/confidence.py:abstain_reason` caps the label at "mild" on short/
+  non-English input. Don't make individual features "conservative" — let the scorer do it.
+- **Rule data is YAML** under `src/slopscore/data/` (force-included into the wheel). `patterns/` is
+  organized into category subdirs loaded by `_ruleset.load_rules_from_directory`; `lexicons/markers.yaml`
+  carries `era`/`source` tags. The spaCy path lives behind `features/_nlp.py`.
+- Dimensions: lexical_markers, formulaic_structure, significance_inflation, superficial_analysis,
+  weasel_attribution, parallelism, copula_avoidance, genericity, redundancy, cadence_sameness,
+  formatting_tells (weak), prompt_residue, human_writing_signals (negative). unsupported_claims has
+  no feature yet (contributes 0).
+- **Personal baseline:** `scoring/calibrate.py` builds robust per-dimension stats from a corpus;
+  `scan --baseline <name>` attaches z-score deviations. Profiles (`scoring/profiles.py`) are hand-set
+  (see `PROFILE_NOTES.md`); citations + fairness caveats live in `MODEL_CARD.md`.
 
 ## Project state
 
-v0.1 scaffold is implemented and green (ruff/mypy/pytest). The spec and roadmap below still
-govern v0.2+. The repository also holds two reference documents:
+v0.1 and v0.2 are implemented and green (ruff/mypy/pytest). The repository also holds two reference
+documents:
 
 - `BACKGROUND_INFORMATION.local.md` — the authoritative spec. Defines the product concept,
   what to detect, the scoring model, the planned package layout, dependencies, evaluation

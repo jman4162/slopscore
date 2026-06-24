@@ -43,6 +43,28 @@ slopscore scan content.json --json-path "$.article.body"
 slopscore scan https://example.com/post        # requires slopscore[web]
 ```
 
+### Calibrate against your own writing
+
+Instead of asking "does this look like AI?", ask "does this deviate from *my* usual style in
+sloppy ways?". Build a baseline from a folder of your past writing, then compare new drafts to it:
+
+```bash
+slopscore calibrate ./my-old-posts --name me
+slopscore scan new-post.md --baseline me     # reports per-dimension z-score deviations
+```
+
+### Higher-precision syntactic detection (optional)
+
+The default install detects syntactic tells (trailing "-ing" analyses, etc.) with regex. Install
+the `[nlp]` extra and the spaCy English model for a higher-precision, lower-false-positive path:
+
+```bash
+pip install "slopscore[nlp]"
+python -m spacy download en_core_web_sm
+```
+
+slopscore auto-upgrades to the spaCy path when the model is present; nothing else changes.
+
 ```python
 from slopscore import SlopScorer
 
@@ -54,10 +76,14 @@ print(report.evidence[:3])
 
 ## Status
 
-v0.1 — transparent rule-based linter. Live dimensions: lexical markers, formulaic structure,
-prompt residue. Specificity, redundancy, and cadence have minimal implementations and grow in
-v0.2. Profiles/calibration (v0.2), ML scoring (v0.3), and optional authorship-signal adapters
-(v0.4) are on the roadmap. See `BACKGROUND_INFORMATION.local.md` for the full spec.
+v0.2 — detection expansion grounded in Wikipedia's "Signs of AI writing" field guide. Dimensions:
+lexical markers, formulaic structure, significance inflation, superficial "-ing" analyses, vague /
+over-attribution, negative parallelism / rule-of-three, copula avoidance, genericity, redundancy,
+cadence, formatting tells, prompt residue, and a negative human-writing signal. Scoring is
+conservative by default: a corroboration gate damps weak-alone tells, and scores abstain on short
+or non-English input. See `MODEL_CARD.md` for citations and limitations, and
+`BACKGROUND_INFORMATION.local.md` for the full spec. ML scoring (v0.3) and optional
+authorship-signal adapters (v0.4) remain on the roadmap.
 
 ## License
 
