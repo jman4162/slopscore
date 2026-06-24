@@ -42,9 +42,16 @@ def scan(
     json_path: str | None = typer.Option(
         None, "--json-path", help="JSONPath for JSON input, e.g. $.article.body"
     ),
+    baseline: str | None = typer.Option(
+        None, "--baseline", "-b", help="Compare against a personal baseline from `calibrate`."
+    ),
 ) -> None:
     """Scan a file, URL, or stdin for AI-slop writing patterns."""
-    scorer = SlopScorer(profile=profile, strictness=strictness)
+    try:
+        scorer = SlopScorer(profile=profile, strictness=strictness, baseline=baseline)
+    except FileNotFoundError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=2) from exc
     try:
         if target == "-":
             report = scorer.scan_text(typer.get_text_stream("stdin").read(), source="<stdin>")
@@ -72,14 +79,50 @@ def scan(
 @app.command()
 def calibrate(
     corpus: str = typer.Argument(..., help="Directory of your own writing to baseline against."),
-    profile: str = typer.Option("custom", "--profile", "-p"),
+    name: str = typer.Option(..., "--name", "-n", help="Name to save the baseline under."),
+    profile: str = typer.Option("blog", "--profile", "-p"),
+    recursive: bool = typer.Option(False, "--recursive", "-r"),
 ) -> None:
-    """Build a personal baseline profile from your past writing. (Coming in v0.2.)"""
-    err_console.print(
-        "[yellow]`calibrate` is planned for v0.2[/yellow] — it will baseline your own corpus "
-        f"({corpus!r}) so scans flag deviations from your style, not generic patterns."
+    """Build a personal baseline from your past writing, so scans flag deviations from *your*
+    style rather than generic patterns. Use it later with `scan --baseline <name>`."""
+    from slopscore.core import build_document
+    from slopscore.ingest import from_path
+    from slopscore.ingest.batch import iter_paths
+    from slopscore.scoring.calibrate import build_profile, save_profile
+    from slopscore.scoring.scorer import score_document
+
+    root = Path(corpus)
+    if not root.is_dir():
+        err_console.print(f"[red]Not a directory:[/red] {corpus}")
+        raise typer.Exit(code=2)
+
+    settings = SlopScorer(profile=profile).settings
+    per_doc = []
+    total_words = 0
+    for path in iter_paths(root, recursive=recursive):
+        doc = build_document(from_path(path))
+        if doc.word_count < 50:  # skip stubs; too short to characterize style
+            continue
+        report = score_document(doc, settings)
+        per_doc.append(report.dimensions)
+        total_words += doc.word_count
+
+    if not per_doc:
+        err_console.print("[red]No scannable documents (>=50 words) found.[/red]")
+        raise typer.Exit(code=2)
+
+    prof = build_profile(name, per_doc, total_words)
+    saved = save_profile(prof)
+    note = " (small corpus: robust median/MAD stats)" if prof.robust else ""
+    if prof.n_docs < 10 or total_words < 5000:
+        err_console.print(
+            f"[yellow]Small corpus ({prof.n_docs} docs, {total_words} words): "
+            "baseline will be noisy.[/yellow]"
+        )
+    console.print(
+        f"Saved baseline [cyan]{name}[/cyan]: {prof.n_docs} docs, {total_words} words{note}\n"
+        f"  -> {saved}\n  Use it with: slopscore scan FILE --baseline {name}"
     )
-    raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":

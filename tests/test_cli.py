@@ -64,6 +64,48 @@ def test_url_without_web_extra_hints(monkeypatch) -> None:
     assert result.exit_code == 3
 
 
-def test_calibrate_is_stub(tmp_path: Path) -> None:
-    result = runner.invoke(app, ["calibrate", str(tmp_path)])
-    assert result.exit_code == 1
+def test_calibrate_builds_and_scan_uses_baseline(tmp_path: Path, monkeypatch) -> None:
+    import slopscore.scoring.calibrate as cal
+
+    monkeypatch.setattr(cal, "_PROFILE_DIR", tmp_path / "profiles")
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "a.txt").write_text(
+        "The shop opened in 1998 on Pine Street. It sold about 200 records a week. "
+        "I worked there three years and learned to grade vinyl by eye. Dave kept a "
+        "ledger in pencil and never trusted the register. We sorted jazz on Tuesdays. "
+        "Most customers paid cash and argued about which pressing sounded better, and "
+        "a few drove in from two towns over just to flip through the dollar bins.",
+        encoding="utf-8",
+    )
+    (corpus / "b.txt").write_text(
+        "We drove to Bend in October. The pass was icy near the summit and the wipers "
+        "froze twice on the way up. Gas cost three dollars and we split a sandwich at "
+        "a diner outside Sisters. The motel had one working heater that night. In the "
+        "morning the truck would not start until I cleaned the battery terminals with "
+        "a wire brush I found in the bed under a tarp.",
+        encoding="utf-8",
+    )
+    build = runner.invoke(app, ["calibrate", str(corpus), "--name", "me"])
+    assert build.exit_code == 0
+    assert (tmp_path / "profiles" / "me.json").exists()
+
+    target = tmp_path / "post.txt"
+    target.write_text(
+        "This transformative platform stands as a testament to innovation, leveraging a "
+        "robust, holistic tapestry and underscoring its enduring significance throughout.",
+        encoding="utf-8",
+    )
+    scan_out = runner.invoke(
+        app, ["scan", str(target), "--baseline", "me", "--format", "json"]
+    )
+    assert scan_out.exit_code == 0
+    payload = json.loads(scan_out.stdout)
+    assert payload["baseline"]["profile_name"] == "me"
+
+
+def test_scan_unknown_baseline_errors(tmp_path: Path) -> None:
+    target = tmp_path / "x.txt"
+    target.write_text("hello world", encoding="utf-8")
+    result = runner.invoke(app, ["scan", str(target), "--baseline", "nope-not-here"])
+    assert result.exit_code == 2

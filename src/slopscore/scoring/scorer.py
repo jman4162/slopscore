@@ -45,9 +45,7 @@ def score_document(doc: Document, settings: Settings) -> Report:
 
     # Positive (slop-raising) dimensions that are elevated, ignoring the negative human signal.
     elevated = {
-        d
-        for d, v in by_dim.items()
-        if v > ELEVATED and d is not Dimension.human_writing_signals
+        d for d, v in by_dim.items() if v > ELEVATED and d is not Dimension.human_writing_signals
     }
 
     multipliers = profile_multipliers(settings.profile)

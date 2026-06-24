@@ -50,9 +50,7 @@ def compute_confidence(doc: Document, settings: Settings) -> tuple[float, list[s
 _ABSTAIN_WORDS = 100
 
 
-def abstain_reason(
-    doc: Document, settings: Settings, *, elevated_count: int
-) -> str | None:
+def abstain_reason(doc: Document, settings: Settings, *, elevated_count: int) -> str | None:
     """Return a reason to abstain from a confident label, or None to score normally.
 
     Abstaining caps the reported label at "mild" — slopscore refuses to call a text severe when

@@ -32,9 +32,7 @@ def test_human_signals_low_on_abstract_slop() -> None:
 
 
 def test_formatting_tells_fire_on_dash_heavy_text() -> None:
-    doc = _doc(
-        "It was great — really great — and more than that — it was — well — everything."
-    )
+    doc = _doc("It was great — really great — and more than that — it was — well — everything.")
     result = FormattingTells().extract(doc, "blog")
     assert result.score > 0.0
 

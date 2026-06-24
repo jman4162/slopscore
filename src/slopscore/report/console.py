@@ -62,6 +62,17 @@ def render(report: Report, console: Console | None = None) -> None:
                 f'"{snippet}" [dim]— {e.explanation}[/dim]'
             )
 
+    if report.baseline is not None:
+        top = sorted(report.baseline.deviations.items(), key=lambda kv: abs(kv[1]), reverse=True)[
+            :5
+        ]
+        console.print(
+            f"\n[bold]Deviation from baseline '{report.baseline.profile_name}'[/bold] (z-score)"
+        )
+        for dim, z in top:
+            mark = "red" if abs(z) >= 2 else "yellow" if abs(z) >= 1 else "dim"
+            console.print(f"  [{mark}]{z:+.1f}σ[/]  {dim}")
+
     console.print()
     for w in report.warnings:
         console.print(f"[dim]> {w}[/dim]")

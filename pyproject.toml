@@ -88,6 +88,8 @@ ignore = ["N818"]  # allow non-"Error"-suffixed exception names
 "src/slopscore/cli.py" = ["B008"]
 # This module's whole job is matching em dashes and curly quotes literally.
 "src/slopscore/features/formatting.py" = ["RUF001", "RUF003"]
+# Uses the sigma glyph intentionally for z-score deviation output.
+"src/slopscore/report/console.py" = ["RUF001"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["slopscore"]
@@ -126,4 +128,5 @@ follow_imports_for_stubs = true
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
+pythonpath = ["src"]
 addopts = "--strict-markers -ra --cov=slopscore --cov-report=term-missing"

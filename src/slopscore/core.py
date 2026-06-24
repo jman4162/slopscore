@@ -43,11 +43,29 @@ class SlopScorer:
         self,
         profile: str = "blog",
         strictness: str | Strictness = Strictness.conservative,
+        baseline: str | None = None,
     ) -> None:
         self.settings = Settings(profile=profile, strictness=Strictness(strictness))
+        self._baseline = self._load_baseline(baseline)
+
+    @staticmethod
+    def _load_baseline(name: str | None):  # type: ignore[no-untyped-def]
+        if name is None:
+            return None
+        from slopscore.scoring.calibrate import load_profile
+
+        profile = load_profile(name)
+        if profile is None:
+            raise FileNotFoundError(
+                f"No calibration baseline named '{name}'. Run `slopscore calibrate` first."
+            )
+        return profile
 
     def _score(self, raw: RawSource) -> Report:
-        return score_document(build_document(raw), self.settings)
+        report = score_document(build_document(raw), self.settings)
+        if self._baseline is not None:
+            report.baseline = self._baseline.compare(report.dimensions)
+        return report
 
     def scan_text(self, text: str, source: str = "<string>") -> Report:
         return self._score(from_string(text, source=source))
