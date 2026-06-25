@@ -3,6 +3,16 @@
 All notable changes to slopscore. The PyPI distribution is `slopscore-lint`; the import package
 and the tool are named `slopscore`.
 
+## Unreleased (v0.7 in progress)
+
+- Rhetorical question-and-answer scaffolds added to `formulaic_structure` ("But what does this
+  mean?", "Sound familiar?", "Here's the thing:", "The answer is simple"), a distinctive AI tell.
+  Validated to keep the fairness gate at 0% FPR on the plain and non-native English slices.
+- Tried and reverted a sentence-length burstiness signal in `cadence_sameness`: it regressed the
+  non-native slice (FPR 0.00 -> 0.17). Sentence-length cadence is too entangled with non-native
+  style to use without richer, fairness-aware features.
+- Roadmap (needs the `[nlp]` stack): spaCy NER for genericity, sentence-transformer redundancy.
+
 ## 0.6.1
 
 - Fix: `slopscore-lint fairness` (and `eval`) failed after `pip install` because the committed eval

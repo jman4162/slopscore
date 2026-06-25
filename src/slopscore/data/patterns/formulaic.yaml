@@ -62,3 +62,35 @@ rules:
     severity: low
     pattern: "\\bever[- ](?:evolving|changing|growing)\\b"
     explanation: "'Ever-evolving' filler modifier."
+
+  # Rhetorical question-and-answer scaffolds: the writer poses a question then immediately answers
+  # it. A distinctive AI/blog tell; rare in plain factual or non-native prose. (v0.6b)
+  - rule_id: FORMULAIC_RHETORICAL_WHAT_MEAN
+    severity: medium
+    pattern: "\\b(?:so |but )?what does (?:this|that|it) mean\\?"
+    explanation: "'What does this mean?' rhetorical question-and-answer scaffold."
+
+  - rule_id: FORMULAIC_RHETORICAL_WHY_MATTER
+    severity: medium
+    pattern: "\\bwhy (?:does (?:this|that|it) matter|is (?:this|that|it) important)\\?"
+    explanation: "'Why does this matter?' rhetorical question-and-answer scaffold."
+
+  - rule_id: FORMULAIC_RHETORICAL_THE_ANSWER
+    severity: low
+    pattern: "\\bthe answer (?:is simple|is yes|is no|may surprise you)\\b"
+    explanation: "'The answer is simple' rhetorical pay-off scaffold."
+
+  - rule_id: FORMULAIC_RHETORICAL_HERES
+    severity: low
+    pattern: "\\bhere(?:'s| is) (?:the thing|why|what|how|the kicker)\\b[:,]"
+    explanation: "'Here's the thing:' rhetorical set-up scaffold."
+
+  - rule_id: FORMULAIC_RHETORICAL_SOUND_FAMILIAR
+    severity: medium
+    pattern: "\\bsound(?:s)? familiar\\?"
+    explanation: "'Sound familiar?' rhetorical hook."
+
+  - rule_id: FORMULAIC_RHETORICAL_WHAT_IF
+    severity: low
+    pattern: "\\bwhat if (?:I|we) told you\\b"
+    explanation: "'What if I told you' rhetorical hook."

@@ -1,8 +1,12 @@
 """Cadence sameness: collapse of sentence-length variety (thin v0.1 implementation).
 
 Pure-tokenization statistics, no POS tagging. Uniform sentence lengths (low coefficient of
-variation) read as monotonous, machine-even prose -> high sameness. POS-tag and syntactic
-repetition features are deferred to the ``[nlp]`` extra in v0.2.
+variation) read as monotonous, machine-even prose -> high sameness.
+
+A burstiness signal (penalize uniform mid-length clustering) was tried and reverted: it regressed
+the non-native English fairness slice (FPR 0.00 -> 0.17). Sentence-length features are too entangled
+with non-native writing style to use safely without richer, fairness-aware features. POS/syntactic
+cadence is deferred to the ``[nlp]`` extra.
 """
 
 from __future__ import annotations
