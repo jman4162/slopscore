@@ -36,3 +36,8 @@ jobs:
           name: dist
           path: dist/
       - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # PEP 740 attestations call Sigstore (rekor.sigstore.dev), which has transient outages
+          # that block publishing. Provenance is optional, so it is disabled to keep releases
+          # reliable; trusted publishing (OIDC) still authenticates the upload.
+          attestations: false
