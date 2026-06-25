@@ -1,5 +1,6 @@
 site_name: slopscore
 site_description: A transparent linter for AI-slop writing patterns (not an AI detector)
+site_url: https://jman4162.github.io/slopscore/
 repo_url: https://github.com/jman4162/slopscore
 theme:
   name: material
@@ -22,7 +23,9 @@ nav:
   - Configuration: configuration.md
   - Suppression: suppression.md
   - Baseline: baseline.md
+  - Benchmark & results: benchmark.md
   - Limitations & authorship: limitations.md
+  - Model card: https://github.com/jman4162/slopscore/blob/main/MODEL_CARD.md
 
 markdown_extensions:
   - admonition

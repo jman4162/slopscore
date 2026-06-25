@@ -1,0 +1,128 @@
+{"text": "The factory opened in 1962 on a 14-acre site east of Cleveland and employed 1,200 people.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "Strauss fought the Navy for two years over the bridge design before work began in 1933.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "We drove to Bend in October; the pass iced over near the summit and the wipers froze twice.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "The cache bug was a race condition. I added a lock, ran the tests fifty times, and shipped it.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "Harian Metro was established in March 1991 as Malaysia's first Malay-language afternoon tabloid.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "The recipe needs 240 grams of flour, two eggs, and a 20-minute rest before the dough is rolled.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "Ellis did most of the math for the towers but received no public credit until the 1990s.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "The river drains 3,400 square kilometers and floods most years after the August monsoon.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "She sold about 200 records a week and graded the used vinyl by eye under a desk lamp.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "The 1977 schedule change raised output 12 percent over two years before the plant closed.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "Voter turnout fell to 41 percent in the off-year election, the lowest since the county began counting.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "The telescope's mirror is 8.1 meters across and was polished to within 25 nanometers of its shape.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "After the merger the firm cut 300 jobs in Leeds and moved accounting to a Manila office.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "The trail climbs 900 meters in four kilometers, then traverses scree below the north face.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "Copper prices rose 4 percent in March on a strike at the Escondida mine in Chile.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "He coached the team for nine seasons, won two titles, and retired after the 2008 final.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "In today's fast-paced world, this platform stands as a testament to innovation, reflecting its broader significance across the evolving landscape.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "It is not just a tool, it is a revolution, fostering a vibrant, dynamic, and transformative ecosystem for everyone involved.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "The festival plays a pivotal role in the region, marking a significant shift and underscoring its enduring cultural importance.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "Experts argue that the initiative leverages a robust, holistic framework, highlighting its lasting impact on the community.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "This comprehensive guide will delve into the intricate tapestry of solutions, empowering readers to unlock their full potential.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "The museum serves as a cornerstone of local identity, contributing to the broader history and showcasing a rich cultural heritage.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "Ultimately, the technology has revolutionized industries, seamlessly weaving together creativity and progress in unprecedented ways.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "The company maintains an active social media presence and has been featured in numerous prominent media outlets, demonstrating its growing influence.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "At its core, the project embodies a multifaceted approach, navigating challenges while fostering meaningful and impactful change.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "Whether you are a beginner or an expert, this solution offers a seamless experience, elevating productivity and illuminating new possibilities.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "The town boasts a diverse array of attractions, nestled in the heart of a region renowned for its breathtaking natural beauty.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "Moreover, the framework underscores the crucial interplay between strategy and execution, reflecting a deeper commitment to excellence.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "Despite its success, the program faces several challenges; however, ongoing initiatives position it to continue to thrive in the years ahead.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "The artist's work is a vibrant tapestry of emotion and meaning, resonating deeply and leaving an indelible mark on contemporary culture.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "Founded in 2014, the startup stands as a testament to innovation, and its 40-person team in Austin continues to foster a dynamic and transformative culture.", "label": 1, "bucket": "edited_llm", "subgroup": "general"}
+{"text": "The 1.2-kilometer promenade, opened in 2019, plays a pivotal role in the city, reflecting a broader movement toward walkable, vibrant public space.", "label": 1, "bucket": "edited_llm", "subgroup": "general"}
+{"text": "Dr. Mensah's lab leverages a robust methodology and, with 18 published papers, underscores the enduring significance of its work on coral resilience.", "label": 1, "bucket": "edited_llm", "subgroup": "general"}
+{"text": "The 320-page report, released in March, highlights the intricate interplay of policy and markets, contributing to the broader conversation on housing.", "label": 1, "bucket": "edited_llm", "subgroup": "general"}
+{"text": "Now serving 5,000 daily riders, the line serves as a cornerstone of regional transit, showcasing the area's commitment to sustainable growth.", "label": 1, "bucket": "edited_llm", "subgroup": "general"}
+{"text": "The cafe, which roasts 200 kilograms a week, embodies a holistic philosophy, fostering a rich tapestry of community and craft on Glebe Point Road.", "label": 1, "bucket": "edited_llm", "subgroup": "general"}
+{"text": "Released in 2021 to strong reviews, the album is more than just a record; it is a bold, genre-blending statement that marks a turning point for the band.", "label": 1, "bucket": "edited_llm", "subgroup": "general"}
+{"text": "With a 12-megawatt capacity, the plant not only powers 9,000 homes but also exemplifies a transformative shift toward a cleaner, more resilient grid.", "label": 1, "bucket": "edited_llm", "subgroup": "general"}
+{"text": "Our team is passionate about delivering best-in-class solutions that exceed expectations and drive real results for businesses of all sizes.", "label": 1, "bucket": "human_bad", "subgroup": "general"}
+{"text": "We pride ourselves on world-class service and a customer-first mindset that sets us apart from the competition in every way that matters.", "label": 1, "bucket": "human_bad", "subgroup": "general"}
+{"text": "Unlock the power of next-generation tools designed to take your workflow to the next level and beyond, today and into the future.", "label": 1, "bucket": "human_bad", "subgroup": "general"}
+{"text": "Our cutting-edge platform empowers you to achieve more, faster, with seamless integrations and unparalleled flexibility at your fingertips.", "label": 1, "bucket": "human_bad", "subgroup": "general"}
+{"text": "Discover a smarter way to work with our innovative suite of products, trusted by thousands of happy customers around the globe.", "label": 1, "bucket": "human_bad", "subgroup": "general"}
+{"text": "We are committed to excellence and dedicated to helping you succeed every step of the way, no matter how big or small your goals.", "label": 1, "bucket": "human_bad", "subgroup": "general"}
+{"text": "Experience the difference that true quality makes, with premium materials and timeless design crafted to last a lifetime.", "label": 1, "bucket": "human_bad", "subgroup": "general"}
+{"text": "Transform your business with our game-changing approach that redefines what's possible and delivers value you can count on.", "label": 1, "bucket": "human_bad", "subgroup": "general"}
+{"text": "The man walks to the shop. He buys bread and milk. He pays with coins and goes home.", "label": 0, "bucket": "human_good", "subgroup": "simple_english"}
+{"text": "My city is near the sea. In summer many people come. They swim and eat fish by the water.", "label": 0, "bucket": "human_good", "subgroup": "simple_english"}
+{"text": "She studies at night. She wants to be a nurse. The school is far, so she takes two buses.", "label": 0, "bucket": "human_good", "subgroup": "simple_english"}
+{"text": "The farm has cows and a dog. We wake up early. We give the cows water and clean the barn.", "label": 0, "bucket": "human_good", "subgroup": "simple_english"}
+{"text": "I like to read books. My favorite book is about a boat. The boat sails to a small island.", "label": 0, "bucket": "human_good", "subgroup": "simple_english"}
+{"text": "He fixed the bike. The chain was loose. Now the bike works well and he rides it to work.", "label": 0, "bucket": "human_good", "subgroup": "simple_english"}
+{"text": "We planted beans in May. The rain came late. In July we picked the beans and made soup.", "label": 0, "bucket": "human_good", "subgroup": "simple_english"}
+{"text": "The bus was late today. I waited in the cold. When it came, I found a seat near the door.", "label": 0, "bucket": "human_good", "subgroup": "simple_english"}
+{"text": "The dam holds back 29 billion cubic meters and took eight years to build, finishing in 1968.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "Apple shipped the first iPhone in June 2007 at 499 dollars for the 4-gigabyte model.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "The marathon route climbs 140 meters over the first 10 kilometers, then drops to the harbor.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "She ran the bakery for 22 years and sold roughly 300 loaves a day from a single wood oven.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "The 1923 earthquake destroyed most of the wooden city; rebuilding used reinforced concrete.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "The patch fixed a memory leak that grew about 4 megabytes an hour under the old cache code.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "Wheat prices fell 6 percent in August after India lifted its export ban on common varieties.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "The orchestra has 88 players and tours for nine weeks each spring, mostly by overnight train.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "He logged 1,140 dives over 30 years and mapped three wrecks off the Cornish coast.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "The library added 12,000 titles in 2019 and now lends e-books to 40,000 county residents.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "The bridge carries 60,000 vehicles a day and was repainted over four summers from 2015.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "Rainfall hit 210 millimeters in two days, flooding the lower town and closing the rail line.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "The vaccine trial enrolled 4,200 people across six clinics and ran for 14 months.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "They restored the 1949 tractor over a winter, machining a new gear when no part could be found.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "In an ever-evolving digital landscape, this solution empowers organizations to unlock unprecedented value and drive meaningful transformation.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "It is important to note that this approach represents a paradigm shift, fundamentally reshaping how we think about the future.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "From bustling cities to serene countryside, the region offers a rich tapestry of experiences for every kind of traveler.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "This groundbreaking initiative not only fosters innovation but also cultivates a culture of collaboration and shared purpose.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "Navigating the complexities of modern life requires a holistic, multifaceted approach that embraces both challenge and opportunity.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "Ultimately, the platform serves as a beacon of progress, illuminating the path toward a brighter and more inclusive tomorrow.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "By leveraging cutting-edge technology, the team is poised to redefine the boundaries of what is truly possible.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "This essay will delve into the multifaceted dimensions of the issue, shedding light on its profound and far-reaching implications.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "With its unwavering commitment to excellence, the company continues to set new standards and inspire those around it.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "The findings underscore the critical importance of fostering resilience in an increasingly interconnected and dynamic world.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "As we move forward, it becomes increasingly clear that collaboration is the cornerstone of sustainable, long-term success.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "This vibrant community thrives on creativity and passion, weaving together diverse voices into a harmonious whole.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "Founded in 2016 in Tallinn, the firm has 75 employees and stands as a testament to the transformative power of bold, visionary thinking.", "label": 1, "bucket": "edited_llm", "subgroup": "general"}
+{"text": "The 4.5-kilometer tunnel, opened in 2022, is more than mere infrastructure; it embodies a community's enduring spirit of resilience and progress.", "label": 1, "bucket": "edited_llm", "subgroup": "general"}
+{"text": "With 31 patents to its name, the lab leverages a holistic methodology, underscoring the profound significance of its pioneering work.", "label": 1, "bucket": "edited_llm", "subgroup": "general"}
+{"text": "The 2020 census counted 84,000 residents, a vibrant tapestry of cultures that continues to shape the city's dynamic and evolving identity.", "label": 1, "bucket": "edited_llm", "subgroup": "general"}
+{"text": "Processing 12 tons of beans a year, the cooperative is a shining example of how passion and purpose can drive truly meaningful change.", "label": 1, "bucket": "edited_llm", "subgroup": "general"}
+{"text": "The album reached number three in 1998, yet its real legacy lies in how it redefined a genre and inspired a generation of artists.", "label": 1, "bucket": "edited_llm", "subgroup": "general"}
+{"text": "Spanning 600 hectares, the reserve is not just a park but a living testament to the delicate, intricate balance of the natural world.", "label": 1, "bucket": "edited_llm", "subgroup": "general"}
+{"text": "Serving 2,300 patients monthly, the clinic exemplifies a patient-first philosophy that fosters trust, healing, and lasting wellbeing.", "label": 1, "bucket": "edited_llm", "subgroup": "general"}
+{"text": "Elevate your everyday with premium essentials thoughtfully designed to inspire confidence and spark joy in every moment.", "label": 1, "bucket": "human_bad", "subgroup": "general"}
+{"text": "Our mission is simple: to empower dreamers and doers everywhere with tools that turn bold ideas into reality.", "label": 1, "bucket": "human_bad", "subgroup": "general"}
+{"text": "Join a movement of forward-thinkers redefining the future, one breakthrough at a time, with passion and purpose.", "label": 1, "bucket": "human_bad", "subgroup": "general"}
+{"text": "Say goodbye to limits and hello to possibility with a platform built to scale alongside your wildest ambitions.", "label": 1, "bucket": "human_bad", "subgroup": "general"}
+{"text": "We blend artistry and innovation to craft unforgettable experiences that delight, inspire, and exceed every expectation.", "label": 1, "bucket": "human_bad", "subgroup": "general"}
+{"text": "Trusted by industry leaders worldwide, our solutions deliver unmatched performance and value you can truly believe in.", "label": 1, "bucket": "human_bad", "subgroup": "general"}
+{"text": "Unlock your team's full potential with intuitive, powerful tools designed for the way modern teams actually work.", "label": 1, "bucket": "human_bad", "subgroup": "general"}
+{"text": "Experience next-level comfort and timeless style, crafted with care and built to move with you wherever life leads.", "label": 1, "bucket": "human_bad", "subgroup": "general"}
+{"text": "The dog is brown. It likes to run in the park. Every morning my sister walks it before school.", "label": 0, "bucket": "human_good", "subgroup": "simple_english"}
+{"text": "We cook rice for dinner. My mother adds beans and a little salt. We eat together at seven.", "label": 0, "bucket": "human_good", "subgroup": "simple_english"}
+{"text": "The shop opens at eight. It sells bread, eggs, and milk. The old man there knows my name.", "label": 0, "bucket": "human_good", "subgroup": "simple_english"}
+{"text": "It rained all day. The street had water on it. I wore boots and jumped over the big puddles.", "label": 0, "bucket": "human_good", "subgroup": "simple_english"}
+{"text": "My uncle drives a bus. He starts work at five. He says the city is quiet early in the morning.", "label": 0, "bucket": "human_good", "subgroup": "simple_english"}
+{"text": "The cat sleeps on the chair. In the day it sits by the window. At night it hunts in the yard.", "label": 0, "bucket": "human_good", "subgroup": "simple_english"}
+{"text": "I am working in this company since three years. My job is to test the software. Last month we found 42 bugs and fixed them before the release.", "label": 0, "bucket": "human_good", "subgroup": "non_native"}
+{"text": "My village have one school and one clinic. The road to the town take two hours by bus. Many people there grow rice and keep some chickens.", "label": 0, "bucket": "human_good", "subgroup": "non_native"}
+{"text": "Yesterday I go to the market and buy three kilos of tomato and one fish. The price was high because of the rain last week.", "label": 0, "bucket": "human_good", "subgroup": "non_native"}
+{"text": "She is studying engineering in the second year. She want to build bridges in her country. The exam is in next month and she study every night.", "label": 0, "bucket": "human_good", "subgroup": "non_native"}
+{"text": "Our team win the match by two goals. The weather was cold and the field was wet. After the game we eat together in a small restaurant.", "label": 0, "bucket": "human_good", "subgroup": "non_native"}
+{"text": "I came to this city in 2019 for my master degree. First the winter was very hard for me. Now I have many friends and I like it here.", "label": 0, "bucket": "human_good", "subgroup": "non_native"}
+{"text": "The factory where my father works make car parts. He is there since 15 years. They produce about 500 pieces in one day.", "label": 0, "bucket": "human_good", "subgroup": "non_native"}
+{"text": "My grandmother cook very well. On Sunday she make a soup with seven vegetables. All the family come to her house to eat it.", "label": 0, "bucket": "human_good", "subgroup": "non_native"}
+{"text": "Last summer we travel to the mountains by train. The journey was eight hours. We stay in a small house and walk every day to the lake.", "label": 0, "bucket": "human_good", "subgroup": "non_native"}
+{"text": "In my country the school start in April. The children wear uniform. The classes are big, sometimes 50 students in one room.", "label": 0, "bucket": "human_good", "subgroup": "non_native"}
+{"text": "I am learning to drive since two months. The teacher is patient. Yesterday I drive on the highway for the first time and I was nervous.", "label": 0, "bucket": "human_good", "subgroup": "non_native"}
+{"text": "My brother repair phones in a small shop. He fix maybe ten phones in one day. He learn this work from a video on the internet.", "label": 0, "bucket": "human_good", "subgroup": "non_native"}
+{"text": "This product is very best in the market and give you many benefits for your life and your family happiness forever.", "label": 1, "bucket": "human_bad", "subgroup": "non_native"}
+{"text": "Our company is leader in innovation and always provide the most excellent service for make all customers very satisfied.", "label": 1, "bucket": "human_bad", "subgroup": "non_native"}
+{"text": "Tungsten has the highest melting point of any metal, 3,422 degrees Celsius, and is used in light-bulb filaments.", "label": 0, "bucket": "web_quality", "subgroup": "general"}
+{"text": "The Treaty of Westphalia, signed in 1648, ended the Thirty Years' War and is often cited in histories of state sovereignty.", "label": 0, "bucket": "web_quality", "subgroup": "general"}
+{"text": "Photosynthesis converts carbon dioxide and water into glucose and oxygen using light energy captured by chlorophyll.", "label": 0, "bucket": "web_quality", "subgroup": "general"}
+{"text": "The standard railway gauge of 1,435 millimeters was adopted in Britain and spread with British-built railways.", "label": 0, "bucket": "web_quality", "subgroup": "general"}
+{"text": "A leap year occurs every four years except for years divisible by 100 but not by 400, such as 1900.", "label": 0, "bucket": "web_quality", "subgroup": "general"}
+{"text": "The Mariana Trench reaches about 10,935 meters at the Challenger Deep, the deepest known point in the ocean.", "label": 0, "bucket": "web_quality", "subgroup": "general"}
+{"text": "Click here now to claim your free trial! Limited time only. Subscribe today and save 50 percent on all plans, plus a bonus gift!", "label": 1, "bucket": "web_quality", "subgroup": "general"}
+{"text": "Home | About | Services | Blog | Contact. Copyright 2026. All rights reserved. Terms of Service. Privacy Policy. Sitemap.", "label": 1, "bucket": "web_quality", "subgroup": "general"}
+{"text": "Best cheap deals online!!! Buy now, pay later. Hot offers updated daily. Don't miss out, shop the sale before it ends tonight!", "label": 1, "bucket": "web_quality", "subgroup": "general"}
+{"text": "Sign up for our newsletter to receive exclusive offers, expert tips, and the latest updates delivered straight to your inbox.", "label": 1, "bucket": "web_quality", "subgroup": "general"}
+{"text": "Top 10 best products you must buy in 2026! Number 7 will shock you. Read on to discover our ultimate buyer's guide.", "label": 1, "bucket": "web_quality", "subgroup": "general"}
+{"text": "This website uses cookies to enhance your experience. By continuing to browse, you accept our use of cookies. Accept all and continue.", "label": 1, "bucket": "web_quality", "subgroup": "general"}

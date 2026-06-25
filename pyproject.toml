@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 # PyPI distribution name ("slopscore" was already taken by a different, similar tool). The import
 # package stays `slopscore`; the CLI command is `slopscore-lint` (scikit-learn / sklearn pattern).
 name = "slopscore-lint"
-version = "0.4.2"
+version = "0.5.0"
 description = "Transparent AI-slop writing-pattern analysis for essays, blog posts, Markdown, JSON, and websites."
 readme = "README.md"
 license = "MIT"
@@ -105,8 +105,8 @@ ignore = ["N818"]  # allow non-"Error"-suffixed exception names
 "src/slopscore/report/console.py" = ["RUF001"]
 # Inline HTML template: long lines and severity glyphs are intentional.
 "src/slopscore/report/html.py" = ["E501", "RUF001"]
-# Hand-authored text corpus: long example lines are intentional.
-"scripts/eval/build_seed.py" = ["E501"]
+# Eval/data scripts: long hand-authored corpus lines, prints, and trusted-public-API urlopen.
+"scripts/eval/*.py" = ["E501", "S310"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["slopscore"]

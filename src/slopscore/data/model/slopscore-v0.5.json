@@ -1,0 +1,58 @@
+{
+  "model_version": "0.5.0",
+  "model_type": "logistic_regression_sign_constrained",
+  "n_train": 128,
+  "n_positive": 66,
+  "feature_order": [
+    "lexical_markers",
+    "formulaic_structure",
+    "genericity",
+    "redundancy",
+    "cadence_sameness",
+    "unsupported_claims",
+    "prompt_residue",
+    "significance_inflation",
+    "superficial_analysis",
+    "weasel_attribution",
+    "parallelism",
+    "copula_avoidance",
+    "formatting_tells",
+    "human_writing_signals"
+  ],
+  "bias": -1.229113,
+  "weights": [
+    2.423948,
+    0.96163,
+    1.158032,
+    0.0,
+    0.0,
+    0.002262,
+    0.0,
+    0.971715,
+    0.835917,
+    0.288047,
+    0.717118,
+    1.244943,
+    0.0,
+    -0.562469
+  ],
+  "calibration": {
+    "method": "platt",
+    "a": 1.711665,
+    "b": 0.225975
+  },
+  "metrics_oof": {
+    "n": 128,
+    "n_positive": 66,
+    "auroc": 0.9025,
+    "pr_auc": 0.9239,
+    "tpr_at_1fpr": 0.6667,
+    "tpr_at_5fpr": 0.6667,
+    "ece": 0.0645,
+    "brier": 0.1203
+  },
+  "training_sources": [
+    "benchmark.jsonl (hand-authored, permissive)"
+  ],
+  "notes": "Trained on the committed benchmark; opt-in (--scorer ml). The rule scorer stays the default under the replace-if-wins gate. See DATA_SOURCES.md and MODEL_CARD.md."
+}

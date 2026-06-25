@@ -1,4 +1,4 @@
-# slopscore model card (v0.2)
+# slopscore model card (v0.5)
 
 ## What it does
 
@@ -60,7 +60,7 @@ Vocabulary drifts by model era (GPT-4 → GPT-4o → GPT-5); the lexicon tags te
 v0.3 adds an evaluation framework (`slopscore-lint eval`) and a transparent learned scorer: a
 **sign-constrained, Platt-calibrated logistic regression** over the 13 interpretable dimensions
 (slop dimensions weight ≥ 0, `human_writing_signals` ≤ 0). It is serialized as auditable JSON
-(`data/model/slopscore-v0.3.json`) and runs with pure numpy at scan time, `--scorer ml`.
+(`data/model/slopscore-v0.5.json`) and runs with pure numpy at scan time, `--scorer ml`.
 
 **The rule scorer remains the default.** Under the replace-if-wins gate, the learned model must
 both (a) not lose on TPR@1%FPR and (b) not regress any subgroup false-positive rate. On the
@@ -100,6 +100,42 @@ more authorship signal from the same 13 features nonlinearly (PR-AUC 0.75). We *
 LightGBM**: it needs trees at scan time (breaking the pure-numpy path), and optimizing it against
 authorship labels would turn slopscore into an authorship detector, the one thing it refuses to be. The **shipped model stays the seed-trained, slop-labeled LR**, and
 the **rule scorer stays the default**. The shipped model is never trained on MAGE.
+
+## v0.5: slop-labeled benchmark
+
+v0.5 adds a real slop-labeled benchmark and retrains the learned scorer on it. Full numbers and
+reproduction are in `eval/RESULTS.md` (`python scripts/eval/report.py`). Two evaluation sets:
+
+- `eval/datasets/benchmark.jsonl` (128 rows): hand-authored, taxonomy-graded (Shaib et al.,
+  "Measuring AI Slop", arXiv:2509.19163) slop vs clean text, with `simple_english` and `non_native`
+  fairness slices. In-sample (overlaps the training seed); measures discrimination on overt slop.
+- Wikipedia AI-Cleanup (40 rows): articles editors flagged as suspected AI-generated vs random
+  articles. Held-out and eval-only (subjective labels, never used for training).
+
+| set | scorer | AUROC | PR-AUC | TPR@1%FPR | ECE |
+|---|---|---|---|---|---|
+| benchmark (overt slop, in-sample) | rules | 0.89 | 0.91 | 0.65 | 0.18 |
+| benchmark | ml | 0.92 | 0.94 | 0.68 | 0.06 |
+| Wikipedia AI-Cleanup (held-out) | rules | 0.69 | 0.65 | 0.00 | 0.39 |
+
+**Honest reading.** slopscore separates overt formulaic slop from clean prose well, but on real
+Wikipedia cases it is only moderately better than chance (AUROC 0.69) and catches essentially none
+of the flagged articles at a strict 1%-false-positive threshold. That gap is the real limitation,
+and it is why the accuracy framing stays modest rather than being relaxed.
+
+Per-subgroup false-positive rate on the benchmark, which keeps the rule scorer the default:
+
+| subgroup | n | rules FPR | ml FPR |
+|---|---|---|---|
+| general | 100 | 0.00 | 0.06 |
+| simple_english | 14 | 0.00 | 0.71 |
+| non_native | 14 | 0.00 | 0.33 |
+
+The learned model, retrained on the benchmark (`slopscore-v0.5.json`), edges the rule scorer on raw
+metrics but over-flags simple and non-native English. The replace-if-wins gate therefore keeps the
+transparent rule scorer as the default; `--scorer ml` stays opt-in. The fairness guardrail is now
+**measured on a non-native slice**, not just asserted: the rule scorer's false-positive rate on
+that slice is 0.00.
 
 ## Changes from v0.1
 

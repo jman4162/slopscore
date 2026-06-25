@@ -1,5 +1,11 @@
 # slopscore
 
+[![PyPI](https://img.shields.io/pypi/v/slopscore-lint.svg)](https://pypi.org/project/slopscore-lint/)
+[![Python](https://img.shields.io/pypi/pyversions/slopscore-lint.svg)](https://pypi.org/project/slopscore-lint/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![CI](https://github.com/jman4162/slopscore/actions/workflows/ci.yml/badge.svg)](https://github.com/jman4162/slopscore/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://jman4162.github.io/slopscore/)
+
 A transparent **linter for AI-slop writing patterns** in essays, blog posts, Markdown, JSON, and
 websites.
 

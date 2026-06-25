@@ -22,9 +22,13 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold
 
 from slopscore.core import SlopScorer
-from slopscore.eval.datasets import load_seed
+from slopscore.eval.datasets import load_jsonl
 from slopscore.eval.metrics import compute_metrics
 from slopscore.scoring.model import FEATURE_ORDER, feature_vector
+
+# Train on the committed benchmark (hand-authored, permissive, train-eligible). It includes the
+# seed and adds simple-English / non-native negatives so the learned model sees the fairness slices.
+_BENCHMARK = Path(__file__).resolve().parents[2] / "eval" / "datasets" / "benchmark.jsonl"
 
 SEED = 13
 # Sign bounds per FEATURE_ORDER: slop dims >= 0; the final human-writing signal <= 0.
@@ -63,7 +67,7 @@ def _platt(logits: np.ndarray, y: np.ndarray) -> tuple[float, float]:
 
 
 def main() -> None:
-    rows = load_seed()
+    rows = load_jsonl(_BENCHMARK)
     texts = [r.text for r in rows]
     y = np.array([r.label for r in rows])
     x = _features(texts)
@@ -82,7 +86,7 @@ def main() -> None:
     # Final model on all data, paired with the OOF-derived calibration.
     bias, w = _fit_constrained(x, y)
     model = {
-        "model_version": "0.3.0",
+        "model_version": "0.5.0",
         "model_type": "logistic_regression_sign_constrained",
         "n_train": len(y),
         "n_positive": int(y.sum()),
@@ -91,16 +95,17 @@ def main() -> None:
         "weights": [round(float(v), 6) for v in w],
         "calibration": {"method": "platt", "a": round(a, 6), "b": round(b, 6)},
         "metrics_oof": metrics,
-        "training_sources": ["seed.jsonl (hand-authored, permissive)"],
-        "notes": "Trained on the small committed seed set; see DATA_SOURCES.md and MODEL_CARD.md.",
+        "training_sources": ["benchmark.jsonl (hand-authored, permissive)"],
+        "notes": "Trained on the committed benchmark; opt-in (--scorer ml). The rule scorer stays "
+        "the default under the replace-if-wins gate. See DATA_SOURCES.md and MODEL_CARD.md.",
     }
 
     out = Path(__file__).resolve().parents[2] / "src" / "slopscore" / "data" / "model"
     out.mkdir(parents=True, exist_ok=True)
-    (out / "slopscore-v0.3.json").write_text(json.dumps(model, indent=2) + "\n", encoding="utf-8")
+    (out / "slopscore-v0.5.json").write_text(json.dumps(model, indent=2) + "\n", encoding="utf-8")
     print("OOF metrics:", metrics)
     print("weights:", dict(zip([d.value for d in FEATURE_ORDER], model["weights"], strict=True)))
-    print(f"wrote {out / 'slopscore-v0.3.json'}")
+    print(f"wrote {out / 'slopscore-v0.5.json'}")
 
 
 if __name__ == "__main__":

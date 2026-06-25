@@ -36,7 +36,7 @@ FEATURE_ORDER: tuple[Dimension, ...] = (
     Dimension.human_writing_signals,
 )
 
-_MODEL_FILE = ("model", "slopscore-v0.3.json")
+_MODEL_FILE = ("model", "slopscore-v0.5.json")
 
 
 def feature_vector(dims: Dimensions) -> list[float]:

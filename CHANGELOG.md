@@ -3,6 +3,20 @@
 All notable changes to slopscore. The PyPI distribution is `slopscore-lint`; the import package
 and the tool are named `slopscore`.
 
+## 0.5.0
+
+- Real slop-labeled benchmark: `eval/datasets/benchmark.jsonl` (128 rows, hand-authored and
+  taxonomy-graded per `eval/RUBRIC.md`), with `simple_english` and `non_native` fairness slices.
+- Held-out, eval-only real-world slice via `scripts/eval/fetch.py wiki_aicleanup` (Wikipedia
+  WikiProject AI Cleanup); lightweight HTTP fetchers for FineWeb-Edu and FinerWeb too.
+- Committed evaluation report (`eval/RESULTS.md`, `eval/results.json`, `scripts/eval/report.py`)
+  with measured numbers: benchmark PR-AUC 0.91, and a held-out Wikipedia AUROC of 0.69 that keeps
+  the accuracy framing modest.
+- Retrained the opt-in learned scorer on the benchmark (`slopscore-v0.5.json`). It improves
+  calibration but over-flags simple and non-native English (FPR 0.71 / 0.33 vs 0.00 for rules), so
+  the replace-if-wins gate keeps the transparent rule scorer as the default.
+- README badges; docs site `site_url`, a Benchmark page, and a Model Card nav link.
+
 ## 0.4.2
 
 - Scrubbed the README, docs, and model card of the writing patterns the tool flags (em dashes and
