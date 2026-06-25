@@ -23,9 +23,15 @@ STRICTNESS_GAIN: dict[Strictness, float] = {
 }
 
 
+class Scorer(StrEnum):
+    rules = "rules"  # hand-set weights + corroboration gate
+    ml = "ml"  # learned logistic-regression model (data/model/slopscore-v0.3.json)
+
+
 class Settings(BaseModel):
     profile: str = "blog"
     strictness: Strictness = Strictness.conservative
+    scorer: Scorer = Scorer.rules
     # Below this word count, confidence is heavily suppressed (spec: <300 words).
     min_reliable_words: int = 300
 

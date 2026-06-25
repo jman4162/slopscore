@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "slopscore"
-version = "0.2.1"
+version = "0.3.0"
 description = "Transparent AI-slop writing-pattern analysis for essays, blog posts, Markdown, JSON, and websites."
 readme = "README.md"
 license = "MIT"
@@ -44,6 +44,8 @@ nlp = ["spacy>=3.7", "sentence-transformers>=3.0"]
 lang = ["lingua-language-detector>=2.0"]
 # HTML report rendering (Jinja2 autoescaping).
 report = ["jinja2>=3.1"]
+# Fetching the large public evaluation corpora (scripts/eval/fetch.py).
+eval = ["datasets>=2.19", "huggingface-hub>=0.23"]
 # Placeholder for v0.4 authorship-signal detector adapters.
 detectors = []
 all = [
@@ -94,6 +96,8 @@ ignore = ["N818"]  # allow non-"Error"-suffixed exception names
 "src/slopscore/report/console.py" = ["RUF001"]
 # Inline HTML template: long lines and severity glyphs are intentional.
 "src/slopscore/report/html.py" = ["E501", "RUF001"]
+# Hand-authored text corpus: long example lines are intentional.
+"scripts/eval/build_seed.py" = ["E501"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["slopscore"]

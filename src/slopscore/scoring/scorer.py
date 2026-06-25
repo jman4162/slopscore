@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import math
 
-from slopscore.config import STRICTNESS_GAIN, Settings
+from slopscore.config import STRICTNESS_GAIN, Scorer, Settings
 from slopscore.document import Document
 from slopscore.features.base import registry
 from slopscore.models import (
@@ -39,15 +39,10 @@ def _sigmoid(x: float) -> float:
     return 1.0 / (1.0 + math.exp(-x))
 
 
-def score_document(doc: Document, settings: Settings) -> Report:
-    results: list[FeatureResult] = [f.extract(doc, settings.profile) for f in registry()]
-    by_dim: dict[Dimension, float] = {r.dimension: r.score for r in results}
-
-    # Positive (slop-raising) dimensions that are elevated, ignoring the negative human signal.
-    elevated = {
-        d for d, v in by_dim.items() if v > ELEVATED and d is not Dimension.human_writing_signals
-    }
-
+def _score_rules(
+    by_dim: dict[Dimension, float], settings: Settings, elevated: set[Dimension]
+) -> tuple[float, list[str]]:
+    """Hand-set weighted sum with the corroboration gate. Returns (slop_score, gated_notes)."""
     multipliers = profile_multipliers(settings.profile)
     logit = BIAS
     gated_notes: list[str] = []
@@ -55,13 +50,37 @@ def score_document(doc: Document, settings: Settings) -> Report:
         value = by_dim.get(dim, 0.0)
         gate = 1.0
         if dim in WEAK_DIMENSIONS and dim in elevated and elevated == {dim}:
-            # This weak dimension is the ONLY elevated signal -> damp it.
             gate = LONE_WEAK_DAMP
             gated_notes.append(dim.value)
         logit += weight * multipliers.get(dim, 1.0) * gate * value
-
     logit *= STRICTNESS_GAIN[settings.strictness]
-    slop_score = round(100.0 * _sigmoid(logit), 1)
+    return round(100.0 * _sigmoid(logit), 1), gated_notes
+
+
+def _score_ml(by_dim: dict[Dimension, float]) -> float:
+    """Learned logistic-regression score over the raw dimension vector (no corroboration gate;
+    the model's learned weights and calibration are the scoring rule)."""
+    from slopscore.models import Dimensions
+    from slopscore.scoring.model import feature_vector, load_model
+
+    dims = Dimensions(**{d.value: v for d, v in by_dim.items()})
+    return load_model().slop_score(feature_vector(dims))
+
+
+def score_document(doc: Document, settings: Settings) -> Report:
+    results: list[FeatureResult] = [f.extract(doc, settings.profile) for f in registry()]
+    by_dim: dict[Dimension, float] = {r.dimension: r.score for r in results}
+
+    # Positive (slop-raising) dimensions that are elevated, ignoring the negative human signal.
+    elevated: set[Dimension] = {
+        d for d, v in by_dim.items() if v > ELEVATED and d is not Dimension.human_writing_signals
+    }
+
+    gated_notes: list[str] = []
+    if settings.scorer is Scorer.ml:
+        slop_score = _score_ml(by_dim)
+    else:
+        slop_score, gated_notes = _score_rules(by_dim, settings, elevated)
 
     confidence, conf_warnings = compute_confidence(doc, settings)
     abstained_reason = abstain_reason(doc, settings, elevated_count=len(elevated))

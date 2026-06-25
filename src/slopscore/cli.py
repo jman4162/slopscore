@@ -9,7 +9,7 @@ import typer
 from rich.console import Console
 from rich.markup import escape
 
-from slopscore.config import Strictness
+from slopscore.config import Scorer, Strictness
 from slopscore.core import SlopScorer
 from slopscore.ingest import looks_like_url
 from slopscore.ingest.batch import iter_paths
@@ -17,6 +17,7 @@ from slopscore.ingest.website import WebExtraNotInstalled
 from slopscore.models import Report
 from slopscore.report import render_batch, render_console, to_json, to_markdown, to_sarif
 from slopscore.report.batch import build_batch_report, fail_threshold_rank, max_severity
+from slopscore.scoring.model import ModelNotTrained
 from slopscore.scoring.profiles import KNOWN_PROFILES
 
 app = typer.Typer(
@@ -80,6 +81,9 @@ def scan(
     baseline: str | None = typer.Option(
         None, "--baseline", "-b", help="Compare against a personal baseline from `calibrate`."
     ),
+    scorer: Scorer = typer.Option(
+        Scorer.rules, "--scorer", help="Scoring engine: rules (default) or ml (learned model)."
+    ),
     recursive: bool = typer.Option(False, "--recursive", "-r", help="Recurse into a directory."),
     diff: str | None = typer.Option(
         None, "--diff", help="Scan only files changed vs a git ref (e.g. origin/main)."
@@ -91,7 +95,9 @@ def scan(
 ) -> None:
     """Scan a file, directory, URL, or stdin for AI-slop writing patterns."""
     try:
-        scorer = SlopScorer(profile=profile, strictness=strictness, baseline=baseline)
+        engine = SlopScorer(
+            profile=profile, strictness=strictness, baseline=baseline, scorer=scorer
+        )
     except FileNotFoundError as exc:
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=2) from exc
@@ -99,15 +105,18 @@ def scan(
     paths = _resolve_batch_paths(targets, recursive=recursive, diff=diff)
     try:
         if paths is not None:
-            reports = [scorer.scan_file(p) for p in paths]
+            reports = [engine.scan_file(p) for p in paths]
             _emit_batch(reports, profile, strictness.value, fmt, output)
         else:
-            report = _scan_single(scorer, targets[0], json_path)
+            report = _scan_single(engine, targets[0], json_path)
             _emit_single(report, fmt, output)
             reports = [report]
     except WebExtraNotInstalled as exc:
         # escape() keeps the literal "[web]" in the hint from being parsed as Rich markup.
         err_console.print(f"[yellow]{escape(str(exc))}[/yellow]")
+        raise typer.Exit(code=3) from exc
+    except ModelNotTrained as exc:
+        err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=3) from exc
 
     if max_severity(reports) >= fail_threshold_rank(fail_on.value):
@@ -240,6 +249,58 @@ def calibrate(
         f"Saved baseline [cyan]{name}[/cyan]: {prof.n_docs} docs, {total_words} words{note}\n"
         f"  -> {saved}\n  Use it with: slopscore scan FILE --baseline {name}"
     )
+
+
+@app.command(name="eval")
+def eval_cmd(
+    dataset: Path | None = typer.Option(
+        None, "--dataset", help="Labeled JSONL (text,label). Defaults to the committed seed set."
+    ),
+    profile: str = typer.Option("blog", "--profile", "-p"),
+    output: Path | None = typer.Option(None, "--output", "-o", help="Write JSON metrics here."),
+) -> None:
+    """Evaluate both scorers (rules and ml) on a labeled set: TPR@FPR, PR-AUC, calibration, and
+    per-subgroup false-positive rates. Reports honest numbers and the replace-if-wins decision."""
+    import json as _json
+
+    from slopscore.eval.datasets import load_jsonl, load_seed
+    from slopscore.eval.harness import evaluate, should_promote
+    from slopscore.scoring.model import model_available
+
+    rows = load_jsonl(dataset) if dataset else load_seed()
+    results = {"rules": evaluate(rows, profile=profile, scorer="rules")}
+    if model_available():
+        results["ml"] = evaluate(rows, profile=profile, scorer="ml")
+
+    for kind, res in results.items():
+        m = res["metrics"]
+        console.print(
+            f"[bold]{kind}[/bold]  TPR@1%FPR {m['tpr_at_1fpr']:.3f}  "
+            f"TPR@5%FPR {m['tpr_at_5fpr']:.3f}  PR-AUC {m['pr_auc']:.3f}  "
+            f"ECE {m['ece']:.3f}  Brier {m['brier']:.3f}"
+        )
+        for grp, fr in res["fairness"].items():
+            console.print(
+                f"    [dim]{grp}: FPR {fr['fpr']:.2f}  abstain {fr['abstention_rate']:.2f} "
+                f"(n={fr['n']})[/dim]"
+            )
+
+    if "ml" in results:
+        if dataset is None:
+            console.print(
+                "[yellow]Note: ml metrics on the seed set are in-sample (the model trained on "
+                "it); see training out-of-fold numbers in MODEL_CARD.md.[/yellow]"
+            )
+        promote = should_promote(results["rules"], results["ml"])
+        console.print(
+            f"\nReplace-if-wins (TPR@1%FPR + no subgroup-FPR regression): ml "
+            f"{'WOULD' if promote else 'does NOT'} qualify -> default stays "
+            f"[bold]{'ml' if promote else 'rules'}[/bold]."
+        )
+
+    if output is not None:
+        output.write_text(_json.dumps(results, indent=2, default=str), encoding="utf-8")
+        console.print(f"[dim]wrote metrics to {output}[/dim]")
 
 
 if __name__ == "__main__":

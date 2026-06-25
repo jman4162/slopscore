@@ -63,10 +63,21 @@ Key invariants when extending:
   `scan --baseline <name>` attaches z-score deviations. Profiles (`scoring/profiles.py`) are hand-set
   (see `PROFILE_NOTES.md`); citations + fairness caveats live in `MODEL_CARD.md`.
 
+Scoring engines (v0.3): `scoring/scorer.py` dispatches on `Settings.scorer` (`Scorer.rules` default
+vs `Scorer.ml`). The ML path (`scoring/model.py`) is a pure-numpy logistic model loaded from
+`data/model/slopscore-v0.3.json` over `FEATURE_ORDER`; sign-constrained (slop dims ≥0, human signal
+≤0), Platt-calibrated. The corroboration gate is rules-only; abstention applies to both. Train with
+`scripts/eval/train.py` (sklearn+scipy, OOF metrics); evaluate with `slopscore eval` / the
+`slopscore.eval/` package (metrics, fairness, selective, span_metrics). Promotion is gated by
+`eval/harness.py:should_promote` (TPR@1%FPR + no subgroup-FPR regression) — currently rules wins, so
+ML stays opt-in. Eval data: `eval/datasets/seed.jsonl` (committed) + `scripts/eval/fetch.py` (large
+corpora, not committed); licensing in `DATA_SOURCES.md`. **Never train the shipped model on NC data;
+never import sklearn at scan time** (the ML path is numpy-only).
+
 ## Project state
 
-v0.1 and v0.2 are implemented and green (ruff/mypy/pytest). The repository also holds two reference
-documents:
+v0.1, v0.2, v0.2.1, and v0.3 are implemented and green (ruff/mypy/pytest). The repository also holds
+two reference documents:
 
 - `BACKGROUND_INFORMATION.local.md` — the authoritative spec. Defines the product concept,
   what to detect, the scoring model, the planned package layout, dependencies, evaluation

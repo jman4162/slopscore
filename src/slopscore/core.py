@@ -9,7 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import slopscore.features  # noqa: F401  (registers feature extractors)
-from slopscore.config import Settings, Strictness
+from slopscore.config import Scorer, Settings, Strictness
 from slopscore.document import Document
 from slopscore.ingest import RawSource, from_path, from_string, from_url
 from slopscore.models import Report
@@ -44,8 +44,11 @@ class SlopScorer:
         profile: str = "blog",
         strictness: str | Strictness = Strictness.conservative,
         baseline: str | None = None,
+        scorer: str | Scorer = Scorer.rules,
     ) -> None:
-        self.settings = Settings(profile=profile, strictness=Strictness(strictness))
+        self.settings = Settings(
+            profile=profile, strictness=Strictness(strictness), scorer=Scorer(scorer)
+        )
         self._baseline = self._load_baseline(baseline)
 
     @staticmethod

@@ -92,6 +92,13 @@ print(report.evidence[:3])
 
 ## Status
 
+v0.3 — evaluation harness (`slopscore eval`: TPR@FPR, PR-AUC, calibration, per-subgroup FPR) and a
+transparent **learned scorer** — a sign-constrained, calibrated logistic regression over the 13
+dimensions, serialized as auditable JSON and run with pure numpy (`--scorer ml`). The rule scorer
+stays the default: under a replace-if-wins gate the learned model must beat it on held-out
+TPR@1%FPR *without regressing subgroup false positives*, and on the seed set it does not (it
+over-flags plain English). See `MODEL_CARD.md` and `DATA_SOURCES.md`.
+
 v0.2.1 — productionization: console/JSON/Markdown/**SARIF**/**HTML** reports, recursive and
 changed-files (`--diff`) batch scanning with CI exit codes, a GitHub Action, and a pre-commit hook.
 

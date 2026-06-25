@@ -55,6 +55,32 @@ Vocabulary drifts by model era (GPT-4 → GPT-4o → GPT-5); the lexicon tags te
 - **Coverage.** Wikipedia/markup-specific and authorship-signal tells are intentionally excluded;
   slopscore is a general-prose tool.
 
+## v0.3 — learned scorer and evaluation
+
+v0.3 adds an evaluation harness (`slopscore eval`) and a transparent learned scorer: a
+**sign-constrained, Platt-calibrated logistic regression** over the 13 interpretable dimensions
+(slop dimensions weight ≥ 0, `human_writing_signals` ≤ 0). It is serialized as auditable JSON
+(`data/model/slopscore-v0.3.json`) and runs with pure numpy at scan time — `--scorer ml`.
+
+**The rule scorer remains the default.** Under the replace-if-wins gate, the learned model must
+both (a) not lose on TPR@1%FPR and (b) not regress any subgroup false-positive rate. On the
+committed seed set it does neither cleanly:
+
+| scorer | TPR@1%FPR | PR-AUC | ECE | simple-English FPR |
+|---|---|---|---|---|
+| rules | 0.80 | 0.96 | 0.14 | 0.00 |
+| ml (out-of-fold) | 0.77 | 0.96 | 0.12 | — |
+| ml (in-sample, seed) | 0.80 | 0.98 | 0.06 | **0.62** |
+
+The learned model improves calibration but **over-flags plain/simple English** (a fairness
+regression on exactly the population detectors are known to harm) and does not beat the rules on
+held-out TPR@1%FPR. So `--scorer ml` is available and opt-in; `rules` stays default. This is the
+gate working as intended, not a failure.
+
+Caveats: these numbers are from the small hand-authored seed set (~54 rows; in-sample for ml
+unless noted out-of-fold). They are illustrative, not a serious benchmark — run `slopscore eval`
+on the fetched public corpora (`scripts/eval/fetch.py`, see `DATA_SOURCES.md`) for real figures.
+
 ## Changes from v0.1
 
 Added significance inflation, superficial "-ing" analyses, vague/over-attribution, negative
