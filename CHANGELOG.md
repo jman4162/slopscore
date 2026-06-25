@@ -3,6 +3,14 @@
 All notable changes to slopscore. The PyPI distribution is `slopscore-lint`; the import package
 and the tool are named `slopscore`.
 
+## 0.7.1
+
+- Fix: inline `<!-- slopscore-disable... -->` suppression now works in Markdown. The Markdown
+  ingester dropped HTML comment blocks before the suppression parser saw them, so
+  `disable-next-line`, `disable`/`enable`, and `disable-file` silently did nothing in `.md` files
+  (the documented primary format). slopscore control comments are now preserved and kept adjacent to
+  the line they guard; other HTML is still stripped. Inline end-of-line `disable-line` already worked.
+
 ## 0.7.0
 
 - Fix (reported): Markdown posts with code blocks no longer score "severe". The ``` fences inflated

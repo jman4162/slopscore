@@ -202,7 +202,7 @@ suggest = false
 ```
 
 `disabled_rules` and `rule_severity` take effect everywhere. For a one-off false positive in a
-plain-text or reStructuredText file, an inline comment also works:
+Markdown, plain-text, or reStructuredText file, an inline comment also works:
 
 ```text
 <!-- slopscore-disable-next-line SIGNIF_STANDS_AS_TESTAMENT -->
