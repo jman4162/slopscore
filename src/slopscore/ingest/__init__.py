@@ -30,7 +30,7 @@ def from_path(path: str | Path, *, json_path: str | None = None) -> RawSource:
     """Dispatch a file to the right ingester by extension."""
     p = Path(path)
     suffix = p.suffix.lower()
-    if suffix in {".md", ".markdown"}:
+    if suffix in {".md", ".markdown", ".mdx"}:
         from slopscore.ingest.markdown import ingest_markdown
 
         return ingest_markdown(p.read_text(encoding="utf-8"), source=str(p))

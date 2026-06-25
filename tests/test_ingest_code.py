@@ -67,3 +67,17 @@ def test_scan_path_routes_py(tmp_path: Path) -> None:
     clean_src = '"""Return the sum of a and b."""\ndef add(a, b):\n    return a + b\n'
     clean.write_text(clean_src, encoding="utf-8")
     assert scan_path(clean).score.slop_score < scan_path(p).score.slop_score
+
+
+def test_fenced_code_does_not_inflate_prompt_residue() -> None:
+    # Regression: a Markdown post with code blocks, scanned as raw text, must not read as slop
+    # because of the ``` fences (prompt_residue inflation). See ingest.text.strip_fenced_code.
+    md = (
+        "Here is a note about a small script I wrote and tested last week on three files.\n\n"
+        "```python\ndef count(path):\n    return len(open(path).read().split())\n```\n\n"
+        "It ran in well under a second on a two megabyte input, which surprised me."
+    )
+    report = scan_text(md)
+    assert report.dimensions.prompt_residue == 0.0
+    assert not any(e.rule_id == "RESIDUE_CODE_FENCE" for e in report.evidence)
+    assert report.score.slop_score < 40
