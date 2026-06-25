@@ -51,6 +51,32 @@ pip install "slopscore-lint[all]"     # everything
 > **Name note:** the PyPI package is `slopscore-lint` (plain `slopscore` belongs to a different
 > tool). The import stays `import slopscore`, and the command is `slopscore-lint`.
 
+## Quickstart
+
+```bash
+pip install slopscore-lint
+slopscore-lint scan post.md
+```
+
+```text
+SlopScore 100.0/100 (severe)   110 words   profile blog   strictness conservative
+
+Evidence (26 findings; each line has a char offset, severity, and explanation):
+   54  SIGNIF_STANDS_AS_TESTAMENT  high    "stands as a testament"
+   91  PARALLEL_ITS_NOT_ITS        medium  "It is not just a tool, it is"
+  138  LEXICAL_MARKETING_UPLIFT    medium  "empowers"
+  152  WEASEL_EXPERTS_ARGUE        medium  "Experts argue"
+```
+
+Every point in the score traces to a rule and the span that triggered it. `scan` returns exit code
+`1` when findings reach the `--fail-on` threshold, so it drops into CI unchanged:
+
+```bash
+slopscore-lint scan post.md --fail-on high   # exit 1 on the sample above; 0 when clean
+```
+
+Short text (under ~100 words) and non-English input abstain from a confident label by design.
+
 ## Usage
 
 ```bash
@@ -60,6 +86,8 @@ slopscore-lint scan content.json --json-path "$.article.body"
 slopscore-lint scan https://example.com/post        # requires slopscore-lint[web]
 slopscore-lint scan src/app.py                       # lints docstring/comment prose, ignores code
 slopscore-lint scan post.md --by-paragraph           # surfaces a sloppy section in a clean doc
+slopscore-lint scan draft.md --suggest               # adds advisory rewrite suggestions
+slopscore-lint explain                               # what each of the 14 dimensions detects
 ```
 
 ### Lint the prose inside code
@@ -104,29 +132,108 @@ python -m spacy download en_core_web_sm
 
 slopscore auto-upgrades to the spaCy path when the model is present; nothing else changes.
 
-### Use it as a linter in CI
+## Use it in CI
+
+Gate prose like any other linter. Exit codes: `0` clean (or below `--fail-on`), `1` findings at or
+above the threshold, `2` usage error, `3` a needed extra is missing.
 
 ```bash
 slopscore-lint scan ./content --recursive --fail-on high          # exit 1 if any high finding
+slopscore-lint scan . --diff origin/main --fail-on medium         # only files changed vs a ref
 slopscore-lint scan ./content --recursive --format sarif -o out.sarif   # for GitHub code scanning
 slopscore-lint scan post.md --format html -o report.html          # highlighted-span HTML (needs [report])
-slopscore-lint scan . --diff origin/main --fail-on medium         # only files changed vs a ref
 ```
 
-Exit codes: `0` clean (or below `--fail-on`), `1` findings at or above the threshold, `2` usage
-error, `3` a needed extra is missing. A composite **GitHub Action** (`action.yml`) scans, uploads
-SARIF to code scanning, and fails by threshold; a **pre-commit hook** (`.pre-commit-hooks.yaml`)
-is published for `pre-commit`. SARIF and HTML line numbers for Markdown and code are relative to the
-extracted prose (raw-source mapping is a later enhancement).
+**pre-commit** (`.pre-commit-config.yaml`):
+
+```yaml
+repos:
+  - repo: https://github.com/jman4162/slopscore
+    rev: v0.7.0
+    hooks:
+      - id: slopscore-lint
+        args: ["--fail-on", "high"]
+```
+
+**GitHub Action** (`.github/workflows/prose.yml`) scans on every pull request and uploads findings
+to code scanning:
+
+```yaml
+name: prose
+on: [pull_request]
+permissions:
+  contents: read
+  security-events: write
+jobs:
+  slopscore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jman4162/slopscore@v0.7.0
+        with:
+          files: ./content
+          profile: blog
+          fail-on: high
+```
+
+## Adopt on an existing repo
+
+Record the current findings as a baseline, commit it, then fail CI only on *new* findings so a
+backlog does not block the first run:
+
+```bash
+slopscore-lint baseline ./content --recursive -o .slopscore-baseline.json
+git add .slopscore-baseline.json && git commit -m "slopscore baseline"
+slopscore-lint scan ./content --recursive --baseline-file .slopscore-baseline.json --fail-on-new
+```
+
+## Configure
+
+Settings live in `slopscore.toml` or a `[tool.slopscore]` table in `pyproject.toml`. CLI flags win
+over the file. Run `slopscore-lint config` to print the effective settings.
+
+```toml
+# slopscore.toml
+profile = "technical"
+strictness = "conservative"
+disabled_rules = ["RESIDUE_CODE_FENCE"]
+rule_severity = { COPULA_SERVES_AS = "low" }
+suggest = false
+```
+
+`disabled_rules` and `rule_severity` take effect everywhere. For a one-off false positive in a
+plain-text or reStructuredText file, an inline comment also works:
+
+```text
+<!-- slopscore-disable-next-line SIGNIF_STANDS_AS_TESTAMENT -->
+The museum stands as a testament to the city's history.
+```
+
+`--suggest` adds advisory, non-destructive rewrite suggestions (it never edits files):
+
+```bash
+slopscore-lint scan draft.md --suggest --format json | jq '.evidence[] | select(.suggestion) | {span, fix: .suggestion.text}'
+# {"span": "utilize", "fix": "use"}
+# {"span": "in order to", "fix": "to"}
+```
+
+## Python API
 
 ```python
-from slopscore import SlopScorer
+from slopscore import scan_text, scan_path
 
-scorer = SlopScorer(profile="blog", strictness="conservative")
 # the argument below is an example of the slop the tool flags:
-report = scorer.scan_text("In today's fast-paced digital landscape, it is crucial to leverage synergy.")
-print(report.score.slop_score, report.score.label)
-print(report.evidence[:3])
+report = scan_text("In today's fast-paced digital landscape, our platform empowers synergy.")
+print(report.score.slop_score, report.score.label.value)   # 93.2 mild (short text abstains)
+for e in report.evidence[:3]:
+    print(e.rule_id, repr(e.span))
+
+# batch a folder, skipping anything too short to judge:
+from pathlib import Path
+for f in Path("posts").glob("*.md"):
+    r = scan_path(f)
+    if not r.score.abstained and r.score.slop_score >= 50:
+        print(f"{f.name}: {r.score.slop_score} {r.score.label.value}")
 ```
 
 ## Status
