@@ -24,8 +24,27 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
+def dataset_path(name: str) -> Path:
+    """Locate a committed eval dataset.
+
+    Installed wheels ship the datasets under the package (``slopscore/data/eval/``, via the wheel
+    force-include); a source checkout reads the repo-root ``eval/datasets/``. Prefer the packaged
+    copy so CLI commands (``eval``, ``fairness``) work after ``pip install``.
+    """
+    from slopscore.config import data_path
+
+    packaged = Path(str(data_path("eval", name)))
+    if packaged.is_file():
+        return packaged
+    return _repo_root() / "eval" / "datasets" / name
+
+
 def seed_path() -> Path:
-    return _repo_root() / "eval" / "datasets" / "seed.jsonl"
+    return dataset_path("seed.jsonl")
+
+
+def benchmark_path() -> Path:
+    return dataset_path("benchmark.jsonl")
 
 
 def load_jsonl(path: str | Path) -> list[LabeledRow]:

@@ -3,6 +3,13 @@
 All notable changes to slopscore. The PyPI distribution is `slopscore-lint`; the import package
 and the tool are named `slopscore`.
 
+## 0.6.1
+
+- Fix: `slopscore-lint fairness` (and `eval`) failed after `pip install` because the committed eval
+  datasets were not shipped in the wheel. They are now force-included under `slopscore/data/eval/`
+  and loaded via `eval.datasets.dataset_path` (packaged copy in installs, repo-root in a checkout).
+  `fairness` degrades with a clear message and `--dataset` hint if no dataset is found.
+
 ## 0.6.0
 
 - Prose-in-code linting: `scan` extracts and scores the natural-language prose in source files

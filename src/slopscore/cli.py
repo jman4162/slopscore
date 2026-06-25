@@ -465,9 +465,15 @@ def fairness_cmd(
     """
     from collections import Counter
 
-    from slopscore.eval.datasets import load_jsonl, seed_path
+    from slopscore.eval.datasets import benchmark_path, load_jsonl
 
-    path = dataset or (seed_path().parent / "benchmark.jsonl")
+    path = dataset or benchmark_path()
+    if not Path(str(path)).is_file():
+        err_console.print(
+            f"[red]No benchmark dataset at {path}.[/red] Pass --dataset a labeled JSONL "
+            "(text,label,subgroup), or run from a source checkout."
+        )
+        raise typer.Exit(code=2)
     rows = load_jsonl(path)
     engine = SlopScorer(profile="blog")
     slices = ["simple_english", "non_native"]

@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 # PyPI distribution name ("slopscore" was already taken by a different, similar tool). The import
 # package stays `slopscore`; the CLI command is `slopscore-lint` (scikit-learn / sklearn pattern).
 name = "slopscore-lint"
-version = "0.6.0"
+version = "0.6.1"
 description = "Transparent AI-slop writing-pattern analysis for essays, blog posts, Markdown, JSON, and websites."
 readme = "README.md"
 license = "MIT"
@@ -85,7 +85,13 @@ default-groups = ["dev"]
 [tool.hatch.build.targets.wheel]
 packages = ["src/slopscore"]
 # Data files (YAML rule packs, the JSON model) live inside the package and are included by
-# hatchling automatically; no force-include (it would duplicate paths and fail the build).
+# hatchling automatically; do NOT force-include `data/` itself (it duplicates paths and fails the
+# build). The committed eval datasets live at the repo root (outside the package), so they ARE
+# force-included to a package path so `eval`/`fairness` work after `pip install`. This target path
+# (slopscore/data/eval) is not auto-included, so there is no collision.
+[tool.hatch.build.targets.wheel.force-include]
+"eval/datasets/seed.jsonl" = "slopscore/data/eval/seed.jsonl"
+"eval/datasets/benchmark.jsonl" = "slopscore/data/eval/benchmark.jsonl"
 
 [tool.ruff]
 target-version = "py311"
