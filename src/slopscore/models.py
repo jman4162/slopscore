@@ -10,7 +10,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-SCHEMA_VERSION = "0.2.0"
+SCHEMA_VERSION = "0.2.1"
 
 # Disclaimers every report carries. The middle line encodes the core conservatism principle
 # (corroborated by research: single tells are weak; ESL writers are over-flagged).
@@ -134,6 +134,9 @@ class Report(BaseModel):
     evidence: list[Evidence] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=lambda: list(STANDARD_WARNINGS))
     baseline: BaselineComparison | None = None
+    # The text the evidence offsets index into (post-ingest; for Markdown, the extracted prose).
+    # Needed to render HTML highlights and SARIF line/column regions.
+    original_text: str = ""
 
     def to_json(self, *, indent: int = 2) -> str:
         return self.model_dump_json(indent=indent)

@@ -8,6 +8,7 @@ from rich.table import Table
 from rich.text import Text
 
 from slopscore.models import Label, Report
+from slopscore.report.batch import BatchReport
 from slopscore.report.markdown import _DIMENSION_LABELS
 
 _LABEL_STYLE: dict[Label, str] = {
@@ -16,6 +17,32 @@ _LABEL_STYLE: dict[Label, str] = {
     Label.elevated: "dark_orange",
     Label.severe: "red",
 }
+
+
+def render_batch(batch: BatchReport, console: Console | None = None) -> None:
+    console = console or Console()
+    s = batch.summary
+    console.print(
+        Panel(
+            Text.assemble(
+                ("slopscore batch", "bold"),
+                (
+                    f"  {s.total_files} files · {s.total_findings} findings · "
+                    f"profile {batch.profile}",
+                    "dim",
+                ),
+            ),
+            expand=False,
+        )
+    )
+    dist = "  ".join(f"{lbl}:{n}" for lbl, n in sorted(s.by_label.items()))
+    console.print(f"[bold]Labels[/bold]  {dist or '(none)'}")
+    if s.worst:
+        console.print("\n[bold]Worst files[/bold]")
+        for f in s.worst:
+            style = _LABEL_STYLE[f.label]
+            mark = " (abstained)" if f.abstained else ""
+            console.print(f"  [{style}]{f.slop_score:>5}[/] {f.label.value:<8} {f.path}{mark}")
 
 
 def render(report: Report, console: Console | None = None) -> None:

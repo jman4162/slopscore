@@ -103,4 +103,5 @@ def score_document(doc: Document, settings: Settings) -> Report:
         dimensions=Dimensions(**{d.value: v for d, v in by_dim.items()}),
         evidence=evidence,
         warnings=warnings,
+        original_text=doc.original_text,
     )

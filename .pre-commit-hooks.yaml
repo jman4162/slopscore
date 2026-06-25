@@ -1,0 +1,10 @@
+- id: slopscore
+  name: slopscore (AI-slop pattern linter)
+  description: Scan prose for AI-slop writing patterns.
+  entry: slopscore scan
+  language: python
+  types: [text]
+  files: '\.(md|markdown|txt|rst)$'
+  args: ["--fail-on", "high"]
+  pass_filenames: true
+  require_serial: false

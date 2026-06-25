@@ -32,6 +32,13 @@ Pipeline in `src/slopscore/`: `ingest/` (text, markdown via marko, json via json
 `features/` → `scoring/` → `report/`. Orchestrated by `core.py:build_document` then
 `scoring/scorer.py:score_document`; public API (`SlopScorer`, `scan_text/_path/_url`) in `__init__.py`.
 
+Reports (v0.2.1): `report/` has console, json, markdown, `sarif.py` (2.1.0, hand-built; severity→
+level), `html.py` (Jinja2 behind the `[report]` extra, highlighted spans), `batch.py` (directory/
+multi-file aggregation), and `locations.py` (char→line/col). `Report.original_text` holds the text
+offsets index into. The `scan` CLI takes multiple targets / a directory, `--recursive`, `--diff
+<ref>`, `--fail-on {none|low|medium|high}` (exit codes 0/1/2/3), and `--format sarif|html`. CI
+distribution: `action.yml` (composite) and `.pre-commit-hooks.yaml`.
+
 Key invariants when extending:
 - **Every feature is a `Feature`** (`features/base.py`): `extract(doc, profile) -> FeatureResult`
   with a [0,1] score and `Evidence` spans. Importing `slopscore.features` registers them; add a

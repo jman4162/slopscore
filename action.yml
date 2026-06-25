@@ -1,0 +1,56 @@
+name: slopscore
+description: Scan prose for AI-slop writing patterns (a linter, not an authorship detector).
+branding:
+  icon: "edit-3"
+  color: "purple"
+
+inputs:
+  files:
+    description: File or directory to scan.
+    required: false
+    default: "."
+  recursive:
+    description: Recurse into directories.
+    required: false
+    default: "true"
+  profile:
+    description: "Genre profile: blog | essay | academic | marketing | technical | social."
+    required: false
+    default: "blog"
+  fail-on:
+    description: "Fail the job if any finding reaches this severity: none | low | medium | high."
+    required: false
+    default: "high"
+  upload-sarif:
+    description: Upload results to GitHub code scanning.
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install slopscore
+      shell: bash
+      run: pip install slopscore
+
+    - name: Scan
+      id: scan
+      shell: bash
+      run: |
+        recurse=""
+        [ "${{ inputs.recursive }}" = "true" ] && recurse="--recursive"
+        slopscore scan "${{ inputs.files }}" $recurse \
+          --profile "${{ inputs.profile }}" \
+          --fail-on "${{ inputs.fail-on }}" \
+          --format sarif --output slopscore.sarif
+
+    - name: Upload SARIF
+      if: ${{ always() && inputs.upload-sarif == 'true' }}
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: slopscore.sarif
+        category: slopscore

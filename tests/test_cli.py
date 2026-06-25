@@ -107,3 +107,30 @@ def test_scan_unknown_baseline_errors(tmp_path: Path) -> None:
     target.write_text("hello world", encoding="utf-8")
     result = runner.invoke(app, ["scan", str(target), "--baseline", "nope-not-here"])
     assert result.exit_code == 2
+
+
+def test_fail_on_exits_nonzero_for_slop(tmp_path: Path, slop_text: str) -> None:
+    p = _write(tmp_path, "slop.txt", slop_text)
+    assert runner.invoke(app, ["scan", str(p), "--fail-on", "medium"]).exit_code == 1
+
+
+def test_fail_on_exits_zero_for_clean(tmp_path: Path, clean_text: str) -> None:
+    p = _write(tmp_path, "clean.txt", clean_text)
+    assert runner.invoke(app, ["scan", str(p), "--fail-on", "high"]).exit_code == 0
+
+
+def test_batch_directory_json(tmp_path: Path, slop_text: str, clean_text: str) -> None:
+    _write(tmp_path, "a.txt", slop_text)
+    _write(tmp_path, "b.txt", clean_text)
+    result = runner.invoke(app, ["scan", str(tmp_path), "--recursive", "--format", "json"])
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["summary"]["total_files"] == 2
+
+
+def test_sarif_format_valid(tmp_path: Path, slop_text: str) -> None:
+    p = _write(tmp_path, "slop.txt", slop_text)
+    result = runner.invoke(app, ["scan", str(p), "--format", "sarif"])
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["version"] == "2.1.0"

@@ -27,11 +27,12 @@ Every point in the score comes from a visible rule with an evidence span.
 ## Install
 
 ```bash
-pip install slopscore          # lean, rule-based core
-pip install "slopscore[web]"   # + website extraction (trafilatura)
-pip install "slopscore[nlp]"   # + spaCy NER and sentence-transformer embeddings
-pip install "slopscore[lang]"  # + non-English language detection
-pip install "slopscore[all]"   # everything
+pip install slopscore            # lean, rule-based core
+pip install "slopscore[web]"     # + website extraction (trafilatura)
+pip install "slopscore[nlp]"     # + spaCy NER and sentence-transformer embeddings
+pip install "slopscore[lang]"    # + non-English language detection
+pip install "slopscore[report]"  # + HTML report rendering (Jinja2)
+pip install "slopscore[all]"     # everything
 ```
 
 ## Usage
@@ -65,6 +66,21 @@ python -m spacy download en_core_web_sm
 
 slopscore auto-upgrades to the spaCy path when the model is present; nothing else changes.
 
+### Use it as a linter in CI
+
+```bash
+slopscore scan ./content --recursive --fail-on high          # exit 1 if any high finding
+slopscore scan ./content --recursive --format sarif -o out.sarif   # for GitHub code scanning
+slopscore scan post.md --format html -o report.html          # highlighted-span HTML (needs [report])
+slopscore scan . --diff origin/main --fail-on medium         # only files changed vs a ref
+```
+
+Exit codes: `0` clean (or below `--fail-on`), `1` findings at/above the threshold, `2` usage
+error, `3` a needed extra is missing. A composite **GitHub Action** (`action.yml`) scans, uploads
+SARIF to code scanning, and fails by threshold; a **pre-commit hook** (`.pre-commit-hooks.yaml`)
+is published for `pre-commit`. SARIF/HTML line numbers for Markdown are relative to the extracted
+prose (raw-source mapping is a later enhancement).
+
 ```python
 from slopscore import SlopScorer
 
@@ -75,6 +91,9 @@ print(report.evidence[:3])
 ```
 
 ## Status
+
+v0.2.1 — productionization: console/JSON/Markdown/**SARIF**/**HTML** reports, recursive and
+changed-files (`--diff`) batch scanning with CI exit codes, a GitHub Action, and a pre-commit hook.
 
 v0.2 — detection expansion grounded in Wikipedia's "Signs of AI writing" field guide. Dimensions:
 lexical markers, formulaic structure, significance inflation, superficial "-ing" analyses, vague /
