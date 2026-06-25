@@ -104,6 +104,14 @@ def render(report: Report, console: Console | None = None) -> None:
             mark = "red" if abs(z) >= 2 else "yellow" if abs(z) >= 1 else "dim"
             console.print(f"  [{mark}]{z:+.1f}σ[/]  {dim}")
 
+    if report.authorship is not None:
+        a = report.authorship
+        console.print(
+            f"\n[bold]Authorship signal[/bold] [dim](separate; not part of the score)[/dim]: "
+            f"{a.score:.2f} via {a.method}"
+        )
+        console.print(f"  [yellow]{a.caveat}[/yellow]")
+
     console.print()
     for w in report.warnings:
         console.print(f"[dim]> {w}[/dim]")

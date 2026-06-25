@@ -125,6 +125,22 @@ class BaselineComparison(BaseModel):
     deviations: dict[str, float] = Field(default_factory=dict)
 
 
+# Mandatory caveat on every authorship signal — it is never folded into the SlopScore.
+AUTHORSHIP_CAVEAT = (
+    "Authorship signal — NOT evidence of authorship. Heuristic only; collapses on paraphrase, "
+    "biased against non-native English, fails on newer models, unreliable on short text. "
+    "Reported separately and never folded into the SlopScore. For curiosity, not accusation."
+)
+
+
+class DetectorResult(BaseModel):
+    """A separated, optional authorship signal from an external detector (experimental)."""
+
+    score: float = Field(ge=0.0, le=1.0)  # higher = more 'AI-like' per the detector
+    method: str
+    caveat: str = AUTHORSHIP_CAVEAT
+
+
 class Score(BaseModel):
     slop_score: float = Field(ge=0.0, le=100.0)
     label: Label
@@ -143,6 +159,8 @@ class Report(BaseModel):
     evidence: list[Evidence] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=lambda: list(STANDARD_WARNINGS))
     baseline: BaselineComparison | None = None
+    # Optional, separated authorship signal (never affects score/label). Caveat-bearing.
+    authorship: DetectorResult | None = None
     # The text the evidence offsets index into (post-ingest; for Markdown, the extracted prose).
     # Needed to render HTML highlights and SARIF line/column regions.
     original_text: str = ""

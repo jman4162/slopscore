@@ -48,7 +48,8 @@ report = ["jinja2>=3.1"]
 eval = ["datasets>=2.19", "huggingface-hub>=0.23"]
 # Experimental gradient-boosted scorer (research only; never shipped at scan time).
 ml = ["lightgbm>=4.0"]
-# Placeholder for v0.4 authorship-signal detector adapters.
+# Authorship-signal adapter interface. Intentionally EMPTY: slopscore ships no detector (all are
+# paraphrase-fragile / ESL-biased / academic-only). Bring your own behind this extra.
 detectors = []
 all = [
     "slopscore[web,nlp,lang,report]",

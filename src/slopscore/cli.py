@@ -87,6 +87,9 @@ def scan(
     config: Path | None = typer.Option(
         None, "--config", help="Explicit config file (else auto-discovered)."
     ),
+    detector: str | None = typer.Option(
+        None, "--detector", help="Optional authorship adapter ('reference'); reported separately."
+    ),
     recursive: bool = typer.Option(False, "--recursive", "-r", help="Recurse into a directory."),
     diff: str | None = typer.Option(
         None, "--diff", help="Scan only files changed vs a git ref (e.g. origin/main)."
@@ -114,8 +117,19 @@ def scan(
         scorer=scorer.value if scorer else None,
         suggest=suggest or None,
     )
+    det = None
+    if detector is not None:
+        if detector != "reference":
+            err_console.print(
+                f"[red]Unknown detector '{detector}'. slopscore bundles only 'reference' "
+                "(a no-op); plug in your own via the Python API.[/red]"
+            )
+            raise typer.Exit(code=2)
+        from slopscore.detectors.base import ReferenceDetector
+
+        det = ReferenceDetector()
     try:
-        engine = SlopScorer(baseline=baseline, settings=settings)
+        engine = SlopScorer(baseline=baseline, settings=settings, detector=det)
     except FileNotFoundError as exc:
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=2) from exc

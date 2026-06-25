@@ -10,6 +10,7 @@ from pathlib import Path
 
 import slopscore.features  # noqa: F401  (registers feature extractors)
 from slopscore.config import Scorer, Settings, Strictness
+from slopscore.detectors.base import AuthorshipDetector
 from slopscore.document import Document
 from slopscore.ingest import RawSource, from_path, from_string, from_url
 from slopscore.models import Report
@@ -46,12 +47,16 @@ class SlopScorer:
         baseline: str | None = None,
         scorer: str | Scorer = Scorer.rules,
         settings: Settings | None = None,
+        detector: AuthorshipDetector | None = None,
     ) -> None:
         # An explicit Settings (from merged config) wins; else build from the primitive args.
         self.settings = settings or Settings(
             profile=profile, strictness=Strictness(strictness), scorer=Scorer(scorer)
         )
         self._baseline = self._load_baseline(baseline)
+        # Optional authorship detector. Its result is reported SEPARATELY and never affects the
+        # slop score (slopscore detects patterns, not provenance).
+        self._detector = detector
 
     @staticmethod
     def _load_baseline(name: str | None):  # type: ignore[no-untyped-def]
@@ -70,6 +75,8 @@ class SlopScorer:
         report = score_document(build_document(raw), self.settings)
         if self._baseline is not None:
             report.baseline = self._baseline.compare(report.dimensions)
+        if self._detector is not None:
+            report.authorship = self._detector.detect(report.original_text)
         return report
 
     def scan_text(self, text: str, source: str = "<string>") -> Report:
