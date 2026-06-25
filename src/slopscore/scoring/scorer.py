@@ -77,9 +77,7 @@ def _assemble_evidence(
     """Collect spans, then apply per-rule disable, severity overrides, and inline suppression."""
     from slopscore.suppress import parse_suppressions
 
-    known = frozenset(d.value for d in Dimension) | {
-        e.rule_id for r in results for e in r.spans
-    }
+    known = frozenset(d.value for d in Dimension) | {e.rule_id for r in results for e in r.spans}
     suppressions = parse_suppressions(doc.original_text, known)
     if suppressions.unknown_names:
         warnings.insert(
@@ -102,9 +100,7 @@ def _assemble_evidence(
     if settings.suggest:
         from slopscore.features.suggestions import find_suggestions
 
-        out.extend(
-            e for e in find_suggestions(doc) if e.rule_id not in settings.disabled_rules
-        )
+        out.extend(e for e in find_suggestions(doc) if e.rule_id not in settings.disabled_rules)
     out.sort(key=lambda e: e.start_char)
     return out
 

@@ -44,9 +44,7 @@ def _result(e: Evidence, uri: str, text: str) -> dict[str, Any]:
         "ruleId": e.rule_id,
         "level": _LEVEL[e.severity],
         "message": {"text": f"{e.explanation} (matched: {e.span!r})"},
-        "locations": [
-            {"physicalLocation": {"artifactLocation": {"uri": uri}, "region": region}}
-        ],
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": uri}, "region": region}}],
     }
     if e.suggestion is not None:
         result["fixes"] = [

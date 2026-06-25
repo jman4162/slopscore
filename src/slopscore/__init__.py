@@ -9,6 +9,6 @@ from __future__ import annotations
 from slopscore.core import SlopScorer, scan_path, scan_text, scan_url
 from slopscore.models import Report
 
-__version__ = "0.3.1"
+__version__ = "0.4.0"
 
 __all__ = ["Report", "SlopScorer", "__version__", "scan_path", "scan_text", "scan_url"]

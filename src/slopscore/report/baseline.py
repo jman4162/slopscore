@@ -37,9 +37,7 @@ class BaselineFile(BaseModel):
 
 
 def report_fingerprints(report: Report) -> list[str]:
-    return [
-        fingerprint(report.input.source, e.rule_id, e.span) for e in report.evidence
-    ]
+    return [fingerprint(report.input.source, e.rule_id, e.span) for e in report.evidence]
 
 
 def build_baseline(reports: list[Report]) -> BaselineFile:

@@ -74,10 +74,25 @@ ML stays opt-in. Eval data: `eval/datasets/seed.jsonl` (committed) + `scripts/ev
 corpora, not committed); licensing in `DATA_SOURCES.md`. **Never train the shipped model on NC data;
 never import sklearn at scan time** (the ML path is numpy-only).
 
+Linter maturity (v0.4): `config_file.py` loads `slopscore.toml`/`[tool.slopscore]` via `tomllib`
+(precedence CLI > slopscore.toml > pyproject > defaults; `resolve_settings` merges, `Settings`
+carries `disabled_dimensions/rules`, `rule_severity`, `suggest`). The scorer skips disabled
+dimensions and post-filters evidence for disabled rules, severity overrides, and inline suppression
+(`suppress.py`, HTML-comment grammar). `report/baseline.py` fingerprints findings for
+`scan --baseline-file --fail-on-new`. `unsupported_claims` is now a real `_PhrasePack`
+(`data/patterns/claims/`). Opt-in `--suggest` adds `Evidence.suggestion` + SARIF `fixes`
+(`features/suggestions.py`, `data/patterns/suggestions/`) — advisory, excluded from score/`--fail-on`
+(`SUGGEST_*` skipped in `max_severity`). `detectors/` is an interface-only authorship adapter
+(`AuthorshipDetector` protocol + no-op `ReferenceDetector`); its `DetectorResult` populates a
+SEPARATE `Report.authorship` field with a mandatory caveat, never the score. **Wheel packaging:**
+data files ship via hatchling's default package inclusion — do NOT re-add a `force-include` for
+`data/` (it duplicates paths and breaks `uv build`). PyPI publish is OIDC trusted-publishing on tag
+(`.github/workflows/publish.yml`); docs are mkdocs-material (`.github/workflows/docs.yml`).
+
 ## Project state
 
-v0.1, v0.2, v0.2.1, and v0.3 are implemented and green (ruff/mypy/pytest). The repository also holds
-two reference documents:
+v0.1–v0.4 are implemented and green (ruff/mypy/pytest). The repository also holds two reference
+documents:
 
 - `BACKGROUND_INFORMATION.local.md` — the authoritative spec. Defines the product concept,
   what to detect, the scoring model, the planned package layout, dependencies, evaluation

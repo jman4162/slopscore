@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "slopscore"
-version = "0.3.1"
+version = "0.4.0"
 description = "Transparent AI-slop writing-pattern analysis for essays, blog posts, Markdown, JSON, and websites."
 readme = "README.md"
 license = "MIT"
@@ -13,12 +13,15 @@ requires-python = ">=3.11"
 authors = [{ name = "John Hodge", email = "jhodge007@gmail.com" }]
 keywords = ["nlp", "ai-slop", "linter", "writing", "text-analysis"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
+    "Intended Audience :: Other Audience",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Quality Assurance",
     "Topic :: Text Processing :: Linguistic",
 ]
 dependencies = [
@@ -48,6 +51,8 @@ report = ["jinja2>=3.1"]
 eval = ["datasets>=2.19", "huggingface-hub>=0.23"]
 # Experimental gradient-boosted scorer (research only; never shipped at scan time).
 ml = ["lightgbm>=4.0"]
+# Documentation site.
+docs = ["mkdocs-material>=9.5"]
 # Authorship-signal adapter interface. Intentionally EMPTY: slopscore ships no detector (all are
 # paraphrase-fragile / ESL-biased / academic-only). Bring your own behind this extra.
 detectors = []
@@ -77,9 +82,8 @@ default-groups = ["dev"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/slopscore"]
-
-[tool.hatch.build.targets.wheel.force-include]
-"src/slopscore/data" = "slopscore/data"
+# Data files (YAML rule packs, the JSON model) live inside the package and are included by
+# hatchling automatically; no force-include (it would duplicate paths and fail the build).
 
 [tool.ruff]
 target-version = "py311"

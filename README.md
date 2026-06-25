@@ -1,12 +1,19 @@
 # slopscore
 
-Transparent AI-slop writing-pattern analysis for essays, blog posts, Markdown, JSON, and
-websites.
+A transparent **linter for AI-slop writing patterns** — for essays, blog posts, Markdown, JSON,
+and websites.
 
 `slopscore` reads text and returns a 0–100 **SlopScore** measuring the density of formulaic,
 generic, low-specificity, over-polished writing patterns associated with low-effort LLM output.
 It reports per-dimension scores and **evidence spans** — the exact phrases that triggered each
 finding — so you can see and fix what it flags.
+
+> ### ⚠️ What slopscore is NOT
+> It does **not** detect whether text was written by AI, and must never be used to accuse a writer.
+> It flags writing *patterns* in *text* (not authorship, not authors) — patterns common in
+> low-effort/AI-like prose **and** in plenty of human writing. Use it as a prose linter to nudge
+> toward clearer, more specific writing — not as an AI detector. Authorship detectors are
+> unreliable and biased; slopscore deliberately is not one.
 
 ## What it is, and what it is not
 
@@ -91,6 +98,12 @@ print(report.evidence[:3])
 ```
 
 ## Status
+
+v0.4 — linter maturity: `slopscore.toml` / `[tool.slopscore]` config with per-rule toggles &
+severity overrides, inline `<!-- slopscore-disable … -->` suppression, a findings baseline
+(`--fail-on-new`), the implemented `unsupported_claims` dimension, opt-in `--suggest` rewrite
+suggestions (with SARIF `fixes`), an optional **separate** authorship-adapter interface (no
+detector bundled), PyPI packaging, and a docs site.
 
 v0.3 — evaluation harness (`slopscore eval`: TPR@FPR, PR-AUC, calibration, per-subgroup FPR) and a
 transparent **learned scorer** — a sign-constrained, calibrated logistic regression over the 13
