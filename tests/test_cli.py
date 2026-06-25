@@ -134,3 +134,42 @@ def test_sarif_format_valid(tmp_path: Path, slop_text: str) -> None:
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
     assert payload["version"] == "2.1.0"
+
+
+def test_baseline_then_fail_on_new(tmp_path: Path) -> None:
+    base_text = "Everyone knows this stands as a testament to innovation."
+    src = _write(tmp_path, "a.txt", base_text)
+    bl = tmp_path / "baseline.json"
+    assert runner.invoke(app, ["baseline", str(src), "-o", str(bl)]).exit_code == 0
+    assert bl.is_file()
+    # Unchanged input: no new findings -> exit 0.
+    unchanged = runner.invoke(app, ["scan", str(src), "--baseline-file", str(bl), "--fail-on-new"])
+    assert unchanged.exit_code == 0
+    # A new finding -> exit 1.
+    src.write_text(base_text + " In an increasingly digital world, teams must adapt.", "utf-8")
+    changed = runner.invoke(app, ["scan", str(src), "--baseline-file", str(bl), "--fail-on-new"])
+    assert changed.exit_code == 1
+
+
+def test_output_creates_parent_dirs(tmp_path: Path, slop_text: str) -> None:
+    path = _write(tmp_path, "slop.txt", slop_text)
+    out = tmp_path / "nested" / "deep" / "report.json"
+    result = runner.invoke(app, ["scan", str(path), "--format", "json", "-o", str(out)])
+    assert result.exit_code == 0
+    assert out.is_file()
+    json.loads(out.read_text("utf-8"))
+
+
+def test_malformed_baseline_file_exits_2(tmp_path: Path, slop_text: str) -> None:
+    path = _write(tmp_path, "slop.txt", slop_text)
+    bad = _write(tmp_path, "bad.json", "{not valid json")
+    result = runner.invoke(app, ["scan", str(path), "--baseline-file", str(bad), "--fail-on-new"])
+    assert result.exit_code == 2
+
+
+def test_string_disabled_rules_in_config_errors(tmp_path: Path, monkeypatch) -> None:
+    (tmp_path / "slopscore.toml").write_text('disabled_rules = "FOO"\n', encoding="utf-8")
+    path = _write(tmp_path, "slop.txt", "Everyone knows this is the future.")
+    monkeypatch.chdir(tmp_path)
+    result = runner.invoke(app, ["scan", str(path)])
+    assert result.exit_code == 2  # invalid config is a usage error

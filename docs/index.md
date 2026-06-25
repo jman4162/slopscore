@@ -1,13 +1,13 @@
 # slopscore
 
-A transparent **linter for AI-slop writing patterns** — for essays, blog posts, Markdown, JSON,
-and websites. It returns a 0–100 SlopScore with per-dimension breakdowns and **evidence spans**
+A transparent **linter for AI-slop writing patterns** in essays, blog posts, Markdown, JSON,
+and websites. It returns a 0 to 100 SlopScore with per-dimension breakdowns and **evidence spans**
 (the exact phrases that triggered each finding), so you can see and fix what it flags.
 
 !!! warning "What slopscore is NOT"
     It does **not** detect whether text was written by AI, and must never be used to accuse a
-    writer. It flags writing *patterns in text* (not authorship, not authors) — patterns common in
-    low-effort/AI-like prose **and** in plenty of human writing. Use it as a prose linter, not an
+    writer. It flags writing *patterns in text* (not authorship, not authors): patterns common in
+    low-effort or AI-like prose **and** in plenty of human writing. Use it as a prose linter, not an
     AI detector. See [Limitations & authorship](limitations.md).
 
 ## Install
@@ -30,6 +30,6 @@ slopscore-lint scan post.md --suggest                         # opt-in rewrite s
 
 ## Make it yours
 
-- [Configuration](configuration.md) — `slopscore.toml` / `[tool.slopscore]`, per-rule toggles.
-- [Suppression](suppression.md) — inline `<!-- slopscore-disable … -->` comments.
-- [Baseline](baseline.md) — adopt on an existing repo; fail CI only on new findings.
+- [Configuration](configuration.md): `slopscore.toml` / `[tool.slopscore]`, per-rule toggles.
+- [Suppression](suppression.md): inline `<!-- slopscore-disable … -->` comments.
+- [Baseline](baseline.md): adopt on an existing repo; fail CI only on new findings.

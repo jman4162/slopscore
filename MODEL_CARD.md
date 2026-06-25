@@ -2,8 +2,8 @@
 
 ## What it does
 
-slopscore scores text for **AI-slop writing patterns** — formulaic, generic, low-specificity,
-over-polished prose — and returns a 0–100 SlopScore with per-dimension breakdowns and evidence
+slopscore scores text for **AI-slop writing patterns**, formulaic, generic, low-specificity,
+over-polished prose, and returns a 0-100 SlopScore with per-dimension breakdowns and evidence
 spans. It is a transparent rule engine: every point comes from a visible rule with a quotable
 span. It does **not** determine authorship.
 
@@ -19,7 +19,7 @@ punitive or disciplinary decisions about people.
 
 ## How it scores
 
-Rule-based features per dimension → each a [0,1] score → weighted sum → sigmoid → 0–100.
+Rule-based features per dimension → each a [0,1] score → weighted sum → sigmoid → 0-100.
 Conservatism guardrails (v0.2):
 
 - **Corroboration gate.** Weak-alone tells (lexical markers, parallelism, copula avoidance,
@@ -35,11 +35,11 @@ Conservatism guardrails (v0.2):
 Dimensions and the lexicon are drawn from Wikipedia's "Signs of AI writing" (WP:AISIGNS) and the
 research it cites:
 
-- Juzek & Ward, "Why Does ChatGPT 'Delve' So Much?" (arXiv:2412.11385) — overused vocabulary.
-- Kobak et al., "Delving into LLM-assisted writing…" (Science Advances 2025) — excess vocabulary.
-- Reinhart et al., "Do LLMs write like humans?" (PNAS 2025) — present-participle / rhetorical style.
-- Geng & Trotta (arXiv:2404.08627) — decline of "is/are" copulas in post-2022 writing.
-- Russell et al. (ACL 2025) — humans detect AI near chance; expert LLM-users rely on lexical cues.
+- Juzek & Ward, "Why Does ChatGPT 'Delve' So Much?" (arXiv:2412.11385), overused vocabulary.
+- Kobak et al., "Delving into LLM-assisted writing…" (Science Advances 2025), excess vocabulary.
+- Reinhart et al., "Do LLMs write like humans?" (PNAS 2025), present-participle / rhetorical style.
+- Geng & Trotta (arXiv:2404.08627), decline of "is/are" copulas in post-2022 writing.
+- Russell et al. (ACL 2025), humans detect AI near chance; expert LLM-users rely on lexical cues.
 
 Vocabulary drifts by model era (GPT-4 → GPT-4o → GPT-5); the lexicon tags terms with their era.
 
@@ -55,12 +55,12 @@ Vocabulary drifts by model era (GPT-4 → GPT-4o → GPT-5); the lexicon tags te
 - **Coverage.** Wikipedia/markup-specific and authorship-signal tells are intentionally excluded;
   slopscore is a general-prose tool.
 
-## v0.3 — learned scorer and evaluation
+## v0.3: learned scorer and evaluation
 
-v0.3 adds an evaluation harness (`slopscore-lint eval`) and a transparent learned scorer: a
+v0.3 adds an evaluation framework (`slopscore-lint eval`) and a transparent learned scorer: a
 **sign-constrained, Platt-calibrated logistic regression** over the 13 interpretable dimensions
 (slop dimensions weight ≥ 0, `human_writing_signals` ≤ 0). It is serialized as auditable JSON
-(`data/model/slopscore-v0.3.json`) and runs with pure numpy at scan time — `--scorer ml`.
+(`data/model/slopscore-v0.3.json`) and runs with pure numpy at scan time, `--scorer ml`.
 
 **The rule scorer remains the default.** Under the replace-if-wins gate, the learned model must
 both (a) not lose on TPR@1%FPR and (b) not regress any subgroup false-positive rate. On the
@@ -69,7 +69,7 @@ committed seed set it does neither cleanly:
 | scorer | TPR@1%FPR | PR-AUC | ECE | simple-English FPR |
 |---|---|---|---|---|
 | rules | 0.80 | 0.96 | 0.14 | 0.00 |
-| ml (out-of-fold) | 0.77 | 0.96 | 0.12 | — |
+| ml (out-of-fold) | 0.77 | 0.96 | 0.12 | n/a |
 | ml (in-sample, seed) | 0.80 | 0.98 | 0.06 | **0.62** |
 
 The learned model improves calibration but **over-flags plain/simple English** (a fairness
@@ -78,10 +78,10 @@ held-out TPR@1%FPR. So `--scorer ml` is available and opt-in; `rules` stays defa
 gate working as intended, not a failure.
 
 Caveats: these numbers are from the small hand-authored seed set (~54 rows; in-sample for ml
-unless noted out-of-fold). They are illustrative, not a serious benchmark — run `slopscore-lint eval`
+unless noted out-of-fold). They are illustrative, not a serious benchmark, run `slopscore-lint eval`
 on the fetched public corpora (`scripts/eval/fetch.py`, see `DATA_SOURCES.md`) for real figures.
 
-### Real-corpus experiment (MAGE) — and why it validates the design
+### Real-corpus experiment (MAGE): and why it validates the design
 
 Held-out test split of the committed seed + a fetched MAGE subset (CC-BY; ~1,450 rows total,
 30% test), via `scripts/eval/experiment.py`:
@@ -95,11 +95,10 @@ Held-out test split of the committed seed + a fetched MAGE subset (CC-BY; ~1,450
 **MAGE labels by authorship (machine vs human), not by slop.** That the slop scorers sit near
 chance at low FPR on MAGE is the design working, not failing: slopscore detects slop *patterns*,
 not provenance, so it should *not* cleanly separate well-written machine text from human text.
-The learned variants improve calibration sharply (ECE 0.29 → 0.02–0.03), and LightGBM extracts
+The learned variants improve calibration sharply (ECE 0.29 → 0.02-0.03), and LightGBM extracts
 more authorship signal from the same 13 features nonlinearly (PR-AUC 0.75). We **do not ship
-LightGBM**: it needs trees at scan time (breaking the pure-numpy path) and, more importantly,
-optimizing it against authorship labels would turn slopscore into an authorship detector — the
-one thing it refuses to be. The **shipped model stays the seed-trained, slop-labeled LR**, and
+LightGBM**: it needs trees at scan time (breaking the pure-numpy path), and optimizing it against
+authorship labels would turn slopscore into an authorship detector, the one thing it refuses to be. The **shipped model stays the seed-trained, slop-labeled LR**, and
 the **rule scorer stays the default**. The shipped model is never trained on MAGE.
 
 ## Changes from v0.1

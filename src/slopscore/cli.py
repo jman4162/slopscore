@@ -110,13 +110,17 @@ def scan(
     from slopscore.config_file import discover_config, load_config, resolve_settings
 
     file_cfg = load_config(config) if config else discover_config()[0]
-    settings = resolve_settings(
-        file_cfg,
-        profile=profile,
-        strictness=strictness.value if strictness else None,
-        scorer=scorer.value if scorer else None,
-        suggest=suggest or None,
-    )
+    try:
+        settings = resolve_settings(
+            file_cfg,
+            profile=profile,
+            strictness=strictness.value if strictness else None,
+            scorer=scorer.value if scorer else None,
+            suggest=suggest or None,
+        )
+    except ValueError as exc:
+        err_console.print(f"[red]Invalid configuration:[/red] {exc}")
+        raise typer.Exit(code=2) from exc
     det = None
     if detector is not None:
         if detector != "reference":
@@ -137,7 +141,12 @@ def scan(
     paths = _resolve_batch_paths(targets, recursive=recursive, diff=diff)
     try:
         if paths is not None:
-            reports = [engine.scan_file(p) for p in paths]
+            reports = []
+            for p in paths:
+                try:
+                    reports.append(engine.scan_file(p))
+                except UnicodeDecodeError:
+                    err_console.print(f"[yellow]Skipping {p}: not valid UTF-8 text.[/yellow]")
             _emit_batch(reports, settings.profile, settings.strictness.value, fmt, output)
         else:
             report = _scan_single(engine, targets[0], json_path)
@@ -152,9 +161,15 @@ def scan(
         raise typer.Exit(code=3) from exc
 
     if baseline_file is not None and fail_on_new:
+        from pydantic import ValidationError
+
         from slopscore.report.baseline import BaselineFile, new_findings
 
-        known = BaselineFile.model_validate_json(baseline_file.read_text("utf-8")).as_set()
+        try:
+            known = BaselineFile.model_validate_json(baseline_file.read_text("utf-8")).as_set()
+        except (OSError, ValueError, ValidationError) as exc:
+            err_console.print(f"[red]Could not read baseline file {baseline_file}:[/red] {exc}")
+            raise typer.Exit(code=2) from exc
         total_new = sum(new_findings(r, known) for r in reports)
         if total_new:
             err_console.print(f"[red]{total_new} new finding(s) not in the baseline.[/red]")
@@ -204,16 +219,23 @@ def _scan_single(scorer: SlopScorer, target: str, json_path: str | None) -> Repo
     return scorer.scan_file(path, json_path=json_path)
 
 
+def _write_text(path: Path, text: str) -> None:
+    """Write a report/output file, creating missing parent directories first."""
+    if path.parent and not path.parent.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
 def _emit_single(report: Report, fmt: OutputFormat, output: Path | None) -> None:
     rendered = _render_single(report, fmt)
     if rendered is None:  # console
         if output is not None:
-            output.write_text(f"SlopScore: {report.score.slop_score}\n", encoding="utf-8")
+            _write_text(output, f"SlopScore: {report.score.slop_score}\n")
         else:
             render_console(report, console)
         return
     if output is not None:
-        output.write_text(rendered, encoding="utf-8")
+        _write_text(output, rendered)
         console.print(f"[dim]wrote {fmt.value} report to {output}[/dim]")
     elif fmt is OutputFormat.json or fmt is OutputFormat.sarif:
         console.print_json(rendered)
@@ -236,7 +258,7 @@ def _emit_batch(
     if text is None:
         render_batch(build_batch_report(reports, profile, strictness), console)
     elif output is not None:
-        output.write_text(text, encoding="utf-8")
+        _write_text(output, text)
         console.print(f"[dim]wrote {fmt.value} report for {len(reports)} files to {output}[/dim]")
     else:
         console.print_json(text)
@@ -304,13 +326,22 @@ def baseline_cmd(
     from slopscore.config_file import discover_config, resolve_settings
     from slopscore.report.baseline import build_baseline
 
-    settings = resolve_settings(discover_config()[0], profile=profile)
+    try:
+        settings = resolve_settings(discover_config()[0], profile=profile)
+    except ValueError as exc:
+        err_console.print(f"[red]Invalid configuration:[/red] {exc}")
+        raise typer.Exit(code=2) from exc
     engine = SlopScorer(settings=settings)
     paths = _resolve_batch_paths(targets, recursive=recursive, diff=None)
     files = paths if paths is not None else [Path(targets[0])]
-    reports = [engine.scan_file(p) for p in files]
+    reports = []
+    for p in files:
+        try:
+            reports.append(engine.scan_file(p))
+        except UnicodeDecodeError:
+            err_console.print(f"[yellow]Skipping {p}: not valid UTF-8 text.[/yellow]")
     baseline = build_baseline(reports)
-    output.write_text(baseline.to_json(), encoding="utf-8")
+    _write_text(output, baseline.to_json())
     console.print(
         f"Wrote baseline ({len(baseline.fingerprints)} findings across {len(files)} files) "
         f"-> {output}\n  Use it with: "

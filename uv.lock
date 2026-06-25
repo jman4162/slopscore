@@ -3163,8 +3163,8 @@ wheels = [
 ]
 
 [[package]]
-name = "slopscore"
-version = "0.4.0"
+name = "slopscore-lint"
+version = "0.4.2"
 source = { editable = "." }
 dependencies = [
     { name = "ftfy" },
@@ -3247,7 +3247,7 @@ requires-dist = [
     { name = "rich", specifier = ">=13.7" },
     { name = "scikit-learn", specifier = ">=1.4" },
     { name = "sentence-transformers", marker = "extra == 'nlp'", specifier = ">=3.0" },
-    { name = "slopscore", extras = ["web", "nlp", "lang", "report"], marker = "extra == 'all'" },
+    { name = "slopscore-lint", extras = ["web", "nlp", "lang", "report"], marker = "extra == 'all'" },
     { name = "spacy", marker = "extra == 'nlp'", specifier = ">=3.7" },
     { name = "trafilatura", marker = "extra == 'web'", specifier = ">=2.0" },
     { name = "typer", specifier = ">=0.12" },

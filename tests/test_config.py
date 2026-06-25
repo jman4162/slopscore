@@ -53,3 +53,22 @@ def test_disabled_dimension_zeroes_score() -> None:
     assert disabled.dimensions.lexical_markers == 0.0
     # No lexical findings survive when the dimension is off.
     assert not any(e.rule_id.startswith("LEXICAL_") for e in disabled.evidence)
+
+
+def test_string_disabled_rules_rejected() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="list of strings"):
+        resolve_settings({"disabled_rules": "FOO"})
+
+
+def test_string_disabled_dimensions_rejected() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="list of strings"):
+        resolve_settings({"disabled_dimensions": "genericity"})
+
+
+def test_list_disabled_rules_ok() -> None:
+    settings = resolve_settings({"disabled_rules": ["A", "B"]})
+    assert settings.disabled_rules == frozenset({"A", "B"})

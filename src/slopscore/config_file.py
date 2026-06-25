@@ -93,8 +93,19 @@ def resolve_settings(
         strictness=Strictness(strictness or file_cfg.get("strictness") or "conservative"),
         scorer=Scorer(scorer or file_cfg.get("scorer") or "rules"),
         min_reliable_words=int(file_cfg.get("min_reliable_words", 300)),
-        disabled_dimensions=frozenset(file_cfg.get("disabled_dimensions", [])),
-        disabled_rules=frozenset(file_cfg.get("disabled_rules", [])),
-        rule_severity=dict(file_cfg.get("rule_severity", {})),
+        disabled_dimensions=_str_set(file_cfg, "disabled_dimensions"),
+        disabled_rules=_str_set(file_cfg, "disabled_rules"),
+        rule_severity=dict(file_cfg.get("rule_severity", {}) or {}),
         suggest=bool(suggest if suggest is not None else file_cfg.get("suggest", False)),
     )
+
+
+def _str_set(cfg: dict[str, Any], key: str) -> frozenset[str]:
+    """Read a config list of strings, rejecting a bare string (which would silently iterate into
+    per-character entries)."""
+    value = cfg.get(key, [])
+    if isinstance(value, str):
+        raise ValueError(f"`{key}` must be a list of strings, not a string ({value!r}).")
+    if not isinstance(value, (list, tuple, set, frozenset)):
+        raise ValueError(f"`{key}` must be a list of strings, got {type(value).__name__}.")
+    return frozenset(str(v) for v in value)

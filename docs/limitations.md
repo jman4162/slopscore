@@ -3,7 +3,7 @@
 ## slopscore is not an AI detector
 
 It flags writing **patterns**, not provenance. A high score means the text is dense with
-formulaic, generic, low-specificity, over-polished patterns — which occur in low-effort AI output
+formulaic, generic, low-specificity, over-polished patterns, which occur in low-effort AI output
 **and** in plenty of human writing (marketing copy, SEO, fan fiction). It scores **text**, not
 **authors**, and must never be used to accuse anyone.
 
@@ -13,7 +13,7 @@ formulaic, generic, low-specificity, over-polished patterns — which occur in l
   ~61% false positives on non-native essays). slopscore mitigates with a corroboration gate, a
   negative human-writing signal, and abstention, but residual risk remains.
 - **Short text** (< ~300 words) is unreliable; under ~100 words the label abstains.
-- **Genre** matters — marketing and travel prose naturally resemble slop. Use `--profile`.
+- **Genre** matters: marketing and travel prose naturally resemble slop. Use `--profile`.
 - **Light paraphrasing** evades pattern matching, as it does all detectors.
 
 See the project `MODEL_CARD.md` for measured numbers and the real-corpus (MAGE) experiment.

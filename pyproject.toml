@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 # PyPI distribution name ("slopscore" was already taken by a different, similar tool). The import
 # package stays `slopscore`; the CLI command is `slopscore-lint` (scikit-learn / sklearn pattern).
 name = "slopscore-lint"
-version = "0.4.1"
+version = "0.4.2"
 description = "Transparent AI-slop writing-pattern analysis for essays, blog posts, Markdown, JSON, and websites."
 readme = "README.md"
 license = "MIT"
