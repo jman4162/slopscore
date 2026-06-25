@@ -1,0 +1,36 @@
+{
+  "n_total": 1454,
+  "n_test": 437,
+  "test_metrics": {
+    "rules": {
+      "n": 437,
+      "n_positive": 219,
+      "auroc": 0.4246,
+      "pr_auc": 0.5137,
+      "tpr_at_1fpr": 0.0639,
+      "tpr_at_5fpr": 0.0822,
+      "ece": 0.2869,
+      "brier": 0.3578
+    },
+    "lr": {
+      "n": 437,
+      "n_positive": 219,
+      "auroc": 0.4299,
+      "pr_auc": 0.5227,
+      "tpr_at_1fpr": 0.0959,
+      "tpr_at_5fpr": 0.1142,
+      "ece": 0.0331,
+      "brier": 0.2441
+    },
+    "lgbm_monotone": {
+      "n": 437,
+      "n_positive": 219,
+      "auroc": 0.7105,
+      "pr_auc": 0.7515,
+      "tpr_at_1fpr": 0.0913,
+      "tpr_at_5fpr": 0.1324,
+      "ece": 0.0233,
+      "brier": 0.2072
+    }
+  }
+}

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "slopscore"
-version = "0.3.0"
+version = "0.3.1"
 description = "Transparent AI-slop writing-pattern analysis for essays, blog posts, Markdown, JSON, and websites."
 readme = "README.md"
 license = "MIT"
@@ -46,6 +46,8 @@ lang = ["lingua-language-detector>=2.0"]
 report = ["jinja2>=3.1"]
 # Fetching the large public evaluation corpora (scripts/eval/fetch.py).
 eval = ["datasets>=2.19", "huggingface-hub>=0.23"]
+# Experimental gradient-boosted scorer (research only; never shipped at scan time).
+ml = ["lightgbm>=4.0"]
 # Placeholder for v0.4 authorship-signal detector adapters.
 detectors = []
 all = [

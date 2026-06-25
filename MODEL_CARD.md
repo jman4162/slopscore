@@ -81,6 +81,27 @@ Caveats: these numbers are from the small hand-authored seed set (~54 rows; in-s
 unless noted out-of-fold). They are illustrative, not a serious benchmark — run `slopscore eval`
 on the fetched public corpora (`scripts/eval/fetch.py`, see `DATA_SOURCES.md`) for real figures.
 
+### Real-corpus experiment (MAGE) — and why it validates the design
+
+Held-out test split of the committed seed + a fetched MAGE subset (CC-BY; ~1,450 rows total,
+30% test), via `scripts/eval/experiment.py`:
+
+| scorer | TPR@1%FPR | TPR@5%FPR | PR-AUC | ECE |
+|---|---|---|---|---|
+| rules | 0.06 | 0.08 | 0.51 | 0.29 |
+| LR (sign-constrained) | 0.10 | 0.11 | 0.52 | 0.03 |
+| LightGBM (monotone, **experiment only**) | 0.09 | 0.13 | **0.75** | 0.02 |
+
+**MAGE labels by authorship (machine vs human), not by slop.** That the slop scorers sit near
+chance at low FPR on MAGE is the design working, not failing: slopscore detects slop *patterns*,
+not provenance, so it should *not* cleanly separate well-written machine text from human text.
+The learned variants improve calibration sharply (ECE 0.29 → 0.02–0.03), and LightGBM extracts
+more authorship signal from the same 13 features nonlinearly (PR-AUC 0.75). We **do not ship
+LightGBM**: it needs trees at scan time (breaking the pure-numpy path) and, more importantly,
+optimizing it against authorship labels would turn slopscore into an authorship detector — the
+one thing it refuses to be. The **shipped model stays the seed-trained, slop-labeled LR**, and
+the **rule scorer stays the default**. The shipped model is never trained on MAGE.
+
 ## Changes from v0.1
 
 Added significance inflation, superficial "-ing" analyses, vague/over-attribution, negative
