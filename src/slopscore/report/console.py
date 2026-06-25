@@ -83,10 +83,14 @@ def render(report: Report, console: Console | None = None) -> None:
         console.print("\n[bold]Evidence[/bold]")
         for e in report.evidence[:25]:
             snippet = e.span.replace("\n", " ").strip()
+            fix = ""
+            if e.suggestion is not None:
+                target = "delete" if e.suggestion.text == "" else f"→ '{e.suggestion.text}'"
+                fix = f" [green]suggest {target}[/green]"
             console.print(
                 f"  [dim]{e.start_char:>5}[/dim] [cyan]{e.rule_id}[/cyan] "
                 f"[{_sev_style(e.severity.value)}]{e.severity.value}[/]: "
-                f'"{snippet}" [dim]— {e.explanation}[/dim]'
+                f'"{snippet}" [dim]— {e.explanation}[/dim]{fix}'
             )
 
     if report.baseline is not None:

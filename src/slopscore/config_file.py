@@ -80,6 +80,7 @@ def resolve_settings(
     profile: str | None = None,
     strictness: str | None = None,
     scorer: str | None = None,
+    suggest: bool | None = None,
 ) -> Any:
     """Merge a file-config dict with explicit CLI overrides (None = not set) into a Settings.
 
@@ -95,4 +96,5 @@ def resolve_settings(
         disabled_dimensions=frozenset(file_cfg.get("disabled_dimensions", [])),
         disabled_rules=frozenset(file_cfg.get("disabled_rules", [])),
         rule_severity=dict(file_cfg.get("rule_severity", {})),
+        suggest=bool(suggest if suggest is not None else file_cfg.get("suggest", False)),
     )

@@ -1,0 +1,65 @@
+# Opt-in rewrite suggestions: high-confidence, one-to-one swaps toward plainer prose.
+# Surfaced only with --suggest; never auto-applied; advisory (do not affect the score or --fail-on).
+# Keep these SAFE: single-word/phrase substitutions whose meaning is preserved in almost all contexts.
+
+rules:
+  - rule_id: SUGGEST_UTILIZE
+    pattern: "\\butiliz(e|es|ed|ing)\\b"
+    suggestion: "use"
+    confidence: 0.97
+    reasoning: "'utilize' is almost always just 'use'."
+  - rule_id: SUGGEST_IN_ORDER_TO
+    pattern: "\\bin order to\\b"
+    suggestion: "to"
+    confidence: 0.95
+    reasoning: "'in order to' can be shortened to 'to'."
+  - rule_id: SUGGEST_A_NUMBER_OF
+    pattern: "\\ba number of\\b"
+    suggestion: "several"
+    confidence: 0.9
+    reasoning: "'a number of' is vaguer than 'several' or a count."
+  - rule_id: SUGGEST_DUE_TO_THE_FACT
+    pattern: "\\bdue to the fact that\\b"
+    suggestion: "because"
+    confidence: 0.96
+    reasoning: "'due to the fact that' means 'because'."
+  - rule_id: SUGGEST_IN_THE_EVENT_THAT
+    pattern: "\\bin the event that\\b"
+    suggestion: "if"
+    confidence: 0.95
+    reasoning: "'in the event that' means 'if'."
+  - rule_id: SUGGEST_AT_THIS_POINT_IN_TIME
+    pattern: "\\bat this point in time\\b"
+    suggestion: "now"
+    confidence: 0.95
+    reasoning: "'at this point in time' means 'now'."
+  - rule_id: SUGGEST_HAS_THE_ABILITY_TO
+    pattern: "\\bhas the ability to\\b"
+    suggestion: "can"
+    confidence: 0.95
+    reasoning: "'has the ability to' means 'can'."
+  - rule_id: SUGGEST_FACILITATE
+    pattern: "\\bfacilitate\\b"
+    suggestion: "help"
+    confidence: 0.9
+    reasoning: "'facilitate' is usually 'help' or 'ease'."
+  - rule_id: SUGGEST_ENDEAVOR
+    pattern: "\\bendeavor\\b"
+    suggestion: "try"
+    confidence: 0.9
+    reasoning: "'endeavor' (as a verb) is usually 'try'."
+  - rule_id: SUGGEST_PRIOR_TO
+    pattern: "\\bprior to\\b"
+    suggestion: "before"
+    confidence: 0.95
+    reasoning: "'prior to' means 'before'."
+  - rule_id: SUGGEST_SUBSEQUENT_TO
+    pattern: "\\bsubsequent to\\b"
+    suggestion: "after"
+    confidence: 0.95
+    reasoning: "'subsequent to' means 'after'."
+  - rule_id: SUGGEST_IN_CONCLUSION
+    pattern: "\\bin conclusion\\b"
+    suggestion: ""
+    confidence: 0.92
+    reasoning: "'In conclusion' is usually filler; delete it and state the point."

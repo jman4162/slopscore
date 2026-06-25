@@ -64,6 +64,14 @@ class Dimension(StrEnum):
     human_writing_signals = "human_writing_signals"
 
 
+class Suggestion(BaseModel):
+    """An opt-in, non-destructive rewrite suggestion for a finding (never auto-applied)."""
+
+    text: str  # the proposed replacement for the span
+    confidence: float = Field(ge=0.0, le=1.0)
+    reasoning: str
+
+
 class Evidence(BaseModel):
     """A single triggered finding. Offsets index the ORIGINAL source text."""
 
@@ -73,6 +81,7 @@ class Evidence(BaseModel):
     start_char: int
     end_char: int
     explanation: str
+    suggestion: Suggestion | None = None
 
 
 class FeatureResult(BaseModel):

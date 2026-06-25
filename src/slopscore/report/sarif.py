@@ -39,24 +39,33 @@ def _rules_registry(evidence: list[Evidence]) -> list[dict[str, Any]]:
 
 def _result(e: Evidence, uri: str, text: str) -> dict[str, Any]:
     sl, sc, el, ec = char_to_line_col(text, e.start_char, e.end_char)
-    return {
+    region = {"startLine": sl, "startColumn": sc, "endLine": el, "endColumn": ec}
+    result: dict[str, Any] = {
         "ruleId": e.rule_id,
         "level": _LEVEL[e.severity],
         "message": {"text": f"{e.explanation} (matched: {e.span!r})"},
         "locations": [
-            {
-                "physicalLocation": {
-                    "artifactLocation": {"uri": uri},
-                    "region": {
-                        "startLine": sl,
-                        "startColumn": sc,
-                        "endLine": el,
-                        "endColumn": ec,
-                    },
-                }
-            }
+            {"physicalLocation": {"artifactLocation": {"uri": uri}, "region": region}}
         ],
     }
+    if e.suggestion is not None:
+        result["fixes"] = [
+            {
+                "description": {"text": e.suggestion.reasoning},
+                "artifactChanges": [
+                    {
+                        "artifactLocation": {"uri": uri},
+                        "replacements": [
+                            {
+                                "deletedRegion": region,
+                                "insertedContent": {"text": e.suggestion.text},
+                            }
+                        ],
+                    }
+                ],
+            }
+        ]
+    return result
 
 
 def _run(report: Report) -> dict[str, Any]:

@@ -94,6 +94,12 @@ def scan(
     fail_on: FailOn = typer.Option(
         FailOn.none, "--fail-on", help="Exit non-zero if any finding reaches this severity."
     ),
+    baseline_file: Path | None = typer.Option(
+        None, "--baseline-file", help="A findings baseline from `slopscore baseline`."
+    ),
+    fail_on_new: bool = typer.Option(
+        False, "--fail-on-new", help="With --baseline-file: exit 1 only on findings not in it."
+    ),
     suggest: bool = typer.Option(False, "--suggest", help="Include rewrite suggestions."),
     output: Path | None = typer.Option(None, "--output", "-o", help="Write report to a file."),
 ) -> None:
@@ -106,6 +112,7 @@ def scan(
         profile=profile,
         strictness=strictness.value if strictness else None,
         scorer=scorer.value if scorer else None,
+        suggest=suggest or None,
     )
     try:
         engine = SlopScorer(baseline=baseline, settings=settings)
@@ -130,7 +137,15 @@ def scan(
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=3) from exc
 
-    if max_severity(reports) >= fail_threshold_rank(fail_on.value):
+    if baseline_file is not None and fail_on_new:
+        from slopscore.report.baseline import BaselineFile, new_findings
+
+        known = BaselineFile.model_validate_json(baseline_file.read_text("utf-8")).as_set()
+        total_new = sum(new_findings(r, known) for r in reports)
+        if total_new:
+            err_console.print(f"[red]{total_new} new finding(s) not in the baseline.[/red]")
+            raise typer.Exit(code=1)
+    elif max_severity(reports) >= fail_threshold_rank(fail_on.value):
         raise typer.Exit(code=1)
 
 
@@ -259,6 +274,32 @@ def calibrate(
     console.print(
         f"Saved baseline [cyan]{name}[/cyan]: {prof.n_docs} docs, {total_words} words{note}\n"
         f"  -> {saved}\n  Use it with: slopscore scan FILE --baseline {name}"
+    )
+
+
+@app.command(name="baseline")
+def baseline_cmd(
+    targets: list[str] = typer.Argument(..., help="Files or directories to baseline."),
+    profile: str | None = typer.Option(None, "--profile", "-p"),
+    recursive: bool = typer.Option(False, "--recursive", "-r"),
+    output: Path = typer.Option(
+        Path(".slopscore-baseline.json"), "--output", "-o", help="Where to write the baseline."
+    ),
+) -> None:
+    """Record current findings as a baseline so future scans fail only on NEW findings."""
+    from slopscore.config_file import discover_config, resolve_settings
+    from slopscore.report.baseline import build_baseline
+
+    settings = resolve_settings(discover_config()[0], profile=profile)
+    engine = SlopScorer(settings=settings)
+    paths = _resolve_batch_paths(targets, recursive=recursive, diff=None)
+    files = paths if paths is not None else [Path(targets[0])]
+    reports = [engine.scan_file(p) for p in files]
+    baseline = build_baseline(reports)
+    output.write_text(baseline.to_json(), encoding="utf-8")
+    console.print(
+        f"Wrote baseline ({len(baseline.fingerprints)} findings across {len(files)} files) "
+        f"-> {output}\n  Use it with: slopscore scan ... --baseline-file {output} --fail-on-new"
     )
 
 

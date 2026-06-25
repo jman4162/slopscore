@@ -71,10 +71,15 @@ _SEVERITY_RANK: dict[str, int] = {"low": 1, "medium": 2, "high": 3}
 
 
 def max_severity(reports: list[Report]) -> int:
-    """Highest evidence severity rank across all reports (0 if none)."""
+    """Highest evidence severity rank across all reports (0 if none).
+
+    Advisory suggestions (``SUGGEST_*``) are excluded — they never trip ``--fail-on``.
+    """
     rank = 0
     for r in reports:
         for e in r.evidence:
+            if e.rule_id.startswith("SUGGEST_"):
+                continue
             rank = max(rank, _SEVERITY_RANK[e.severity.value])
     return rank
 

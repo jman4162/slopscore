@@ -40,6 +40,8 @@ class Settings(BaseModel):
     disabled_dimensions: frozenset[str] = frozenset()
     disabled_rules: frozenset[str] = frozenset()
     rule_severity: dict[str, str] = {}
+    # Include opt-in, advisory rewrite suggestions (does not affect the score or --fail-on).
+    suggest: bool = False
 
 
 def data_path(*parts: str) -> resources.abc.Traversable:

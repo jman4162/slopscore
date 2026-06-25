@@ -99,6 +99,12 @@ def _assemble_evidence(
             if override and override != e.severity.value:
                 e = e.model_copy(update={"severity": Severity(override)})
             out.append(e)
+    if settings.suggest:
+        from slopscore.features.suggestions import find_suggestions
+
+        out.extend(
+            e for e in find_suggestions(doc) if e.rule_id not in settings.disabled_rules
+        )
     out.sort(key=lambda e: e.start_char)
     return out
 
