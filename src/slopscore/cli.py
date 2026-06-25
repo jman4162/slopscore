@@ -448,6 +448,36 @@ def eval_cmd(
         console.print(f"[dim]wrote metrics to {output}[/dim]")
 
 
+_DIMENSION_GUIDE: dict[str, str] = {
+    "lexical_markers": "AI-era vocabulary (delve, leverage, robust, tapestry). Weak alone.",
+    "formulaic_structure": "Templated scaffolds ('in today's fast-paced world', rhetorical Q&A).",
+    "genericity": "Vague, low-specificity prose: few names, dates, numbers, or concrete nouns.",
+    "redundancy": "Sentences that repeat the same idea with little new information.",
+    "cadence_sameness": "Monotonous, machine-even sentence lengths. Weak alone.",
+    "unsupported_claims": "Sweeping or universal claims with no citation or evidence.",
+    "prompt_residue": "Leftover assistant boilerplate ('as an AI', 'here is a ...').",
+    "significance_inflation": "Overclaimed impact (pivotal, transformative, groundbreaking).",
+    "superficial_analysis": "Trailing '-ing' clauses that gesture at analysis without substance.",
+    "weasel_attribution": "Vague sourcing ('experts say', 'studies show') with no specifics.",
+    "parallelism": "Rule-of-three and negative-parallelism padding. Weak alone.",
+    "copula_avoidance": "Decline of plain 'is/are' in favor of fancier verbs. Weak alone.",
+    "formatting_tells": "Em dash and curly-quote tics, list-heavy formatting. Weak alone.",
+    "human_writing_signals": "Specific, plain, concrete writing. NEGATIVE: this LOWERS the score.",
+}
+
+
+@app.command(name="explain")
+def explain_cmd() -> None:
+    """List the scored dimensions and what each one detects."""
+    console.print("[bold]slopscore dimensions[/bold] (each is a [0,1] signal; see MODEL_CARD.md)\n")
+    for dim, desc in _DIMENSION_GUIDE.items():
+        console.print(f"  [cyan]{dim}[/cyan]\n      {desc}")
+    console.print(
+        "\n[dim]Weak-alone dimensions are damped unless another dimension corroborates them. "
+        "Scores abstain on very short or non-English text.[/dim]"
+    )
+
+
 @app.command(name="fairness")
 def fairness_cmd(
     dataset: Path | None = typer.Option(

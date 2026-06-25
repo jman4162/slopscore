@@ -186,3 +186,10 @@ def test_by_paragraph_surfaces_worst(tmp_path: Path) -> None:
     result = runner.invoke(app, ["scan", str(p), "--by-paragraph"])
     assert result.exit_code == 0
     assert "By paragraph" in result.stdout
+
+
+def test_explain_lists_dimensions() -> None:
+    result = runner.invoke(app, ["explain"])
+    assert result.exit_code == 0
+    assert "lexical_markers" in result.stdout
+    assert "human_writing_signals" in result.stdout
