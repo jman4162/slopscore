@@ -22,6 +22,7 @@ from slopscore.models import (
     Label,
     Report,
     Score,
+    Severity,
     label_for_score,
 )
 from slopscore.scoring.confidence import abstain_reason, compute_confidence
@@ -67,8 +68,48 @@ def _score_ml(by_dim: dict[Dimension, float]) -> float:
     return load_model().slop_score(feature_vector(dims))
 
 
+def _assemble_evidence(
+    results: list[FeatureResult],
+    doc: Document,
+    settings: Settings,
+    warnings: list[str],
+) -> list[Evidence]:
+    """Collect spans, then apply per-rule disable, severity overrides, and inline suppression."""
+    from slopscore.suppress import parse_suppressions
+
+    known = frozenset(d.value for d in Dimension) | {
+        e.rule_id for r in results for e in r.spans
+    }
+    suppressions = parse_suppressions(doc.original_text, known)
+    if suppressions.unknown_names:
+        warnings.insert(
+            0,
+            "Unknown name(s) in a slopscore suppression comment: "
+            + ", ".join(sorted(suppressions.unknown_names)),
+        )
+
+    out: list[Evidence] = []
+    for r in results:
+        for e in r.spans:
+            if e.rule_id in settings.disabled_rules:
+                continue
+            if suppressions.is_suppressed(e.start_char, e.rule_id, r.dimension.value):
+                continue
+            override = settings.rule_severity.get(e.rule_id)
+            if override and override != e.severity.value:
+                e = e.model_copy(update={"severity": Severity(override)})
+            out.append(e)
+    out.sort(key=lambda e: e.start_char)
+    return out
+
+
 def score_document(doc: Document, settings: Settings) -> Report:
-    results: list[FeatureResult] = [f.extract(doc, settings.profile) for f in registry()]
+    # Disabled dimensions skip their feature entirely (contribute 0 and emit no findings).
+    results: list[FeatureResult] = [
+        f.extract(doc, settings.profile)
+        for f in registry()
+        if f.dimension.value not in settings.disabled_dimensions
+    ]
     by_dim: dict[Dimension, float] = {r.dimension: r.score for r in results}
 
     # Positive (slop-raising) dimensions that are elevated, ignoring the negative human signal.
@@ -100,8 +141,7 @@ def score_document(doc: Document, settings: Settings) -> Report:
             + ". Use --strictness sensitive to include these.",
         )
 
-    evidence: list[Evidence] = [span for r in results for span in r.spans]
-    evidence.sort(key=lambda e: e.start_char)
+    evidence = _assemble_evidence(results, doc, settings, warnings)
 
     return Report(
         input=InputMeta(

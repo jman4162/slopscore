@@ -34,6 +34,12 @@ class Settings(BaseModel):
     scorer: Scorer = Scorer.rules
     # Below this word count, confidence is heavily suppressed (spec: <300 words).
     min_reliable_words: int = 300
+    # Linter config (v0.4). Dimension/rule names that should not contribute findings; per-rule
+    # severity overrides. Disabled dimensions skip their feature entirely (score -> 0); disabled
+    # rules and severity overrides are applied as an evidence post-filter.
+    disabled_dimensions: frozenset[str] = frozenset()
+    disabled_rules: frozenset[str] = frozenset()
+    rule_severity: dict[str, str] = {}
 
 
 def data_path(*parts: str) -> resources.abc.Traversable:

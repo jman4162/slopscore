@@ -1,0 +1,40 @@
+# Unsupported universal / inflated claims (WP:AISIGNS "unsupported universal claims").
+# DISTINCT from weasel_attribution: that flags a vague SOURCE ("experts argue"); this flags a
+# universal or sweeping CLAIM made with no evidence, citation, or mechanism.
+
+rules:
+  - rule_id: CLAIM_EVERYONE_KNOWS
+    severity: medium
+    pattern: "\\b(?:everyone|no one|nobody|all people|the (?:public|world|people)|society) (?:knows|understands|believes|realizes|agrees|recognizes) (?:that )?\\b"
+    explanation: "Universal claim asserted without evidence ('everyone knows that...')."
+    source: "WP:AISIGNS / unsupported universal claims"
+
+  - rule_id: CLAIM_AUTHORITY_NO_CITATION
+    severity: medium
+    pattern: "\\b(?:studies|research|science|data|evidence) (?:show|shows|prove|proves|reveal|reveals|demonstrate|demonstrates|confirm|confirms) (?:that )?(?![^.?!]{0,80}?(?:\\[|\\(\\d{4}|https?://|et al))"
+    explanation: "Appeal to studies/research/science with no citation, date, or link nearby."
+    source: "WP:AISIGNS / unsupported universal claims"
+
+  - rule_id: CLAIM_REVOLUTIONIZED
+    severity: medium
+    pattern: "\\b(?:has |have |had )?(?:revolutioniz(?:ed|es)|transformed|reshaped|reimagined|upended|completely (?:changed|altered)|fundamentally changed) (?:the )?(?:industry|field|world|landscape|economy|society|way we\\b|way people\\b)\\b"
+    explanation: "Sweeping causal claim ('has revolutionized the industry') with no mechanism."
+    source: "WP:AISIGNS / unsupported universal claims"
+
+  - rule_id: CLAIM_FUTURE_INEVITABLE
+    severity: low
+    pattern: "\\bthe (?:future|next (?:era|age|frontier|chapter|generation)) of [^.?!]{1,40}? (?:is|will be) (?:here|now|revolutionary|transformative|unprecedented|bright|limitless|inevitable)\\b"
+    explanation: "Inevitable-paradigm-shift prediction with no basis."
+    source: "WP:AISIGNS / unsupported universal claims"
+
+  - rule_id: CLAIM_INCREASINGLY_WORLD
+    severity: low
+    pattern: "\\bin (?:an?|today's) (?:increasingly|rapidly (?:evolving|changing)|fast[- ]paced|ever[- ]changing|digitally?[- ]driven|interconnected|AI[- ]powered|hyper[- ]connected) (?:digital |modern |global )?(?:world|landscape|era|age|environment|economy|society)\\b"
+    explanation: "Vague 'in an increasingly X world' framing without specifics."
+    source: "WP:AISIGNS / unsupported universal claims"
+
+  - rule_id: CLAIM_MORE_THAN_EVER
+    severity: low
+    pattern: "\\bmore (?:important|relevant|critical|essential|crucial|vital) than ever(?: before)?\\b"
+    explanation: "'More important than ever' inflation with no comparison or evidence."
+    source: "WP:AISIGNS / unsupported universal claims"

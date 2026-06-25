@@ -47,6 +47,8 @@ SignificanceInflation = _PhrasePack(
     Dimension.significance_inflation, "significance", full_scale=3.0
 )
 WeaselAttribution = _PhrasePack(Dimension.weasel_attribution, "attribution", full_scale=3.0)
+UnsupportedClaims = _PhrasePack(Dimension.unsupported_claims, "claims", full_scale=3.0)
 
 register(SignificanceInflation)
 register(WeaselAttribution)
+register(UnsupportedClaims)

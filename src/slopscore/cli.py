@@ -70,10 +70,10 @@ def scan(
     targets: list[str] = typer.Argument(
         ..., help="One or more files, a directory, a URL, or '-' for stdin."
     ),
-    profile: str = typer.Option(
-        "blog", "--profile", "-p", help=f"One of: {', '.join(KNOWN_PROFILES)}."
+    profile: str | None = typer.Option(
+        None, "--profile", "-p", help=f"One of: {', '.join(KNOWN_PROFILES)}."
     ),
-    strictness: Strictness = typer.Option(Strictness.conservative, "--strictness", "-s"),
+    strictness: Strictness | None = typer.Option(None, "--strictness", "-s"),
     fmt: OutputFormat = typer.Option(OutputFormat.console, "--format", "-f"),
     json_path: str | None = typer.Option(
         None, "--json-path", help="JSONPath for JSON input, e.g. $.article.body"
@@ -81,8 +81,11 @@ def scan(
     baseline: str | None = typer.Option(
         None, "--baseline", "-b", help="Compare against a personal baseline from `calibrate`."
     ),
-    scorer: Scorer = typer.Option(
-        Scorer.rules, "--scorer", help="Scoring engine: rules (default) or ml (learned model)."
+    scorer: Scorer | None = typer.Option(
+        None, "--scorer", help="Scoring engine: rules (default) or ml (learned model)."
+    ),
+    config: Path | None = typer.Option(
+        None, "--config", help="Explicit config file (else auto-discovered)."
     ),
     recursive: bool = typer.Option(False, "--recursive", "-r", help="Recurse into a directory."),
     diff: str | None = typer.Option(
@@ -91,13 +94,21 @@ def scan(
     fail_on: FailOn = typer.Option(
         FailOn.none, "--fail-on", help="Exit non-zero if any finding reaches this severity."
     ),
+    suggest: bool = typer.Option(False, "--suggest", help="Include rewrite suggestions."),
     output: Path | None = typer.Option(None, "--output", "-o", help="Write report to a file."),
 ) -> None:
     """Scan a file, directory, URL, or stdin for AI-slop writing patterns."""
+    from slopscore.config_file import discover_config, load_config, resolve_settings
+
+    file_cfg = load_config(config) if config else discover_config()[0]
+    settings = resolve_settings(
+        file_cfg,
+        profile=profile,
+        strictness=strictness.value if strictness else None,
+        scorer=scorer.value if scorer else None,
+    )
     try:
-        engine = SlopScorer(
-            profile=profile, strictness=strictness, baseline=baseline, scorer=scorer
-        )
+        engine = SlopScorer(baseline=baseline, settings=settings)
     except FileNotFoundError as exc:
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=2) from exc
@@ -106,7 +117,7 @@ def scan(
     try:
         if paths is not None:
             reports = [engine.scan_file(p) for p in paths]
-            _emit_batch(reports, profile, strictness.value, fmt, output)
+            _emit_batch(reports, settings.profile, settings.strictness.value, fmt, output)
         else:
             report = _scan_single(engine, targets[0], json_path)
             _emit_single(report, fmt, output)
@@ -249,6 +260,17 @@ def calibrate(
         f"Saved baseline [cyan]{name}[/cyan]: {prof.n_docs} docs, {total_words} words{note}\n"
         f"  -> {saved}\n  Use it with: slopscore scan FILE --baseline {name}"
     )
+
+
+@app.command(name="config")
+def config_cmd() -> None:
+    """Show the effective configuration (merged from slopscore.toml / pyproject.toml + defaults)."""
+    from slopscore.config_file import discover_config, resolve_settings
+
+    file_cfg, source = discover_config()
+    settings = resolve_settings(file_cfg)
+    console.print(f"[bold]Config source:[/bold] {source or '(none — built-in defaults)'}")
+    console.print_json(settings.model_dump_json(indent=2))
 
 
 @app.command(name="eval")

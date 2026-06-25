@@ -45,8 +45,10 @@ class SlopScorer:
         strictness: str | Strictness = Strictness.conservative,
         baseline: str | None = None,
         scorer: str | Scorer = Scorer.rules,
+        settings: Settings | None = None,
     ) -> None:
-        self.settings = Settings(
+        # An explicit Settings (from merged config) wins; else build from the primitive args.
+        self.settings = settings or Settings(
             profile=profile, strictness=Strictness(strictness), scorer=Scorer(scorer)
         )
         self._baseline = self._load_baseline(baseline)
