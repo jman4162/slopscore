@@ -13,6 +13,7 @@ from slopscore.config import Scorer, Strictness
 from slopscore.core import SlopScorer
 from slopscore.ingest import looks_like_url
 from slopscore.ingest.batch import iter_paths
+from slopscore.ingest.code import CODE_SUFFIXES as _CODE_SUFFIXES
 from slopscore.ingest.website import WebExtraNotInstalled
 from slopscore.models import Report
 from slopscore.report import render_batch, render_console, to_json, to_markdown, to_sarif
@@ -104,6 +105,9 @@ def scan(
         False, "--fail-on-new", help="With --baseline-file: exit 1 only on findings not in it."
     ),
     suggest: bool = typer.Option(False, "--suggest", help="Include rewrite suggestions."),
+    by_paragraph: bool = typer.Option(
+        False, "--by-paragraph", help="Also score each paragraph (surfaces a sloppy section)."
+    ),
     output: Path | None = typer.Option(None, "--output", "-o", help="Write report to a file."),
 ) -> None:
     """Scan a file, directory, URL, or stdin for AI-slop writing patterns."""
@@ -151,6 +155,8 @@ def scan(
         else:
             report = _scan_single(engine, targets[0], json_path)
             _emit_single(report, fmt, output)
+            if by_paragraph and fmt is OutputFormat.console:
+                _emit_by_paragraph(engine, report)
             reports = [report]
     except WebExtraNotInstalled as exc:
         # escape() keeps the literal "[web]" in the hint from being parsed as Rich markup.
@@ -178,7 +184,7 @@ def scan(
         raise typer.Exit(code=1)
 
 
-_SCANNABLE_SUFFIXES = {".txt", ".md", ".markdown", ".rst", ".json"}
+_SCANNABLE_SUFFIXES = {".txt", ".md", ".markdown", ".rst", ".json"} | _CODE_SUFFIXES
 
 
 def _resolve_batch_paths(
@@ -224,6 +230,36 @@ def _write_text(path: Path, text: str) -> None:
     if path.parent and not path.parent.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
+
+
+def _emit_by_paragraph(engine: SlopScorer, report: Report) -> None:
+    """Score each paragraph of the analyzed prose and print them worst-first.
+
+    A long document can hide a sloppy section behind a clean average; this surfaces it. Paragraphs
+    are scored independently (short ones abstain, as usual), so this is a triage view, not a label.
+    """
+    import re as _re
+
+    paras = [p.strip() for p in _re.split(r"\n\s*\n", report.original_text) if p.strip()]
+    if len(paras) < 2:
+        return
+    scored = sorted(
+        ((engine.scan_text(p).score.slop_score, p) for p in paras),
+        key=lambda t: t[0],
+        reverse=True,
+    )
+    console.print("\n[bold]By paragraph[/bold] [dim](worst first; short paragraphs abstain)[/dim]")
+    for score, para in scored:
+        snippet = para[:90].replace("\n", " ") + ("…" if len(para) > 90 else "")
+        console.print(f"  [{_sev_style_for_score(score)}]{score:5.1f}[/]  {snippet}")
+
+
+def _sev_style_for_score(score: float) -> str:
+    if score >= 75:
+        return "red"
+    if score >= 50:
+        return "yellow"
+    return "green"
 
 
 def _emit_single(report: Report, fmt: OutputFormat, output: Path | None) -> None:
@@ -410,6 +446,56 @@ def eval_cmd(
     if output is not None:
         output.write_text(_json.dumps(results, indent=2, default=str), encoding="utf-8")
         console.print(f"[dim]wrote metrics to {output}[/dim]")
+
+
+@app.command(name="fairness")
+def fairness_cmd(
+    dataset: Path | None = typer.Option(
+        None, "--dataset", help="Labeled JSONL. Defaults to the committed benchmark."
+    ),
+    threshold: float = typer.Option(
+        0.2, "--threshold", help="Flag rules whose false-positive rate on a slice exceeds this."
+    ),
+) -> None:
+    """Audit per-rule false positives on plain and non-native English.
+
+    For each fairness slice, scan the CLEAN (label 0) rows and report how often each rule fires.
+    A rule that fires on competent plain or non-native writing is a fairness liability. No other
+    slop linter publishes this; it is the discipline that keeps the tool from accusing writers.
+    """
+    from collections import Counter
+
+    from slopscore.eval.datasets import load_jsonl, seed_path
+
+    path = dataset or (seed_path().parent / "benchmark.jsonl")
+    rows = load_jsonl(path)
+    engine = SlopScorer(profile="blog")
+    slices = ["simple_english", "non_native"]
+
+    for slice_name in slices:
+        clean = [r for r in rows if r.subgroup == slice_name and r.label == 0]
+        if not clean:
+            continue
+        fires: Counter[str] = Counter()
+        flagged_docs = 0
+        for r in clean:
+            report = engine.scan_text(r.text)
+            fired = {e.rule_id for e in report.evidence if not e.rule_id.startswith("SUGGEST_")}
+            fires.update(fired)
+            if report.score.slop_score >= 50:
+                flagged_docs += 1
+        n = len(clean)
+        console.print(
+            f"\n[bold]{slice_name}[/bold] (n={n} clean): document FPR {flagged_docs / n:.2f}"
+        )
+        if not fires:
+            console.print("  [green]no rules fired on this slice[/green]")
+            continue
+        for rule_id, count in fires.most_common():
+            rate = count / n
+            style = "red" if rate > threshold else "dim"
+            flag = "  <- over threshold" if rate > threshold else ""
+            console.print(f"  [{style}]{rule_id}: {rate:.2f} ({count}/{n}){flag}[/{style}]")
 
 
 if __name__ == "__main__":

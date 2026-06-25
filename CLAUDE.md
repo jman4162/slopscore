@@ -89,9 +89,19 @@ data files ship via hatchling's default package inclusion — do NOT re-add a `f
 `data/` (it duplicates paths and breaks `uv build`). PyPI publish is OIDC trusted-publishing on tag
 (`.github/workflows/publish.yml`); docs are mkdocs-material (`.github/workflows/docs.yml`).
 
+Differentiation (v0.6): `ingest/code.py` extracts prose from source files (Python docstrings/comments
+via `ast`/`tokenize`; JS/TS JSDoc/comments via regex) and routes by suffix in `ingest/__init__.py`
+(`CODE_SUFFIXES`, also added to the batch/diff walkers); `SourceType.code`. Offsets index the
+extracted prose (same contract as markdown). `cli.py:fairness_cmd` (`slopscore-lint fairness`)
+reports per-rule false-positive rate on the `simple_english`/`non_native` benchmark slices; `scan
+--by-paragraph` scores each paragraph worst-first. **Decided non-goals** (in `MODEL_CARD.md`): no
+model retrain, no XGBoost/GBDT (features are the ceiling, not the model class; trees break the
+numpy-only path + transparency + fairness). The `[nlp]` feature work (NER genericity, semantic
+redundancy, burstiness) is the v0.7 roadmap.
+
 ## Project state
 
-v0.1–v0.4 are implemented and green (ruff/mypy/pytest). The repository also holds two reference
+v0.1–v0.6 are implemented and green (ruff/mypy/pytest). The repository also holds two reference
 documents:
 
 - `BACKGROUND_INFORMATION.local.md` — the authoritative spec. Defines the product concept,

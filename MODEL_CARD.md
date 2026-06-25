@@ -137,6 +137,19 @@ transparent rule scorer as the default; `--scorer ml` stays opt-in. The fairness
 **measured on a non-native slice**, not just asserted: the rule scorer's false-positive rate on
 that slice is 0.00.
 
+## v0.6: decided modeling non-goals
+
+After the v0.5 benchmark, two modeling directions were evaluated and rejected:
+
+- **No model retrain.** Held-out Wikipedia AUROC is 0.69 for *both* the rule scorer and the learned
+  model, and 5 of 14 learned weights are already 0.0. The ceiling is set by the features, not the
+  model fit, so retraining the same features on the same-size data cannot close the real-world gap.
+- **No XGBoost / gradient boosting.** It is the same tree class as the LightGBM already rejected in
+  v0.3: it breaks the numpy-only scan path, removes per-span traceability (the transparency
+  mandate), over-flags plain and non-native English (the fairness gate), and tends to learn
+  authorship rather than slop. What would actually help is interpretable feature work (entity
+  density, semantic redundancy, sentence burstiness) and more real labeled data, planned for v0.7.
+
 ## Changes from v0.1
 
 Added significance inflation, superficial "-ing" analyses, vague/over-attribution, negative

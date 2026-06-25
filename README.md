@@ -58,6 +58,27 @@ slopscore-lint scan post.md
 slopscore-lint scan essay.txt --format json
 slopscore-lint scan content.json --json-path "$.article.body"
 slopscore-lint scan https://example.com/post        # requires slopscore-lint[web]
+slopscore-lint scan src/app.py                       # lints docstring/comment prose, ignores code
+slopscore-lint scan post.md --by-paragraph           # surfaces a sloppy section in a clean doc
+```
+
+### Lint the prose inside code
+
+`scan` reads the natural-language prose out of source files (Python docstrings and comments, JS/TS
+JSDoc) and ignores the code itself, so it catches slop in documentation that code linters skip:
+
+```bash
+slopscore-lint scan src/                  --recursive   # docstrings + comments across a package
+slopscore-lint scan README.md CHANGELOG.md --fail-on high
+```
+
+### Audit fairness
+
+slopscore reports how often each rule fires on competent plain and non-native English, the writing
+that pattern detectors are known to over-flag. No other slop linter publishes this:
+
+```bash
+slopscore-lint fairness        # per-rule false-positive rate on the plain/ESL benchmark slices
 ```
 
 ### Calibrate against your own writing
@@ -95,7 +116,7 @@ slopscore-lint scan . --diff origin/main --fail-on medium         # only files c
 Exit codes: `0` clean (or below `--fail-on`), `1` findings at or above the threshold, `2` usage
 error, `3` a needed extra is missing. A composite **GitHub Action** (`action.yml`) scans, uploads
 SARIF to code scanning, and fails by threshold; a **pre-commit hook** (`.pre-commit-hooks.yaml`)
-is published for `pre-commit`. SARIF and HTML line numbers for Markdown are relative to the
+is published for `pre-commit`. SARIF and HTML line numbers for Markdown and code are relative to the
 extracted prose (raw-source mapping is a later enhancement).
 
 ```python
@@ -109,6 +130,19 @@ print(report.evidence[:3])
 ```
 
 ## Status
+
+v0.6: differentiation and reach. Lints the **prose inside code** (Python docstrings/comments, JS/TS
+JSDoc) so it catches slop that code linters skip; a `fairness` command that reports per-rule
+false-positive rates on plain and non-native English (no other slop linter publishes this); and
+`--by-paragraph` to surface a sloppy section inside an otherwise-clean document. Interpretable
+feature work (spaCy NER, semantic redundancy, burstiness) is on the v0.7 roadmap. Settled by
+evaluation: no model retrain and no gradient-boosting (XGBoost/LightGBM), since the held-out ceiling
+is set by features, not the model class, and trees break the numpy-only path and the fairness gate.
+
+v0.5: a real slop-labeled benchmark (`eval/datasets/benchmark.jsonl`) with `simple_english` and
+`non_native` fairness slices, plus a held-out Wikipedia AI-Cleanup slice. Measured numbers in
+`eval/RESULTS.md`: strong on overt slop (PR-AUC 0.91), honestly weak on subtle real-world slop
+(held-out AUROC 0.69), which is why the accuracy claims stay modest.
 
 v0.4: linter maturity. `slopscore.toml` / `[tool.slopscore]` config with per-rule toggles and
 severity overrides, inline `<!-- slopscore-disable … -->` suppression, a findings baseline

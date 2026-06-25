@@ -10,7 +10,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-SCHEMA_VERSION = "0.5.0"
+SCHEMA_VERSION = "0.6.0"
 
 # Disclaimers every report carries. The middle line encodes the core conservatism principle
 # (corroborated by research: single tells are weak; ESL writers are over-flagged).
@@ -40,6 +40,7 @@ class SourceType(StrEnum):
     markdown = "markdown"
     json = "json"
     website = "website"
+    code = "code"
 
 
 class Dimension(StrEnum):

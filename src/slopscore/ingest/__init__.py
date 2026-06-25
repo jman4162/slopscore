@@ -38,6 +38,12 @@ def from_path(path: str | Path, *, json_path: str | None = None) -> RawSource:
         from slopscore.ingest.json_source import ingest_json
 
         return ingest_json(p.read_text(encoding="utf-8"), json_path=json_path, source=str(p))
+    from slopscore.ingest.code import is_code_suffix
+
+    if is_code_suffix(suffix):
+        from slopscore.ingest.code import ingest_code
+
+        return ingest_code(p.read_text(encoding="utf-8"), suffix=suffix, source=str(p))
     from slopscore.ingest.text import ingest_text
 
     return ingest_text(p.read_text(encoding="utf-8"), source=str(p))

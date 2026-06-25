@@ -5,7 +5,9 @@ from __future__ import annotations
 from collections.abc import Iterator
 from pathlib import Path
 
-_TEXT_SUFFIXES = {".txt", ".md", ".markdown", ".json"}
+from slopscore.ingest.code import CODE_SUFFIXES
+
+_TEXT_SUFFIXES = {".txt", ".md", ".markdown", ".rst", ".json"} | CODE_SUFFIXES
 
 
 def iter_paths(root: str | Path, *, recursive: bool = False) -> Iterator[Path]:

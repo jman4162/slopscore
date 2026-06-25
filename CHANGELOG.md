@@ -3,6 +3,20 @@
 All notable changes to slopscore. The PyPI distribution is `slopscore-lint`; the import package
 and the tool are named `slopscore`.
 
+## 0.6.0
+
+- Prose-in-code linting: `scan` extracts and scores the natural-language prose in source files
+  (Python docstrings/comments via `ast`/`tokenize`, JS/TS JSDoc and comments) and ignores the code.
+  Directory and recursive scans pick up code files; offsets round-trip to the extracted prose.
+- `slopscore-lint fairness`: reports per-rule false-positive rates on the plain (`simple_english`)
+  and non-native (`non_native`) benchmark slices, and flags rules over a threshold.
+- `scan --by-paragraph`: scores each paragraph worst-first, surfacing a sloppy section in an
+  otherwise-clean document.
+- Decided non-goals (recorded in `MODEL_CARD.md`): no model retrain and no XGBoost/gradient boosting.
+  The held-out ceiling is set by features, not the model class; trees break the numpy-only scan path,
+  per-span traceability, and the fairness gate.
+- Interpretable feature work (spaCy NER genericity, semantic redundancy, burstiness) deferred to v0.7.
+
 ## 0.5.0
 
 - Real slop-labeled benchmark: `eval/datasets/benchmark.jsonl` (128 rows, hand-authored and

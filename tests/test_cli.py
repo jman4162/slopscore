@@ -173,3 +173,16 @@ def test_string_disabled_rules_in_config_errors(tmp_path: Path, monkeypatch) -> 
     monkeypatch.chdir(tmp_path)
     result = runner.invoke(app, ["scan", str(path)])
     assert result.exit_code == 2  # invalid config is a usage error
+
+
+def test_by_paragraph_surfaces_worst(tmp_path: Path) -> None:
+    text = (
+        "The bridge opened in 1937 after four years of work. Eleven workers died.\n\n"
+        "In an ever-evolving digital landscape, this transformative platform stands as a "
+        "testament to innovation, fostering a vibrant, holistic tapestry of synergy.\n\n"
+        "Crews poured 389,000 cubic yards of concrete by hand."
+    )
+    p = _write(tmp_path, "mix.txt", text)
+    result = runner.invoke(app, ["scan", str(p), "--by-paragraph"])
+    assert result.exit_code == 0
+    assert "By paragraph" in result.stdout

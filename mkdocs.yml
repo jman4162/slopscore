@@ -23,6 +23,7 @@ nav:
   - Configuration: configuration.md
   - Suppression: suppression.md
   - Baseline: baseline.md
+  - Prose-in-code & fairness: code-and-fairness.md
   - Benchmark & results: benchmark.md
   - Limitations & authorship: limitations.md
   - Model card: https://github.com/jman4162/slopscore/blob/main/MODEL_CARD.md
