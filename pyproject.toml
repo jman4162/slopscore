@@ -120,6 +120,8 @@ module = [
     "regex.*",
     "spacy.*",
     "spacy",
+    "jinja2",
+    "jinja2.*",
 ]
 ignore_missing_imports = true
 

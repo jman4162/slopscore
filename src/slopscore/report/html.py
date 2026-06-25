@@ -35,13 +35,15 @@ def to_html(report: Report) -> str:
     highlighted = _render_highlight(report, escape)
     template = env.from_string(_TEMPLATE)
     dims = {k: v for k, v in report.dimensions.model_dump().items() if v is not None}
-    return template.render(
-        report=report,
-        score=report.score,
-        meta=report.input,
-        dims=dims,
-        highlighted=highlighted,
-        warnings=report.warnings,
+    return str(
+        template.render(
+            report=report,
+            score=report.score,
+            meta=report.input,
+            dims=dims,
+            highlighted=highlighted,
+            warnings=report.warnings,
+        )
     )
 
 

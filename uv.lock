@@ -2298,7 +2298,7 @@ wheels = [
 
 [[package]]
 name = "slopscore"
-version = "0.1.0"
+version = "0.2.1"
 source = { editable = "." }
 dependencies = [
     { name = "ftfy" },
@@ -2318,6 +2318,7 @@ dependencies = [
 [package.optional-dependencies]
 all = [
     { name = "httpx" },
+    { name = "jinja2" },
     { name = "lingua-language-detector", version = "2.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "lingua-language-detector", version = "2.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "sentence-transformers" },
@@ -2331,6 +2332,9 @@ lang = [
 nlp = [
     { name = "sentence-transformers" },
     { name = "spacy" },
+]
+report = [
+    { name = "jinja2" },
 ]
 web = [
     { name = "httpx" },
@@ -2351,6 +2355,7 @@ dev = [
 requires-dist = [
     { name = "ftfy", specifier = ">=6.2" },
     { name = "httpx", marker = "extra == 'web'", specifier = ">=0.27" },
+    { name = "jinja2", marker = "extra == 'report'", specifier = ">=3.1" },
     { name = "jsonpath-ng", specifier = ">=1.6" },
     { name = "lingua-language-detector", marker = "extra == 'lang'", specifier = ">=2.0" },
     { name = "marko", specifier = ">=2.1" },
@@ -2362,12 +2367,12 @@ requires-dist = [
     { name = "rich", specifier = ">=13.7" },
     { name = "scikit-learn", specifier = ">=1.4" },
     { name = "sentence-transformers", marker = "extra == 'nlp'", specifier = ">=3.0" },
-    { name = "slopscore", extras = ["web", "nlp", "lang"], marker = "extra == 'all'" },
+    { name = "slopscore", extras = ["web", "nlp", "lang", "report"], marker = "extra == 'all'" },
     { name = "spacy", marker = "extra == 'nlp'", specifier = ">=3.7" },
     { name = "trafilatura", marker = "extra == 'web'", specifier = ">=2.0" },
     { name = "typer", specifier = ">=0.12" },
 ]
-provides-extras = ["web", "nlp", "lang", "detectors", "all"]
+provides-extras = ["web", "nlp", "lang", "report", "detectors", "all"]
 
 [package.metadata.requires-dev]
 dev = [

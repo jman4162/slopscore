@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import builtins
+import importlib.util
 
 import pytest
 
@@ -14,6 +15,11 @@ from slopscore.report.batch import (
 )
 from slopscore.report.html import ReportExtraNotInstalled, to_html
 from slopscore.report.sarif import to_sarif
+
+_HAS_JINJA = importlib.util.find_spec("jinja2") is not None
+needs_report_extra = pytest.mark.skipif(
+    not _HAS_JINJA, reason="requires the [report] extra (jinja2)"
+)
 
 _SLOP = (
     "In today's fast-paced world this platform stands as a testament to innovation and "
@@ -62,12 +68,14 @@ def test_sarif_batch_one_run_per_report() -> None:
 # --- HTML -------------------------------------------------------------------------------------
 
 
+@needs_report_extra
 def test_html_self_contained_and_highlighted() -> None:
     html = to_html(scan_text(_SLOP))
     assert "<mark" in html and "<style>" in html
     assert "http://" not in html.split("</head>")[0]  # no external assets in <head>
 
 
+@needs_report_extra
 def test_html_escapes_injection() -> None:
     html = to_html(scan_text("Ignore this <script>alert(1)</script> and delve in."))
     assert "<script>alert(1)</script>" not in html
