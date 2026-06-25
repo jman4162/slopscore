@@ -3,15 +3,21 @@
 All notable changes to slopscore. The PyPI distribution is `slopscore-lint`; the import package
 and the tool are named `slopscore`.
 
-## Unreleased (v0.7 in progress)
+## 0.7.0
 
+- Fix (reported): Markdown posts with code blocks no longer score "severe". The ``` fences inflated
+  `prompt_residue` when ingested as plain text (`.txt`, `.mdx`, stdin, or `scan_text` on a raw
+  Markdown string); `ingest_text` now strips fenced code, and `.mdx` routes to the Markdown ingester.
+- `[nlp]` genericity (W5): with spaCy + the English model, named-entity density replaces the
+  proper-noun regex for the genericity dimension (regex stays the fallback). Validated: fairness gate
+  holds at 0% FPR on the plain and non-native slices; benchmark AUROC 0.888 -> 0.902.
+- `[nlp]` redundancy (W6): with sentence-transformers, dense MiniLM embedding similarity on adjacent
+  sentences catches rephrased repetition TF-IDF misses (threshold 0.50, fairness-validated).
 - Rhetorical question-and-answer scaffolds added to `formulaic_structure` ("But what does this
-  mean?", "Sound familiar?", "Here's the thing:", "The answer is simple"), a distinctive AI tell.
-  Validated to keep the fairness gate at 0% FPR on the plain and non-native English slices.
-- Tried and reverted a sentence-length burstiness signal in `cadence_sameness`: it regressed the
-  non-native slice (FPR 0.00 -> 0.17). Sentence-length cadence is too entangled with non-native
-  style to use without richer, fairness-aware features.
-- Roadmap (needs the `[nlp]` stack): spaCy NER for genericity, sentence-transformer redundancy.
+  mean?", "Sound familiar?", "Here's the thing:", "The answer is simple").
+- `slopscore-lint explain`: lists the 14 dimensions and what each detects.
+- Tried and reverted a sentence-length burstiness signal in `cadence_sameness` (regressed the
+  non-native slice, FPR 0.00 -> 0.17). Recorded in `cadence.py`.
 
 ## 0.6.1
 

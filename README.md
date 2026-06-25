@@ -131,6 +131,14 @@ print(report.evidence[:3])
 
 ## Status
 
+v0.7: accuracy and robustness. Fixed a false "severe" on Markdown posts with code blocks (the code
+fences inflated `prompt_residue` when ingested as text). The `[nlp]` extra now genuinely upgrades two
+dimensions: spaCy named-entity density for genericity (benchmark AUROC 0.888 to 0.902) and
+sentence-transformer embeddings for rephrased redundancy, both validated to keep the fairness gate at
+0% false positives on plain and non-native English. Added rhetorical question-and-answer scaffold
+detection and a `slopscore-lint explain` command. A sentence-length burstiness signal was tried and
+reverted for regressing the non-native slice.
+
 v0.6: differentiation and reach. Lints the **prose inside code** (Python docstrings/comments, JS/TS
 JSDoc) so it catches slop that code linters skip; a `fairness` command that reports per-rule
 false-positive rates on plain and non-native English (no other slop linter publishes this); and

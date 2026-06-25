@@ -137,6 +137,21 @@ transparent rule scorer as the default; `--scorer ml` stays opt-in. The fairness
 **measured on a non-native slice**, not just asserted: the rule scorer's false-positive rate on
 that slice is 0.00.
 
+## v0.7: interpretable feature upgrades (behind [nlp])
+
+Following the v0.6 conclusion that features, not the model class, are the ceiling, v0.7 upgrades two
+dimensions with interpretable signals, both validated to keep the fairness gate at 0% FPR on the
+plain and non-native English slices:
+
+- **Genericity** uses spaCy named-entity density (people, places, organizations, dates, quantities)
+  instead of a proper-noun regex when `[nlp]` is installed. Benchmark AUROC rises 0.888 -> 0.902.
+- **Redundancy** uses sentence-transformer (MiniLM) embedding similarity on adjacent sentences to
+  catch rephrased repetition that TF-IDF misses (threshold 0.50, set from measured cosines).
+
+Both are opt-in (`[nlp]`); the default install keeps the regex/TF-IDF paths. A sentence-length
+burstiness signal was tried and reverted: it regressed the non-native slice (FPR 0.00 -> 0.17),
+a reminder that sentence-length features are entangled with non-native style.
+
 ## v0.6: decided modeling non-goals
 
 After the v0.5 benchmark, two modeling directions were evaluated and rejected:
