@@ -44,3 +44,28 @@ def _cached_parse(text: str) -> Any:
 def parse(text: str) -> Any:
     """Parse ``text`` with the shared pipeline, caching repeated inputs within a run."""
     return _cached_parse(text)
+
+
+_EMBED_MODEL = "all-MiniLM-L6-v2"
+
+
+def is_embeddings_available() -> bool:
+    """True if sentence-transformers is installed (for the dense-embedding redundancy path)."""
+    try:
+        import importlib.util
+
+        return importlib.util.find_spec("sentence_transformers") is not None
+    except (ImportError, ValueError):
+        return False
+
+
+@lru_cache(maxsize=1)
+def _embedder() -> Any:
+    from sentence_transformers import SentenceTransformer
+
+    return SentenceTransformer(_EMBED_MODEL)
+
+
+def embed(sentences: tuple[str, ...]) -> Any:
+    """Return L2-normalized sentence embeddings (numpy array)."""
+    return _embedder().encode(list(sentences), normalize_embeddings=True)

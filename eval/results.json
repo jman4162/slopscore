@@ -10,24 +10,24 @@
       "metrics": {
         "n": 128,
         "n_positive": 66,
-        "auroc": 0.9021,
-        "pr_auc": 0.9206,
-        "tpr_at_1fpr": 0.6364,
+        "auroc": 0.8993,
+        "pr_auc": 0.9186,
+        "tpr_at_1fpr": 0.6515,
         "tpr_at_5fpr": 0.6515,
-        "ece": 0.1495,
-        "brier": 0.1499
+        "ece": 0.1628,
+        "brier": 0.1501
       },
       "selective": {
         "coverage": 0.0,
         "accuracy_covered": 0.0,
-        "accuracy_all": 0.8125
+        "accuracy_all": 0.8203125
       },
       "fairness": {
         "general": {
           "group": "general",
           "n": 100,
           "fpr": 0.0,
-          "fnr": 0.359375,
+          "fnr": 0.34375,
           "abstention_rate": 1.0
         },
         "non_native": {
@@ -101,12 +101,12 @@
       "metrics": {
         "n": 40,
         "n_positive": 20,
-        "auroc": 0.6875,
-        "pr_auc": 0.6373,
+        "auroc": 0.6687,
+        "pr_auc": 0.5998,
         "tpr_at_1fpr": 0.0,
-        "tpr_at_5fpr": 0.2,
-        "ece": 0.3975,
-        "brier": 0.3794
+        "tpr_at_5fpr": 0.05,
+        "ece": 0.3645,
+        "brier": 0.3595
       },
       "selective": {
         "coverage": 0.475,
