@@ -35,4 +35,4 @@ def test_website_hint_when_extra_missing(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr(builtins, "__import__", fake_import)
     with pytest.raises(WebExtraNotInstalled) as exc:
         ingest_url("https://example.com/post")
-    assert "slopscore[web]" in str(exc.value)
+    assert "slopscore-lint[web]" in str(exc.value)

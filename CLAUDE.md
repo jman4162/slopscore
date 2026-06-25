@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 uv pip install -e . --no-deps    # editable install (see install-stability note below)
-uv run --no-sync slopscore scan FILE   # scan a file/URL/'-' (stdin); --format console|json|markdown
+uv run --no-sync slopscore-lint scan FILE   # scan a file/URL/'-' (stdin); --format console|json|markdown
 uv run --no-sync pytest          # tests + coverage (pytest imports from src via pythonpath)
 uv run --no-sync pytest tests/test_scorer.py::test_report_shape   # a single test
 uv run --no-sync ruff check . && uv run --no-sync ruff format --check .   # lint + format
@@ -67,7 +67,7 @@ Scoring engines (v0.3): `scoring/scorer.py` dispatches on `Settings.scorer` (`Sc
 vs `Scorer.ml`). The ML path (`scoring/model.py`) is a pure-numpy logistic model loaded from
 `data/model/slopscore-v0.3.json` over `FEATURE_ORDER`; sign-constrained (slop dims ≥0, human signal
 ≤0), Platt-calibrated. The corroboration gate is rules-only; abstention applies to both. Train with
-`scripts/eval/train.py` (sklearn+scipy, OOF metrics); evaluate with `slopscore eval` / the
+`scripts/eval/train.py` (sklearn+scipy, OOF metrics); evaluate with `slopscore-lint eval` / the
 `slopscore.eval/` package (metrics, fairness, selective, span_metrics). Promotion is gated by
 `eval/harness.py:should_promote` (TPR@1%FPR + no subgroup-FPR regression) — currently rules wins, so
 ML stays opt-in. Eval data: `eval/datasets/seed.jsonl` (committed) + `scripts/eval/fetch.py` (large

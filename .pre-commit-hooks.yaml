@@ -1,7 +1,7 @@
-- id: slopscore
-  name: slopscore (AI-slop pattern linter)
+- id: slopscore-lint
+  name: slopscore-lint (AI-slop pattern linter)
   description: Scan prose for AI-slop writing patterns.
-  entry: slopscore scan
+  entry: slopscore-lint scan
   language: python
   types: [text]
   files: '\.(md|markdown|txt|rst)$'

@@ -3,8 +3,10 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "slopscore"
-version = "0.4.0"
+# PyPI distribution name ("slopscore" was already taken by a different, similar tool). The import
+# package stays `slopscore`; the CLI command is `slopscore-lint` (scikit-learn / sklearn pattern).
+name = "slopscore-lint"
+version = "0.4.1"
 description = "Transparent AI-slop writing-pattern analysis for essays, blog posts, Markdown, JSON, and websites."
 readme = "README.md"
 license = "MIT"
@@ -57,11 +59,11 @@ docs = ["mkdocs-material>=9.5"]
 # paraphrase-fragile / ESL-biased / academic-only). Bring your own behind this extra.
 detectors = []
 all = [
-    "slopscore[web,nlp,lang,report]",
+    "slopscore-lint[web,nlp,lang,report]",
 ]
 
 [project.scripts]
-slopscore = "slopscore.cli:app"
+slopscore-lint = "slopscore.cli:app"
 
 [project.urls]
 Homepage = "https://github.com/jman4162/slopscore"

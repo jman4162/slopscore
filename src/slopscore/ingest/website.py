@@ -7,7 +7,7 @@ from slopscore.models import SourceType
 
 _WEB_HINT = (
     "Website scanning requires the optional web extra. "
-    'Install it with: pip install "slopscore[web]"'
+    'Install it with: pip install "slopscore-lint[web]"'
 )
 
 

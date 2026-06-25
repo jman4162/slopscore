@@ -57,7 +57,7 @@ Vocabulary drifts by model era (GPT-4 → GPT-4o → GPT-5); the lexicon tags te
 
 ## v0.3 — learned scorer and evaluation
 
-v0.3 adds an evaluation harness (`slopscore eval`) and a transparent learned scorer: a
+v0.3 adds an evaluation harness (`slopscore-lint eval`) and a transparent learned scorer: a
 **sign-constrained, Platt-calibrated logistic regression** over the 13 interpretable dimensions
 (slop dimensions weight ≥ 0, `human_writing_signals` ≤ 0). It is serialized as auditable JSON
 (`data/model/slopscore-v0.3.json`) and runs with pure numpy at scan time — `--scorer ml`.
@@ -78,7 +78,7 @@ held-out TPR@1%FPR. So `--scorer ml` is available and opt-in; `rules` stays defa
 gate working as intended, not a failure.
 
 Caveats: these numbers are from the small hand-authored seed set (~54 rows; in-sample for ml
-unless noted out-of-fold). They are illustrative, not a serious benchmark — run `slopscore eval`
+unless noted out-of-fold). They are illustrative, not a serious benchmark — run `slopscore-lint eval`
 on the fetched public corpora (`scripts/eval/fetch.py`, see `DATA_SOURCES.md`) for real figures.
 
 ### Real-corpus experiment (MAGE) — and why it validates the design

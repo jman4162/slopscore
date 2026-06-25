@@ -98,7 +98,7 @@ def scan(
         FailOn.none, "--fail-on", help="Exit non-zero if any finding reaches this severity."
     ),
     baseline_file: Path | None = typer.Option(
-        None, "--baseline-file", help="A findings baseline from `slopscore baseline`."
+        None, "--baseline-file", help="A findings baseline from `slopscore-lint baseline`."
     ),
     fail_on_new: bool = typer.Option(
         False, "--fail-on-new", help="With --baseline-file: exit 1 only on findings not in it."
@@ -287,7 +287,7 @@ def calibrate(
         )
     console.print(
         f"Saved baseline [cyan]{name}[/cyan]: {prof.n_docs} docs, {total_words} words{note}\n"
-        f"  -> {saved}\n  Use it with: slopscore scan FILE --baseline {name}"
+        f"  -> {saved}\n  Use it with: slopscore-lint scan FILE --baseline {name}"
     )
 
 
@@ -313,7 +313,8 @@ def baseline_cmd(
     output.write_text(baseline.to_json(), encoding="utf-8")
     console.print(
         f"Wrote baseline ({len(baseline.fingerprints)} findings across {len(files)} files) "
-        f"-> {output}\n  Use it with: slopscore scan ... --baseline-file {output} --fail-on-new"
+        f"-> {output}\n  Use it with: "
+        f"slopscore-lint scan ... --baseline-file {output} --fail-on-new"
     )
 
 

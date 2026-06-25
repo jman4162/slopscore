@@ -1,6 +1,6 @@
 """Personal baseline calibration.
 
-``slopscore calibrate ./my-writing --profile me`` scores each document in a corpus and stores
+``slopscore-lint calibrate ./my-writing --profile me`` scores each document in a corpus and stores
 robust per-dimension statistics. Later scans compare new text against that baseline and report
 how far each dimension deviates (a z-score), reframing the question from "does this look like
 AI?" to "does this deviate from *my* usual style in sloppy ways?". Robust stats (median/MAD)

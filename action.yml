@@ -35,7 +35,7 @@ runs:
 
     - name: Install slopscore
       shell: bash
-      run: pip install slopscore
+      run: pip install slopscore-lint
 
     - name: Scan
       id: scan
@@ -43,7 +43,7 @@ runs:
       run: |
         recurse=""
         [ "${{ inputs.recursive }}" = "true" ] && recurse="--recursive"
-        slopscore scan "${{ inputs.files }}" $recurse \
+        slopscore-lint scan "${{ inputs.files }}" $recurse \
           --profile "${{ inputs.profile }}" \
           --fail-on "${{ inputs.fail-on }}" \
           --format sarif --output slopscore.sarif

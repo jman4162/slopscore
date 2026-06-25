@@ -2,7 +2,7 @@
 
 slopscore reads configuration from a `slopscore.toml` file or a `[tool.slopscore]` section in
 `pyproject.toml`. **Precedence** (highest first): CLI flags → `slopscore.toml` → `pyproject.toml
-[tool.slopscore]` → built-in defaults. Show the effective config with `slopscore config`.
+[tool.slopscore]` → built-in defaults. Show the effective config with `slopscore-lint config`.
 
 ```toml
 # slopscore.toml  (or under [tool.slopscore] in pyproject.toml)

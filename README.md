@@ -34,21 +34,21 @@ Every point in the score comes from a visible rule with an evidence span.
 ## Install
 
 ```bash
-pip install slopscore            # lean, rule-based core
-pip install "slopscore[web]"     # + website extraction (trafilatura)
-pip install "slopscore[nlp]"     # + spaCy NER and sentence-transformer embeddings
-pip install "slopscore[lang]"    # + non-English language detection
-pip install "slopscore[report]"  # + HTML report rendering (Jinja2)
-pip install "slopscore[all]"     # everything
+pip install slopscore-lint            # lean, rule-based core
+pip install "slopscore-lint[web]"     # + website extraction (trafilatura)
+pip install "slopscore-lint[nlp]"     # + spaCy NER and sentence-transformer embeddings
+pip install "slopscore-lint[lang]"    # + non-English language detection
+pip install "slopscore-lint[report]"  # + HTML report rendering (Jinja2)
+pip install "slopscore-lint[all]"     # everything
 ```
 
 ## Usage
 
 ```bash
-slopscore scan post.md
-slopscore scan essay.txt --format json
-slopscore scan content.json --json-path "$.article.body"
-slopscore scan https://example.com/post        # requires slopscore[web]
+slopscore-lint scan post.md
+slopscore-lint scan essay.txt --format json
+slopscore-lint scan content.json --json-path "$.article.body"
+slopscore-lint scan https://example.com/post        # requires slopscore-lint[web]
 ```
 
 ### Calibrate against your own writing
@@ -57,8 +57,8 @@ Instead of asking "does this look like AI?", ask "does this deviate from *my* us
 sloppy ways?". Build a baseline from a folder of your past writing, then compare new drafts to it:
 
 ```bash
-slopscore calibrate ./my-old-posts --name me
-slopscore scan new-post.md --baseline me     # reports per-dimension z-score deviations
+slopscore-lint calibrate ./my-old-posts --name me
+slopscore-lint scan new-post.md --baseline me     # reports per-dimension z-score deviations
 ```
 
 ### Higher-precision syntactic detection (optional)
@@ -67,7 +67,7 @@ The default install detects syntactic tells (trailing "-ing" analyses, etc.) wit
 the `[nlp]` extra and the spaCy English model for a higher-precision, lower-false-positive path:
 
 ```bash
-pip install "slopscore[nlp]"
+pip install "slopscore-lint[nlp]"
 python -m spacy download en_core_web_sm
 ```
 
@@ -76,10 +76,10 @@ slopscore auto-upgrades to the spaCy path when the model is present; nothing els
 ### Use it as a linter in CI
 
 ```bash
-slopscore scan ./content --recursive --fail-on high          # exit 1 if any high finding
-slopscore scan ./content --recursive --format sarif -o out.sarif   # for GitHub code scanning
-slopscore scan post.md --format html -o report.html          # highlighted-span HTML (needs [report])
-slopscore scan . --diff origin/main --fail-on medium         # only files changed vs a ref
+slopscore-lint scan ./content --recursive --fail-on high          # exit 1 if any high finding
+slopscore-lint scan ./content --recursive --format sarif -o out.sarif   # for GitHub code scanning
+slopscore-lint scan post.md --format html -o report.html          # highlighted-span HTML (needs [report])
+slopscore-lint scan . --diff origin/main --fail-on medium         # only files changed vs a ref
 ```
 
 Exit codes: `0` clean (or below `--fail-on`), `1` findings at/above the threshold, `2` usage
@@ -105,7 +105,7 @@ severity overrides, inline `<!-- slopscore-disable … -->` suppression, a findi
 suggestions (with SARIF `fixes`), an optional **separate** authorship-adapter interface (no
 detector bundled), PyPI packaging, and a docs site.
 
-v0.3 — evaluation harness (`slopscore eval`: TPR@FPR, PR-AUC, calibration, per-subgroup FPR) and a
+v0.3 — evaluation harness (`slopscore-lint eval`: TPR@FPR, PR-AUC, calibration, per-subgroup FPR) and a
 transparent **learned scorer** — a sign-constrained, calibrated logistic regression over the 13
 dimensions, serialized as auditable JSON and run with pure numpy (`--scorer ml`). The rule scorer
 stays the default: under a replace-if-wins gate the learned model must beat it on held-out

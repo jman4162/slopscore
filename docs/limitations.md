@@ -25,5 +25,5 @@ collapses on paraphrase, is biased against non-native English, or is academic-on
 detection covers almost no models. What it offers instead is a pluggable adapter
 (`slopscore.detectors.AuthorshipDetector`) behind the `[detectors]` extra: if you bring your own
 detector, its result is reported in a **separate** field with a mandatory caveat and is **never**
-folded into the SlopScore. `slopscore scan --detector reference` wires a no-op example to show the
+folded into the SlopScore. `slopscore-lint scan --detector reference` wires a no-op example to show the
 separation. This is for curiosity, not accusation.

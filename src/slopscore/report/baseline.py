@@ -1,6 +1,6 @@
 """Findings baseline: adopt slopscore on an existing repo and fail CI only on NEW findings.
 
-`slopscore baseline <paths>` records the current findings as fingerprints; a later
+`slopscore-lint baseline <paths>` records the current findings as fingerprints; a later
 `scan --baseline <file> --fail-on-new` treats those as known and gates only on new ones. A
 fingerprint is ``sha256(file | rule_id | span_text)`` so it survives line-number drift and edits
 elsewhere in the file.

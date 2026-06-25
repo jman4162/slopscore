@@ -13,19 +13,19 @@ and websites. It returns a 0–100 SlopScore with per-dimension breakdowns and *
 ## Install
 
 ```bash
-pip install slopscore            # lean, rule-based core
-pip install "slopscore[report]"  # + HTML reports
-pip install "slopscore[nlp]"     # + spaCy precision
-pip install "slopscore[all]"     # everything
+pip install slopscore-lint            # lean, rule-based core
+pip install "slopscore-lint[report]"  # + HTML reports
+pip install "slopscore-lint[nlp]"     # + spaCy precision
+pip install "slopscore-lint[all]"     # everything
 ```
 
 ## Scan
 
 ```bash
-slopscore scan post.md
-slopscore scan ./content --recursive --fail-on high      # CI gate
-slopscore scan post.md --format sarif -o out.sarif       # GitHub code scanning
-slopscore scan post.md --suggest                         # opt-in rewrite suggestions
+slopscore-lint scan post.md
+slopscore-lint scan ./content --recursive --fail-on high      # CI gate
+slopscore-lint scan post.md --format sarif -o out.sarif       # GitHub code scanning
+slopscore-lint scan post.md --suggest                         # opt-in rewrite suggestions
 ```
 
 ## Make it yours

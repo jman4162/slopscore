@@ -12,7 +12,7 @@ from slopscore.models import Evidence, Report
 
 _HINT = (
     "HTML reports require the optional report extra. "
-    'Install it with: pip install "slopscore[report]"'
+    'Install it with: pip install "slopscore-lint[report]"'
 )
 
 

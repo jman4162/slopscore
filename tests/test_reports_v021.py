@@ -93,7 +93,7 @@ def test_html_guard_when_extra_missing(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(builtins, "__import__", fake_import)
     with pytest.raises(ReportExtraNotInstalled) as exc:
         to_html(scan_text(_CLEAN))
-    assert "slopscore[report]" in str(exc.value)
+    assert "slopscore-lint[report]" in str(exc.value)
 
 
 # --- Batch ------------------------------------------------------------------------------------

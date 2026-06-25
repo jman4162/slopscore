@@ -67,7 +67,7 @@ class SlopScorer:
         profile = load_profile(name)
         if profile is None:
             raise FileNotFoundError(
-                f"No calibration baseline named '{name}'. Run `slopscore calibrate` first."
+                f"No calibration baseline named '{name}'. Run `slopscore-lint calibrate` first."
             )
         return profile
 
