@@ -41,3 +41,6 @@ jobs:
           # that block publishing. Provenance is optional, so it is disabled to keep releases
           # reliable; trusted publishing (OIDC) still authenticates the upload.
           attestations: false
+          # The moving `v0` action tag also matches `v*`; skip re-uploading an existing version
+          # instead of failing the run.
+          skip-existing: true
