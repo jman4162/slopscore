@@ -5,6 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![CI](https://github.com/jman4162/slopscore/actions/workflows/ci.yml/badge.svg)](https://github.com/jman4162/slopscore/actions/workflows/ci.yml)
 [![Docs](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://jman4162.github.io/slopscore/)
+[![Marketplace](https://img.shields.io/badge/GitHub_Marketplace-slopscore--lint-2ea44f.svg?logo=github&logoColor=white)](https://github.com/marketplace/actions/slopscore-lint)
 
 A transparent **linter for AI-slop writing patterns** in essays, blog posts, Markdown, JSON, and
 websites.
