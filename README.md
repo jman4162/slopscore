@@ -156,7 +156,8 @@ repos:
 ```
 
 **GitHub Action** (`.github/workflows/prose.yml`) scans on every pull request and uploads findings
-to code scanning:
+to code scanning. `security-events: write` is required while `upload-sarif` is on (its default);
+set `upload-sarif: false` to drop it.
 
 ```yaml
 name: prose
@@ -169,7 +170,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: jman4162/slopscore@v0.7.0
+      - uses: jman4162/slopscore@v0
         with:
           files: ./content
           profile: blog

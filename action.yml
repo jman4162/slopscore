@@ -1,4 +1,4 @@
-name: slopscore
+name: slopscore-lint
 description: Scan prose for AI-slop writing patterns (a linter, not an authorship detector).
 branding:
   icon: "edit-3"
@@ -50,6 +50,9 @@ runs:
 
     - name: Upload SARIF
       if: ${{ always() && inputs.upload-sarif == 'true' }}
+      # Needs `security-events: write` in the caller; tolerate its absence rather than hard-fail
+      # (the scan step already fails the job by --fail-on).
+      continue-on-error: true
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: slopscore.sarif

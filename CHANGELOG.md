@@ -3,6 +3,13 @@
 All notable changes to slopscore. The PyPI distribution is `slopscore-lint`; the import package
 and the tool are named `slopscore`.
 
+## 0.7.2
+
+- GitHub Action is Marketplace-ready: renamed to `slopscore-lint` (unique listing name) and the
+  SARIF upload step no longer hard-fails when the caller lacks `security-events: write`
+  (`continue-on-error`; the scan still fails the job via `--fail-on`). README pins the example to
+  `@v0`. No library behavior change.
+
 ## 0.7.1
 
 - Fix: inline `<!-- slopscore-disable... -->` suppression now works in Markdown. The Markdown
