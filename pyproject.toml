@@ -12,7 +12,8 @@ readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
-authors = [{ name = "John Hodge", email = "jhodge007@gmail.com" }]
+authors = [{ name = "Mount Si Labs LLC", email = "jhodge007@gmail.com" }]
+maintainers = [{ name = "John Hodge", email = "jhodge007@gmail.com" }]
 keywords = ["nlp", "ai-slop", "linter", "writing", "text-analysis"]
 classifiers = [
     "Development Status :: 4 - Beta",
