@@ -2,6 +2,9 @@ site_name: slopscore
 site_description: A transparent linter for AI-slop writing patterns (not an AI detector)
 site_url: https://jman4162.github.io/slopscore/
 repo_url: https://github.com/jman4162/slopscore
+copyright: >-
+  &copy; 2026 Mount Si Labs LLC. All rights reserved. &middot;
+  <a href="https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing">Signs of AI writing</a>
 theme:
   name: material
   palette:

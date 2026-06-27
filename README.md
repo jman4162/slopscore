@@ -277,7 +277,7 @@ over-flags plain English). See `MODEL_CARD.md` and `DATA_SOURCES.md`.
 v0.2.1: productionization. console/JSON/Markdown/**SARIF**/**HTML** reports, recursive and
 changed-files (`--diff`) batch scanning with CI exit codes, a GitHub Action, and a pre-commit hook.
 
-v0.2: detection expansion grounded in Wikipedia's "Signs of AI writing" field guide. Dimensions:
+v0.2: detection expansion grounded in Wikipedia's [Signs of AI writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing) field guide. Dimensions:
 lexical markers, formulaic structure, significance inflation, superficial "-ing" analyses, vague or
 over-attribution, negative parallelism and rule-of-three, copula avoidance, genericity, redundancy,
 cadence, formatting tells, prompt residue, and a negative human-writing signal. Scoring is
@@ -286,4 +286,6 @@ or non-English input. See `MODEL_CARD.md` for citations and limitations.
 
 ## License
 
-MIT
+MIT.
+
+© 2026 Mount Si Labs LLC. All rights reserved.
