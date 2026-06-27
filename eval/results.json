@@ -10,12 +10,12 @@
       "metrics": {
         "n": 128,
         "n_positive": 66,
-        "auroc": 0.8993,
-        "pr_auc": 0.9186,
+        "auroc": 0.8882,
+        "pr_auc": 0.9097,
         "tpr_at_1fpr": 0.6515,
         "tpr_at_5fpr": 0.6515,
-        "ece": 0.1628,
-        "brier": 0.1501
+        "ece": 0.1771,
+        "brier": 0.1464
       },
       "selective": {
         "coverage": 0.0,
@@ -52,37 +52,37 @@
       "metrics": {
         "n": 128,
         "n_positive": 66,
-        "auroc": 0.9277,
-        "pr_auc": 0.9442,
+        "auroc": 0.9157,
+        "pr_auc": 0.9372,
         "tpr_at_1fpr": 0.6818,
         "tpr_at_5fpr": 0.6818,
-        "ece": 0.0737,
-        "brier": 0.1067
+        "ece": 0.0578,
+        "brier": 0.1125
       },
       "selective": {
         "coverage": 0.0,
         "accuracy_covered": 0.0,
-        "accuracy_all": 0.859375
+        "accuracy_all": 0.796875
       },
       "fairness": {
         "general": {
           "group": "general",
           "n": 100,
-          "fpr": 0.027777777777777776,
-          "fnr": 0.21875,
+          "fpr": 0.05555555555555555,
+          "fnr": 0.15625,
           "abstention_rate": 1.0
         },
         "non_native": {
           "group": "non_native",
           "n": 14,
-          "fpr": 0.0,
+          "fpr": 0.3333333333333333,
           "fnr": 0.0,
           "abstention_rate": 1.0
         },
         "simple_english": {
           "group": "simple_english",
           "n": 14,
-          "fpr": 0.21428571428571427,
+          "fpr": 0.7142857142857143,
           "fnr": 0.0,
           "abstention_rate": 1.0
         }
@@ -101,24 +101,24 @@
       "metrics": {
         "n": 40,
         "n_positive": 20,
-        "auroc": 0.6687,
-        "pr_auc": 0.5998,
+        "auroc": 0.6925,
+        "pr_auc": 0.6479,
         "tpr_at_1fpr": 0.0,
-        "tpr_at_5fpr": 0.05,
-        "ece": 0.3645,
-        "brier": 0.3595
+        "tpr_at_5fpr": 0.25,
+        "ece": 0.3943,
+        "brier": 0.3733
       },
       "selective": {
         "coverage": 0.475,
-        "accuracy_covered": 0.3684210526315789,
-        "accuracy_all": 0.5
+        "accuracy_covered": 0.42105263157894735,
+        "accuracy_all": 0.525
       },
       "fairness": {
         "wiki": {
           "group": "wiki",
           "n": 40,
           "fpr": 0.05,
-          "fnr": 0.95,
+          "fnr": 0.9,
           "abstention_rate": 0.525
         }
       }
@@ -129,24 +129,24 @@
       "metrics": {
         "n": 40,
         "n_positive": 20,
-        "auroc": 0.7,
-        "pr_auc": 0.6581,
+        "auroc": 0.6987,
+        "pr_auc": 0.6569,
         "tpr_at_1fpr": 0.0,
         "tpr_at_5fpr": 0.25,
-        "ece": 0.3868,
-        "brier": 0.3415
+        "ece": 0.3673,
+        "brier": 0.336
       },
       "selective": {
         "coverage": 0.475,
-        "accuracy_covered": 0.47368421052631576,
-        "accuracy_all": 0.55
+        "accuracy_covered": 0.5263157894736842,
+        "accuracy_all": 0.6
       },
       "fairness": {
         "wiki": {
           "group": "wiki",
           "n": 40,
           "fpr": 0.05,
-          "fnr": 0.85,
+          "fnr": 0.75,
           "abstention_rate": 0.525
         }
       }

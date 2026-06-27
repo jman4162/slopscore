@@ -3,6 +3,17 @@
 All notable changes to slopscore. The PyPI distribution is `slopscore-lint`; the import package
 and the tool are named `slopscore`.
 
+## 0.7.3
+
+- Detect the elliptical antithesis slogan `PARALLEL_X_NOT_Y` ("A haircut, not a crash.",
+  "Progress, not perfection.", bolded **Key Takeaways**). Scoped to standalone short clauses so it
+  does not fire on ordinary mid-sentence "..., not ...". Lands in the weak, gated `parallelism`
+  dimension; fairness gate stays 0% on the plain/non-native slices.
+- `formatting_tells` now emits a visible `FORMATTING_EM_DASH` evidence item (with the em-dash count
+  and the dash-to-comma ratio) when the dash-heavy signal fires, so the score is traceable. The
+  density metric stays the dash-to-comma ratio (length- and structure-invariant); it is not
+  per-paragraph. The numeric score is unchanged.
+
 ## 0.7.2
 
 - GitHub Action is Marketplace-ready: renamed to `slopscore-lint` (unique listing name) and the

@@ -37,3 +37,9 @@ rules:
     pattern: "\\b(?:prioritiz(?:es|ing)|emphasiz(?:es|ing)|focus(?:es|ing) on|chose)\\b[^.?!]{1,60}?\\brather than\\b"
     explanation: "'X rather than Y' construction (common in Grok output)."
     source: "WP:AIPARALLEL"
+
+  - rule_id: PARALLEL_X_NOT_Y
+    severity: low
+    pattern: "(?:^|(?<=[.!?:]\\s)|(?<=\\*\\*))[A-Z][^.?!,;:]{1,30},\\s+not\\s+[^.?!,;:]{1,30}[.!?]"
+    explanation: "'X, not Y' elliptical antithesis slogan (punchy contrast takeaway)."
+    source: "WP:AIPARALLEL"

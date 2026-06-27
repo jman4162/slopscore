@@ -29,6 +29,10 @@ Conservatism guardrails (v0.2):
   numbers) lowers the score for specific, plain prose.
 - **Abstention.** On input under ~100 words, or detected non-English, the label is capped at
   "mild" and a reason is reported.
+- **Formatting metric.** Em-dash overuse is measured as a dash-to-comma ratio (choosing a dash
+  where a comma would do), which is invariant to document length and paragraph structure. It is not
+  per-paragraph: the pipeline rejoins paragraphs and short inputs make that denominator degenerate.
+  When the signal fires, a `FORMATTING_EM_DASH` span reports the count and ratio.
 
 ## Detection grounding (sources)
 
