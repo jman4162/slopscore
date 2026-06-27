@@ -15,6 +15,8 @@ generic, low-specificity, over-polished writing patterns associated with low-eff
 It reports per-dimension scores and **evidence spans** (the exact phrases that triggered each
 finding), so you can see and fix what it flags.
 
+**Try it in your browser:** [slopscore.john-hodge.com](https://slopscore.john-hodge.com). Paste prose and get the score with evidence spans, no install.
+
 > ### ⚠️ What slopscore is NOT
 > It does **not** detect whether text was written by AI, and must never be used to accuse a writer.
 > It flags writing *patterns* in *text* (not authorship, not authors): patterns common in
