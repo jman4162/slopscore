@@ -1,0 +1,17 @@
+# BROAD tier (--broad only): bare vague quantifiers. WP:AIWEASEL "unsupported attributions".
+# These saturate ordinary AND non-native English (in the fairness benchmark, "many"/"most" appear
+# in both clean and slop rows), so they have no discriminative power and are OFF by default. With
+# --broad they act as an editing highlighter for a writer de-slopping their own draft.
+
+rules:
+  - rule_id: WEASEL_BROAD_QUANTIFIER
+    severity: low
+    pattern: "\\b(?:some|many|most|several|numerous|various|countless|myriad)\\b"
+    explanation: "Bare vague quantifier ('many', 'some') — statistics without numbers."
+    source: "WP:AIWEASEL"
+
+  - rule_id: WEASEL_BROAD_QUANTIFIER_PHRASE
+    severity: low
+    pattern: "\\b(?:a number of|a variety of|a range of|a majority of|a handful of|a host of)\\b"
+    explanation: "Vague quantifier phrase ('a number of') — prefer a count."
+    source: "WP:AIWEASEL"

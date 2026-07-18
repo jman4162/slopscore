@@ -1,0 +1,12 @@
+# Hedge + vague evaluative adjective: unearned vagueness ("somewhat successful"). WP:AIWEASEL.
+# A bare hedge (may/might/likely) is NOT flagged — human_signals.py treats hedging as a human
+# signal, and hedging is correct epistemics in calibrated writing. The tell is a hedge paired with
+# an unquantified evaluative adjective, which dodges commitment without adding information. The
+# human-signal hedges (perhaps/maybe/arguably/likely/roughly) are deliberately excluded here.
+
+rules:
+  - rule_id: WEASEL_HEDGED_ADJECTIVE
+    severity: low
+    pattern: "\\b(?:somewhat|relatively|fairly|rather|quite|moderately|reasonably) (?:successful|effective|significant|important|robust|comprehensive|substantial|considerable|notable|impactful|innovative|powerful|meaningful|valuable|compelling)\\b"
+    explanation: "'somewhat successful / relatively significant' — hedge + vague adjective, no measure."
+    source: "WP:AIWEASEL"

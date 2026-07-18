@@ -1,0 +1,18 @@
+# BROAD tier (--broad only): bare hedges. Commitment-dodging words. OFF by default because bare
+# hedges saturate ordinary/ESL prose AND because human_signals.py rewards a hedge set as a HUMAN
+# signal. This list deliberately EXCLUDES those human-signal hedges (perhaps, maybe, arguably,
+# likely, roughly, about, around, nearly, seems to, tends to, a bit, a little, sort of, kind of)
+# so the broad tier never contradicts the human-signal dimension.
+
+rules:
+  - rule_id: WEASEL_BROAD_HEDGE
+    severity: low
+    pattern: "\\b(?:may|might|could|possibly|seemingly|apparently|somewhat|rather|fairly|relatively|essentially|basically|virtually)\\b"
+    explanation: "Bare hedge — commitment-dodging (surface for review, not accusation)."
+    source: "WP:AIWEASEL"
+
+  - rule_id: WEASEL_BROAD_HEDGE_PHRASE
+    severity: low
+    pattern: "\\b(?:to some extent|more or less|in some ways|to a certain (?:extent|degree))\\b"
+    explanation: "Hedging phrase ('to some extent') — vague qualification."
+    source: "WP:AIWEASEL"

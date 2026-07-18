@@ -42,6 +42,13 @@ def test_single_insight_marker_in_specific_prose_stays_low() -> None:
     assert report.score.label in (Label.low, Label.mild)
 
 
+def test_single_weasel_certainty_in_specific_prose_stays_low() -> None:
+    # One certainty opener ("Clearly, ...") inside long, concrete prose must not reach "severe".
+    text = _SPECIFIC_PARAGRAPH + " Clearly, the plant mattered to the town."
+    report = scan_text(text)
+    assert report.score.label in (Label.low, Label.mild)
+
+
 def test_non_english_label_withheld() -> None:
     # A long Spanish paragraph should not be labelled severe (tuned for English).
     spanish = (

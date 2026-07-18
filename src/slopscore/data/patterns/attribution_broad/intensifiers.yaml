@@ -1,0 +1,23 @@
+# BROAD tier (--broad only): empty intensifiers, non-initial certainty adverbs, and hearsay
+# adverbs. Intensifiers are the inverse failure of hedging — emphasis without information, almost
+# always deletable. OFF by default: "very" appears in both clean and slop ESL rows, so it cannot
+# discriminate. With --broad these act as a Vale/Hemingway-style highlighter for self-editing.
+
+rules:
+  - rule_id: WEASEL_BROAD_INTENSIFIER
+    severity: low
+    pattern: "\\b(?:very|really|truly|extremely|incredibly|absolutely|literally|highly|remarkably|utterly|totally)\\b"
+    explanation: "Empty intensifier — emphasis without information; usually deletable."
+    source: "WP:AIWEASEL"
+
+  - rule_id: WEASEL_BROAD_CERTAINTY
+    severity: low
+    pattern: "\\b(?:clearly|obviously|undoubtedly|of course)\\b"
+    explanation: "Certainty adverb — marks a claim asserted rather than shown."
+    source: "WP:AIWEASEL"
+
+  - rule_id: WEASEL_BROAD_HEARSAY
+    severity: low
+    pattern: "\\b(?:reportedly|allegedly|purportedly|supposedly)\\b"
+    explanation: "Hearsay adverb ('reportedly') — attribution without a source."
+    source: "WP:AIWEASEL"

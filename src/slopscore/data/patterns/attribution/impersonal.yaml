@@ -1,0 +1,22 @@
+# Impersonal-passive attribution and passive dodges. WP:AIWEASEL.
+# The existing weasel.yaml rules require a named authority noun (experts/studies/critics); these
+# catch the agentless-passive variants that assert authority with no source at all.
+
+rules:
+  - rule_id: WEASEL_IT_IS_BELIEVED
+    severity: medium
+    pattern: "\\bit (?:is|has (?:long )?been)(?: (?:widely|generally|often|commonly))? (?:believed|said|thought|claimed|argued|assumed|understood|held|reported|considered) that\\b"
+    explanation: "'it is widely believed that' — opinion attributed to no one (weasel wording)."
+    source: "WP:AIWEASEL"
+
+  - rule_id: WEASEL_SOURCES_SAY
+    severity: medium
+    pattern: "\\bsources (?:say|claim|report|reported|suggest|indicate|tell|close to)\\b"
+    explanation: "'sources say / sources close to' — vague, unnamed sourcing."
+    source: "WP:AIWEASEL"
+
+  - rule_id: WEASEL_PASSIVE_DODGE
+    severity: low
+    pattern: "\\b(?:mistakes were made|it was (?:decided|determined|felt|concluded|agreed) that)\\b"
+    explanation: "Agentless passive that dodges who acted ('mistakes were made')."
+    source: "WP:AIWEASEL"

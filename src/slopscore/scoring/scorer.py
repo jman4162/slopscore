@@ -114,17 +114,17 @@ def score_document(doc: Document, settings: Settings) -> Report:
     ]
     by_dim: dict[Dimension, float] = {r.dimension: r.score for r in results}
 
-    # Opt-in broad tier: re-score insight_signaling over core + broad rules (mirrors the
-    # settings.suggest special-case). Off by default so the dimension stays conservative.
-    insight_on = Dimension.insight_signaling.value not in settings.disabled_dimensions
-    if settings.broad_rules and insight_on:
-        from slopscore.features.phrase_packs import InsightSignaling
+    # Opt-in broad tier: re-score each broad-capable phrase pack over core + broad rules (mirrors
+    # the settings.suggest special-case). Off by default so dimensions stay conservative.
+    if settings.broad_rules:
+        from slopscore.features.phrase_packs import broad_packs
 
-        broad_result = InsightSignaling.extract(doc, settings.profile, broad=True)
-        results = [
-            broad_result if r.dimension is Dimension.insight_signaling else r for r in results
-        ]
-        by_dim[Dimension.insight_signaling] = broad_result.score
+        for pack in broad_packs():
+            if pack.dimension.value in settings.disabled_dimensions:
+                continue
+            broad_result = pack.extract(doc, settings.profile, broad=True)
+            results = [broad_result if r.dimension is pack.dimension else r for r in results]
+            by_dim[pack.dimension] = broad_result.score
 
     # Positive (slop-raising) dimensions that are elevated, ignoring the negative human signal.
     elevated: set[Dimension] = {

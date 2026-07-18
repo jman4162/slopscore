@@ -8,6 +8,11 @@ rules:
     suggestion: "use"
     confidence: 0.97
     reasoning: "'utilize' is almost always just 'use'."
+  - rule_id: SUGGEST_ASCERTAIN
+    pattern: "\\bascertain(s|ed|ing)?\\b"
+    suggestion: "find out"
+    confidence: 0.9
+    reasoning: "'ascertain' is usually just 'find out' or 'confirm'."
   - rule_id: SUGGEST_IN_ORDER_TO
     pattern: "\\bin order to\\b"
     suggestion: "to"

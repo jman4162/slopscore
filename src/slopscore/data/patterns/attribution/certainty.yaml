@@ -1,0 +1,24 @@
+# Unearned certainty / "reasoning smell" weasels. WP:AIWEASEL lists "it goes without saying" and
+# "it is generally accepted" as classic weasel words: they assert force of authority (or that a
+# claim needs no support) without letting the reader judge it. "Clearly"/"Obviously" mark exactly
+# where an argument skipped a step. Certainty adverbs are gated to a clause opener so ordinary
+# mid-sentence use ("she clearly explained the steps") is left alone.
+
+rules:
+  - rule_id: WEASEL_CERTAINTY_OPENER
+    severity: low
+    pattern: "(?:^|(?<=[.!?]\\s)|(?<=[.!?]\\s\\s))(?:Clearly|Obviously|Undoubtedly|Undeniably|Naturally),"
+    explanation: "'Clearly, / Obviously,' opener — asserts a claim the writer has not justified."
+    source: "WP:AIWEASEL"
+
+  - rule_id: WEASEL_GOES_WITHOUT_SAYING
+    severity: medium
+    pattern: "\\b(?:it goes without saying|needless to say)\\b"
+    explanation: "'it goes without saying / needless to say' — dodges having to support the claim."
+    source: "WP:AIWEASEL"
+
+  - rule_id: WEASEL_SAFE_TO_SAY
+    severity: low
+    pattern: "\\b(?:it(?: is|'?s) (?:safe|fair) to say|there is no (?:doubt|denying) that|as (?:we all|everyone) knows?)\\b"
+    explanation: "'it is safe to say / there is no denying' — manufactured consensus."
+    source: "WP:AIWEASEL"

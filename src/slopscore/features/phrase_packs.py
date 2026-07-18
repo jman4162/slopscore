@@ -19,6 +19,15 @@ from slopscore.features._ruleset import (
 from slopscore.features.base import per_hundred_words, register, saturating
 from slopscore.models import Dimension, FeatureResult
 
+# Phrase packs that carry an opt-in broad tier (populated in __init__). The scorer re-scores each
+# of these over core+broad rules when --broad is set.
+_BROAD_PACKS: list[_PhrasePack] = []
+
+
+def broad_packs() -> list[_PhrasePack]:
+    """Phrase packs that have a ``--broad`` tier, in registration order."""
+    return list(_BROAD_PACKS)
+
 
 class _PhrasePack:
     """A dimension backed by a directory of YAML phrase rules.
@@ -39,6 +48,8 @@ class _PhrasePack:
         self._category = category
         self._full_scale = full_scale
         self._broad_category = broad_category
+        if broad_category is not None:
+            _BROAD_PACKS.append(self)
 
     @lru_cache(maxsize=1)  # noqa: B019  (one instance per dimension; cache is fine)
     def _rules(self) -> list[Rule]:
@@ -65,7 +76,12 @@ class _PhrasePack:
 SignificanceInflation = _PhrasePack(
     Dimension.significance_inflation, "significance", full_scale=3.0
 )
-WeaselAttribution = _PhrasePack(Dimension.weasel_attribution, "attribution", full_scale=3.0)
+WeaselAttribution = _PhrasePack(
+    Dimension.weasel_attribution,
+    "attribution",
+    full_scale=3.0,
+    broad_category="attribution_broad",
+)
 UnsupportedClaims = _PhrasePack(Dimension.unsupported_claims, "claims", full_scale=3.0)
 # Insight-signaling / pseudo-profundity (v0.7). The broad tier is opt-in via ``--broad``.
 InsightSignaling = _PhrasePack(

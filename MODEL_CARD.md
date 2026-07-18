@@ -170,6 +170,20 @@ exercise competent native analytical writing, where these phrases legitimately a
 population is guarded instead by concrete-prose negative fixtures in `benchmark.jsonl` and by
 `test_conservatism.py` (a lone insight phrase in long, specific prose stays below "severe").
 
+v0.7 also expands the **weasel_attribution** dimension — the complementary "fake evidence" axis to
+slop's "fake insight". Added (scored by default): impersonal-passive attribution ("it is widely
+believed", "sources say"), unearned-certainty reasoning smells ("Clearly,", "needless to say", "it
+goes without saying" — WP:AIWEASEL classes these as weasel words), and hedge+vague-adjective
+("somewhat successful"). The textbook bare weasels — quantifiers (many/most), hedges (may/might),
+intensifiers (very/really) — are **`--broad`-only** and off by default. That is a deliberate
+fairness decision: in the fairness slices those words appear in *both* clean and slop rows (e.g.
+"very"/"most"), so a default bare-word rule would have no discriminative power and would over-flag
+non-native/simple English — the exact failure the tool exists to avoid. `--broad` reframes them as
+an opt-in self-editing highlighter, not an accusation. The broad tier also excludes the hedges
+`human_signals.py` credits as a positive human signal (perhaps/maybe/arguably/likely), since hedging
+is correct epistemics in calibrated writing; only the *hedge + vague adjective* construction is
+treated as a tell.
+
 ## v0.6: decided modeling non-goals
 
 After the v0.5 benchmark, two modeling directions were evaluated and rejected:

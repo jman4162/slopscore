@@ -115,6 +115,24 @@ committed model needs no retrain (`--scorer ml` computes but ignores it). Antith
 variant, and the "both/and" reframe. Genre profiles boost insight_signaling in essay/blog/social and
 soften it in academic/technical.
 
+Weasel words (v0.7): the complementary axis — slop phrases signal fake *insight*,
+`weasel_attribution` signals fake *evidence*. The existing dimension was expanded (data-only) with
+impersonal-passive attribution (`attribution/impersonal.yaml`: "it is widely believed", "sources
+say", passive dodges), unearned-certainty "reasoning smells" (`attribution/certainty.yaml`:
+clause-initial "Clearly,"/"Obviously,", "needless to say", "it goes without saying" — classic
+WP:AIWEASEL weasels), and hedge+vague-adjective (`attribution/hedging.yaml`: "somewhat successful").
+Bare quantifiers/hedges/intensifiers (many/very/may) are **`--broad`-only**
+(`data/patterns/attribution_broad/`): they have no discriminative power on the ESL/simple-English
+fairness slices (they appear in both clean and slop rows), so flagging them by default would
+over-flag exactly the protected population. The broad tier deliberately EXCLUDES the hedges
+`human_signals.py` rewards as a positive human signal (perhaps/maybe/arguably/likely) so the two
+dimensions never contradict. The `--broad` mechanism was generalized: `features/phrase_packs.py`
+exposes `broad_packs()` and `scorer.py` re-scores every broad-capable pack (insight_signaling and
+weasel_attribution today). Bureaucratese (utilize/facilitate/"due to the fact that") stays advisory
+in `--suggest`; `ascertain` was added there. Prose-fiction frequency tics (just/that/really) are a
+deliberate non-goal — per-author frequency, not a static list (a future `calibrate.py` baseline
+feature).
+
 ## Project state
 
 v0.1–v0.6 are implemented and green (ruff/mypy/pytest). The repository also holds two reference
