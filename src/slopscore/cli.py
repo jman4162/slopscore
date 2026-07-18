@@ -105,6 +105,11 @@ def scan(
         False, "--fail-on-new", help="With --baseline-file: exit 1 only on findings not in it."
     ),
     suggest: bool = typer.Option(False, "--suggest", help="Include rewrite suggestions."),
+    broad: bool = typer.Option(
+        False,
+        "--broad",
+        help="Enable the broad insight_signaling tier (rationalist/essayist jargon; higher FPR).",
+    ),
     by_paragraph: bool = typer.Option(
         False, "--by-paragraph", help="Also score each paragraph (surfaces a sloppy section)."
     ),
@@ -121,6 +126,7 @@ def scan(
             strictness=strictness.value if strictness else None,
             scorer=scorer.value if scorer else None,
             suggest=suggest or None,
+            broad=broad or None,
         )
     except ValueError as exc:
         err_console.print(f"[red]Invalid configuration:[/red] {exc}")
@@ -457,6 +463,11 @@ _DIMENSION_GUIDE: dict[str, str] = {
     "unsupported_claims": "Sweeping or universal claims with no citation or evidence.",
     "prompt_residue": "Leftover assistant boilerplate ('as an AI', 'here is a ...').",
     "significance_inflation": "Overclaimed impact (pivotal, transformative, groundbreaking).",
+    "insight_signaling": (
+        "Pseudo-profundity: phrases that announce insight rather than contain it "
+        "('load-bearing', 'doing the real work', 'the crux of the issue'). --broad adds "
+        "rationalist/essayist jargon (steelman, first principles) at higher FPR."
+    ),
     "superficial_analysis": "Trailing '-ing' clauses that gesture at analysis without substance.",
     "weasel_attribution": "Vague sourcing ('experts say', 'studies show') with no specifics.",
     "parallelism": "Rule-of-three and negative-parallelism padding. Weak alone.",

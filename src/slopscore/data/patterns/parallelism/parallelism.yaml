@@ -43,3 +43,30 @@ rules:
     pattern: "(?:^|(?<=[.!?:]\\s)|(?<=\\*\\*))[A-Z][^.?!,;:]{1,30},\\s+not\\s+[^.?!,;:]{1,30}[.!?]"
     explanation: "'X, not Y' elliptical antithesis slogan (punchy contrast takeaway)."
     source: "WP:AIPARALLEL"
+
+  # v0.7 antithesis variants — antithesis is the single most recognizable AI tell.
+  - rule_id: PARALLEL_NOT_MERELY_BUT
+    severity: medium
+    pattern: "\\bnot merely\\b[^.?!]{1,60}?\\bbut\\b"
+    explanation: "'not merely X, but Y' antithesis (a 'not just' variant)."
+    source: "WP:AIPARALLEL"
+
+  - rule_id: PARALLEL_LESS_ABOUT_MORE_ABOUT
+    severity: medium
+    pattern: "\\bless about\\b[^.?!]{1,60}?\\b(?:and )?more about\\b"
+    explanation: "'this is less about X and more about Y' contrast frame."
+    source: "WP:AIPARALLEL"
+
+  # Non-'it' subject so this does not double-fire with PARALLEL_ITS_NOT_ITS (which already
+  # accepts an em dash separator when the subject is 'it').
+  - rule_id: PARALLEL_NOT_EMDASH_ITS
+    severity: medium
+    pattern: "(?<!it )(?:is|are|was|were)\\s+not\\s+[^.?!,;]{1,50}[—–]\\s?it(?:'s| is)\\b"
+    explanation: "'X is not Y—it's Z' em-dash antithesis."
+    source: "WP:AIPARALLEL"
+
+  - rule_id: PARALLEL_BOTH_AND
+    severity: low
+    pattern: "\\b(?:it'?s not (?:either\\b|a (?:binary|dichotomy|false (?:choice|dichotomy)))|the answer is (?:not either[,;—-]* )?both)\\b"
+    explanation: "'it's not either/or — it's both' false-binary reframe."
+    source: "WP:AIPARALLEL"

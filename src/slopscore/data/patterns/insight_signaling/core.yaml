@@ -1,0 +1,86 @@
+# Insight-signaling / pseudo-profundity (v0.7): phrases whose job is to announce that insight is
+# occurring rather than to contain it. Borrowed from a higher-prestige essayist/rationalist
+# register (Substack, LessWrong, Stratechery, Paul Graham), where they are sharp the first time
+# and empty at uniform density. The tell is density, not a single occurrence — the scorer already
+# scores severity-weighted density per 100 words, so patterns here stay context-gated to keep a
+# lone, legitimate use from firing.
+#
+# This is the CORE (conservative) tier, on by default. See ../insight_signaling_broad/ for the
+# opt-in `--broad` tier of rationalist jargon with higher false-positive risk.
+# Sources: user-reported 2024-2026 LLM tells; register discussion in AI_WRITING_SLOP_Guide.
+
+rules:
+  - rule_id: INSIGHT_LOAD_BEARING
+    severity: medium
+    # Gated to prose nouns so the literal engineering sense ("load-bearing wall/beam/column") is
+    # left alone.
+    pattern: "\\bload[-\\s]?bearing\\s+(?:word|phrase|term|assumption|premise|claim|sentence|clause|idea|concept|distinction|detail|fact|part)s?\\b"
+    explanation: "'load-bearing <word/assumption>' — insight-signaling metaphor applied to prose."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_REAL_WORK
+    severity: medium
+    # Adjective is mandatory so plain "doing the work" is left alone.
+    pattern: "\\bdoing (?:the |all |most of |a lot of )?(?:the )?(?:real|heavy|actual) (?:work|lifting)\\b"
+    explanation: "'doing the real work / heavy lifting' — vague emphasis dressed as analysis."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_WORK_IN_SENTENCE
+    severity: medium
+    pattern: "\\bdoing (?:a lot of|the|serious|real|all the) work in (?:that|this|the) (?:sentence|phrase|word|clause|framing|paragraph)\\b"
+    explanation: "'doing a lot of work in that sentence' — asserts importance without showing it."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_CRUX
+    severity: low
+    pattern: "\\bthe crux of (?:the|this) (?:issue|matter|argument|problem|question|debate)\\b"
+    explanation: "'the crux of the issue' — pseudo-profound framing of an ordinary point."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_PRESSURE_TEST
+    severity: low
+    pattern: "\\b(?:pressure|stress)[-\\s]?test\\w* (?:the|this|that|your|our|my) (?:claim|assumption|argument|thesis|hypothesis|premise|logic|idea)\\b"
+    explanation: "'pressure-test the claim' — analysis-flavoring verb."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_OPERATIVE
+    severity: low
+    pattern: "\\bthe operative (?:word|term|question|phrase) (?:here )?is\\b"
+    explanation: "'the operative word is' — emphasis marker posing as an argument."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_SIGNAL_NOISE
+    severity: low
+    pattern: "\\bseparat\\w+ (?:the )?signal from (?:the )?noise\\b"
+    explanation: "'separate signal from noise' — stock analytical cliche."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_QUIETLY
+    severity: low
+    pattern: "\\bquietly (?:the )?(?:most|one of the most|the single most|becoming)\\b"
+    explanation: "'quietly the most important' — 'quietly' as a profundity intensifier."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_UNCOMFORTABLE_TRUTH
+    severity: medium
+    pattern: "\\bhere(?:'s| is) the (?:uncomfortable|hard|inconvenient|real|deeper) truth\\b"
+    explanation: "'here's the uncomfortable truth' — dramatized reveal scaffold."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_WHOLE_GAME
+    severity: low
+    pattern: "\\bthat'?s the (?:whole|entire) (?:game|ballgame)\\b"
+    explanation: "'that's the whole game' — emphatic filler."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_FULL_STOP
+    severity: low
+    pattern: "\\b\\w+, full stop[.]"
+    explanation: "'X, full stop.' — manufactured finality."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_IS_THE_POINT
+    severity: low
+    pattern: "\\bthe \\w+ is the (?:whole )?point\\b"
+    explanation: "'the <noun> is the point' — reframes the obvious as an insight."
+    source: "AI-tell (2024-2026)"

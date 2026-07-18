@@ -42,6 +42,9 @@ class Settings(BaseModel):
     rule_severity: dict[str, str] = {}
     # Include opt-in, advisory rewrite suggestions (does not affect the score or --fail-on).
     suggest: bool = False
+    # Include the opt-in "broad" tier of insight_signaling rules (rationalist/essayist jargon with
+    # higher false-positive risk). Off by default; affects the score, evidence, and --fail-on.
+    broad_rules: bool = False
 
 
 def data_path(*parts: str) -> resources.abc.Traversable:

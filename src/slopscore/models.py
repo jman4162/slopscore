@@ -56,6 +56,9 @@ class Dimension(StrEnum):
     prompt_residue = "prompt_residue"
     # v0.2 dimensions (mapped to WP:AISIGNS sections)
     significance_inflation = "significance_inflation"
+    # v0.7: insight-signaling / pseudo-profundity ("load-bearing", "doing the real work").
+    # Rules-only for now — deliberately excluded from the ML FEATURE_ORDER (no retrain needed).
+    insight_signaling = "insight_signaling"
     superficial_analysis = "superficial_analysis"
     weasel_attribution = "weasel_attribution"
     parallelism = "parallelism"
@@ -110,6 +113,7 @@ class Dimensions(BaseModel):
     unsupported_claims: float = Field(default=0.0, ge=0.0, le=1.0)
     prompt_residue: float = Field(default=0.0, ge=0.0, le=1.0)
     significance_inflation: float = Field(default=0.0, ge=0.0, le=1.0)
+    insight_signaling: float = Field(default=0.0, ge=0.0, le=1.0)
     superficial_analysis: float = Field(default=0.0, ge=0.0, le=1.0)
     weasel_attribution: float = Field(default=0.0, ge=0.0, le=1.0)
     parallelism: float = Field(default=0.0, ge=0.0, le=1.0)

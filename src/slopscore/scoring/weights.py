@@ -18,6 +18,9 @@ DEFAULT_WEIGHTS: dict[Dimension, float] = {
     Dimension.superficial_analysis: 2.8,
     Dimension.significance_inflation: 2.8,
     Dimension.formulaic_structure: 2.6,
+    # Insight-signaling (v0.7): a real tell when dense, but more register-dependent than the
+    # legacy-puffery of significance_inflation, so it sits a notch lower and is genre-softened.
+    Dimension.insight_signaling: 2.4,
     Dimension.weasel_attribution: 2.0,
     Dimension.genericity: 1.6,
     Dimension.unsupported_claims: 1.6,

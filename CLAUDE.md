@@ -55,10 +55,11 @@ Key invariants when extending:
 - **Rule data is YAML** under `src/slopscore/data/` (force-included into the wheel). `patterns/` is
   organized into category subdirs loaded by `_ruleset.load_rules_from_directory`; `lexicons/markers.yaml`
   carries `era`/`source` tags. The spaCy path lives behind `features/_nlp.py`.
-- Dimensions: lexical_markers, formulaic_structure, significance_inflation, superficial_analysis,
-  weasel_attribution, parallelism, copula_avoidance, genericity, redundancy, cadence_sameness,
-  formatting_tells (weak), prompt_residue, human_writing_signals (negative). unsupported_claims has
-  no feature yet (contributes 0).
+- Dimensions: lexical_markers, formulaic_structure, significance_inflation, insight_signaling,
+  superficial_analysis, weasel_attribution, parallelism, copula_avoidance, genericity, redundancy,
+  cadence_sameness, formatting_tells (weak), prompt_residue, human_writing_signals (negative).
+  unsupported_claims has no feature yet (contributes 0). `insight_signaling` (v0.7) is rules-only —
+  deliberately excluded from the ML `FEATURE_ORDER`, so it needs no model retrain.
 - **Personal baseline:** `scoring/calibrate.py` builds robust per-dimension stats from a corpus;
   `scan --baseline <name>` attaches z-score deviations. Profiles (`scoring/profiles.py`) are hand-set
   (see `PROFILE_NOTES.md`); citations + fairness caveats live in `MODEL_CARD.md`.
@@ -98,6 +99,21 @@ reports per-rule false-positive rate on the `simple_english`/`non_native` benchm
 model retrain, no XGBoost/GBDT (features are the ceiling, not the model class; trees break the
 numpy-only path + transparency + fairness). The `[nlp]` feature work (NER genericity, semantic
 redundancy, burstiness) is the v0.7 roadmap.
+
+Insight-signaling (v0.7): a new `insight_signaling` dimension flags pseudo-profundity tells that
+announce insight rather than contain it ("load-bearing", "doing the real work", "the crux of the
+issue", "pressure-test the claim") — a distinct phenomenon from the WP:AILEGACY puffery in
+`significance_inflation`. Core rules (`data/patterns/insight_signaling/`, context-gated so literal
+uses like "load-bearing wall" are safe) score by default; an opt-in broad tier
+(`data/patterns/insight_signaling_broad/`, enabled by `--broad` / `[tool.slopscore] broad`) adds
+rationalist/essayist jargon (steelman, epistemic humility, first principles) that is legitimate in
+philosophy/tech writing and so carries higher FPR. `--broad` re-scores the dimension over core+broad
+in `scorer.py` (mirrors the `settings.suggest` special-case), so it affects the score, evidence, and
+`--fail-on`. The dimension is **rules-only**: it is excluded from the ML `FEATURE_ORDER`, so the
+committed model needs no retrain (`--scorer ml` computes but ignores it). Antithesis coverage in
+`parallelism` gained "not merely X but Y", "less about X, more about Y", the non-'it' em-dash
+variant, and the "both/and" reframe. Genre profiles boost insight_signaling in essay/blog/social and
+soften it in academic/technical.
 
 ## Project state
 

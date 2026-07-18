@@ -34,6 +34,14 @@ def test_single_marker_in_specific_prose_stays_low() -> None:
     assert report.score.label in (Label.low, Label.mild)
 
 
+def test_single_insight_marker_in_specific_prose_stays_low() -> None:
+    # One insight-signaling phrase ("load-bearing assumption") inside long, concrete, numeric
+    # prose must not reach "severe" — these phrases are legitimate in good analytical writing.
+    text = _SPECIFIC_PARAGRAPH + " The load-bearing assumption was that demand would hold."
+    report = scan_text(text)
+    assert report.score.label in (Label.low, Label.mild)
+
+
 def test_non_english_label_withheld() -> None:
     # A long Spanish paragraph should not be labelled severe (tuned for English).
     spanish = (

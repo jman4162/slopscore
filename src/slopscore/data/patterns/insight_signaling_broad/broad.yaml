@@ -1,0 +1,91 @@
+# Insight-signaling BROAD tier (v0.7): rationalist/essayist jargon that is legitimate in
+# philosophy, analysis, and tech writing and reads as slop only at density. Higher false-positive
+# risk than the core tier, so it is OFF by default and only scored with `--broad` (or
+# `[tool.slopscore] broad = true`). These rules are loaded from a separate directory and merged
+# into the insight_signaling dimension by the scorer only when the broad flag is set.
+# Sources: user-reported "serious analysis" LLM tells (2024-2026).
+
+rules:
+  - rule_id: INSIGHT_BROAD_STEELMAN
+    severity: low
+    pattern: "\\bsteel[-\\s]?man(?:ning|ned|s)?\\b"
+    explanation: "'steelman' — rationalist jargon; a tell at density."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_BROAD_CHARITABLE
+    severity: low
+    pattern: "\\bthe (?:most )?charitable (?:interpretation|reading|version)\\b"
+    explanation: "'the charitable interpretation' — analysis-flavoring frame."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_BROAD_EPISTEMIC
+    severity: low
+    pattern: "\\bepistemic (?:humility|status|hygiene)\\b"
+    explanation: "'epistemic humility/status' — rationalist register marker."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_BROAD_FIRST_PRINCIPLES
+    severity: low
+    pattern: "\\b(?:from|ground\\w* in) first principles\\b"
+    explanation: "'from first principles' — profundity marker."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_BROAD_OBJECT_META
+    severity: low
+    pattern: "\\bat the (?:object|meta)[-\\s]level\\b"
+    explanation: "'at the object/meta level' — rationalist framing."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_BROAD_ZOOM_OUT
+    severity: low
+    pattern: "\\bzoom(?:ing)? out\\b"
+    explanation: "'zoom out' — stock analytical transition."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_BROAD_BOTH_TRUE
+    severity: low
+    pattern: "\\bboth things can be true\\b"
+    explanation: "'both things can be true' — false-balance flavoring."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_BROAD_DIRECTIONALLY
+    severity: low
+    pattern: "\\bdirectionally (?:correct|true|right|accurate)\\b"
+    explanation: "'directionally correct' — pseudo-precise hedge."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_BROAD_ADVERB_PRECISE
+    severity: low
+    pattern: "\\b(?:conceptually (?:clean|clear)|mechanically true|substantively different)\\b"
+    explanation: "'conceptually clean / mechanically true' — adverb+adjective pseudo-precision."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_BROAD_MAP_TERRITORY
+    severity: low
+    pattern: "\\bthe map is not the territory\\b"
+    explanation: "'the map is not the territory' — borrowed aphorism."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_BROAD_CATEGORY_ERROR
+    severity: low
+    pattern: "\\bcategory error\\b"
+    explanation: "'category error' — philosophy jargon used as flavoring."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_BROAD_CENTRAL_TENSION
+    severity: low
+    pattern: "\\bthe (?:central|core|fundamental|underlying) tension\\b"
+    explanation: "'the central tension' — structure-announcing frame."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_BROAD_BINDING_CONSTRAINT
+    severity: low
+    pattern: "\\bthe (?:binding constraint|relevant margin|operative question)\\b"
+    explanation: "'the binding constraint / relevant margin' — economics jargon as flavoring."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_BROAD_CASH_OUT
+    severity: low
+    pattern: "\\bcash(?:es|ing|ed)? (?:this |that |it )?out (?:what|the|this|to)\\b"
+    explanation: "'cash out what this means' — philosophy jargon for 'explain'."
+    source: "AI-tell (2024-2026)"

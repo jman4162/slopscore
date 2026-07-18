@@ -156,6 +156,20 @@ Both are opt-in (`[nlp]`); the default install keeps the regex/TF-IDF paths. A s
 burstiness signal was tried and reverted: it regressed the non-native slice (FPR 0.00 -> 0.17),
 a reminder that sentence-length features are entangled with non-native style.
 
+v0.7 also adds an **insight_signaling** dimension for pseudo-profundity tells that announce insight
+rather than contain it ("load-bearing", "doing the real work", "the crux of the issue",
+"pressure-test the claim") — borrowed from a higher-prestige essayist/rationalist register and empty
+only at density, which is why the patterns are context-gated (e.g. "load-bearing wall" is not
+flagged) and mostly low/medium severity. It is **rules-only**: excluded from the ML `FEATURE_ORDER`
+so the committed `slopscore-v0.5.json` model needs no retrain (`--scorer ml` computes but ignores
+it). An opt-in broad tier (`--broad`) adds rationalist jargon (steelman, epistemic humility, first
+principles) that is legitimate in philosophy/tech writing; it is off by default because its
+false-positive risk is higher, and its home register is exactly where this jargon is earned.
+**Fairness caveat:** the `simple_english`/`non_native` benchmark slices (plain and ESL prose) do not
+exercise competent native analytical writing, where these phrases legitimately appear; that
+population is guarded instead by concrete-prose negative fixtures in `benchmark.jsonl` and by
+`test_conservatism.py` (a lone insight phrase in long, specific prose stays below "severe").
+
 ## v0.6: decided modeling non-goals
 
 After the v0.5 benchmark, two modeling directions were evaluated and rejected:

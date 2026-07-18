@@ -23,6 +23,7 @@ _KEYS = {
     "disabled_dimensions",
     "disabled_rules",
     "rule_severity",
+    "broad",
     "include",
     "exclude",
 }
@@ -81,6 +82,7 @@ def resolve_settings(
     strictness: str | None = None,
     scorer: str | None = None,
     suggest: bool | None = None,
+    broad: bool | None = None,
 ) -> Any:
     """Merge a file-config dict with explicit CLI overrides (None = not set) into a Settings.
 
@@ -97,6 +99,7 @@ def resolve_settings(
         disabled_rules=_str_set(file_cfg, "disabled_rules"),
         rule_severity=dict(file_cfg.get("rule_severity", {}) or {}),
         suggest=bool(suggest if suggest is not None else file_cfg.get("suggest", False)),
+        broad_rules=bool(broad if broad is not None else file_cfg.get("broad", False)),
     )
 
 
