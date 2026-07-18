@@ -3,6 +3,28 @@
 All notable changes to slopscore. The PyPI distribution is `slopscore-lint`; the import package
 and the tool are named `slopscore`.
 
+## 0.8.0
+
+- New `insight_signaling` dimension: pseudo-profundity tells that announce insight rather than
+  contain it ("load-bearing assumption", "doing the real work", "the crux of the issue",
+  "pressure-test the claim"). Context-gated (literal "load-bearing wall" is not flagged) and mostly
+  low/medium severity, since density — not existence — is the tell. A distinct phenomenon from the
+  WP:AILEGACY puffery in `significance_inflation`. Rules-only: excluded from the ML `FEATURE_ORDER`,
+  so the committed model needs no retrain. Also adds antithesis variants to `parallelism`
+  ("not merely X but Y", "less about X, more about Y", the non-'it' em-dash form, "both/and").
+- Expanded `weasel_attribution` — the "fake evidence" axis complementary to slop's "fake insight":
+  impersonal-passive attribution ("it is widely believed", "sources say"), unearned-certainty
+  reasoning smells ("Clearly,", "needless to say", "it goes without saying"), and hedge+vague-adjective
+  ("somewhat successful"). All scored by default and high-precision.
+- New `--broad` flag (also `[tool.slopscore] broad`): an opt-in tier of higher-false-positive rules,
+  off by default. Adds rationalist/essayist jargon to `insight_signaling` (steelman, first
+  principles) and bare quantifiers/hedges/intensifiers to `weasel_attribution` (many/very/may). Kept
+  off the default score because those bare words have no discriminative power on the ESL/simple-English
+  fairness slices; `--broad` is a self-editing highlighter, not an accusation. It deliberately excludes
+  the hedges `human_writing_signals` rewards (perhaps/maybe/arguably/likely). Fairness gate stays 0% on
+  the plain/non-native slices with the default (core) rules.
+- The JSON report gains an `insight_signaling` key in `dimensions`; `SCHEMA_VERSION` is 0.8.0.
+
 ## 0.7.3
 
 - Detect the elliptical antithesis slogan `PARALLEL_X_NOT_Y` ("A haircut, not a crash.",

@@ -26,6 +26,7 @@ slopscore-lint scan post.md
 slopscore-lint scan ./content --recursive --fail-on high      # CI gate
 slopscore-lint scan post.md --format sarif -o out.sarif       # GitHub code scanning
 slopscore-lint scan post.md --suggest                         # opt-in rewrite suggestions
+slopscore-lint scan post.md --broad                           # opt-in broad tier (jargon + bare weasel words)
 ```
 
 ## Make it yours

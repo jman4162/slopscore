@@ -153,7 +153,7 @@ slopscore-lint scan post.md --format html -o report.html          # highlighted-
 ```yaml
 repos:
   - repo: https://github.com/jman4162/slopscore
-    rev: v0.7.0
+    rev: v0.8.0
     hooks:
       - id: slopscore-lint
         args: ["--fail-on", "high"]
