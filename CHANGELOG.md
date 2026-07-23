@@ -3,6 +3,17 @@
 All notable changes to slopscore. The PyPI distribution is `slopscore-lint`; the import package
 and the tool are named `slopscore`.
 
+## 0.8.1
+
+- `insight_signaling` now flags structural/anatomical metaphors for an organizing principle
+  ("the spine of the argument", "the backbone of the piece", and the copular "The spine is the same
+  evidence...") — a class a human reader caught that both linters missed. Both rules are
+  context-gated: the noun-of-noun form requires a prose/argument noun, and the copular form gates its
+  complement to abstract nouns, so literal senses (lumbar spine, backbone network, construction/React
+  scaffolding, book spine, "a column of vertebrae", "a fiber-optic link") do not fire. Bare
+  "through-line" (legitimate in film/writing) is `--broad`-only. Report schema is unchanged
+  (`SCHEMA_VERSION` stays 0.8.0).
+
 ## 0.8.0
 
 - New `insight_signaling` dimension: pseudo-profundity tells that announce insight rather than

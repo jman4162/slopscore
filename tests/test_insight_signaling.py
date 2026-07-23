@@ -33,6 +33,62 @@ def test_load_bearing_literal_is_not_flagged() -> None:
     assert "INSIGHT_LOAD_BEARING" not in rule_ids
 
 
+def test_structural_metaphor_fires() -> None:
+    # The exact sentence a human reader caught (Summitward finance-books guide) + the noun-of-noun
+    # form. See INSIGHT_STRUCTURAL_COPULA / INSIGHT_STRUCTURAL_METAPHOR.
+    copula = {
+        e.rule_id
+        for e in InsightSignaling.extract(
+            _doc("The spine is the same evidence behind Summitward."), "blog"
+        ).spans
+    }
+    assert "INSIGHT_STRUCTURAL_COPULA" in copula
+    metaphor = {
+        e.rule_id
+        for e in InsightSignaling.extract(
+            _doc("The backbone of the argument carries the piece."), "blog"
+        ).spans
+    }
+    assert "INSIGHT_STRUCTURAL_METAPHOR" in metaphor
+
+
+def test_structural_metaphor_fix_does_not_fire() -> None:
+    # Regression: the applied fix ("built on the same evidence") must stay clean.
+    rule_ids = {
+        e.rule_id
+        for e in InsightSignaling.extract(
+            _doc("The list is built on the same evidence behind Summitward."), "blog"
+        ).spans
+    }
+    assert not any(r.startswith("INSIGHT_STRUCTURAL") for r in rule_ids)
+
+
+def test_structural_metaphor_literals_are_not_flagged() -> None:
+    # Literal senses of the metaphor nouns (medical, networking, construction, software, book) must
+    # never fire. This is the real guard for this rule class: there are no literal negatives in the
+    # eval JSONL, so these unit tests are the gate.
+    literals = [
+        "A herniated disc in the lumbar spine caused the pain.",
+        "The backbone network handles routing between data centers.",
+        "Scaffolding around the building came down in May.",
+        "React scaffolding generates boilerplate components.",
+        "The spine of the book is cracked after years of use.",
+        "The spine is a column of 33 vertebrae.",
+        "The backbone is a fiber-optic link to the coast.",
+    ]
+    for text in literals:
+        rule_ids = {e.rule_id for e in InsightSignaling.extract(_doc(text), "blog").spans}
+        assert not any(r.startswith("INSIGHT_STRUCTURAL") for r in rule_ids), text
+
+
+def test_bare_throughline_is_broad_only() -> None:
+    text = "The through-line here is grief."
+    off = {e.rule_id for e in InsightSignaling.extract(_doc(text), "blog").spans}
+    on = {e.rule_id for e in InsightSignaling.extract(_doc(text), "blog", broad=True).spans}
+    assert "INSIGHT_BROAD_THROUGHLINE" not in off
+    assert "INSIGHT_BROAD_THROUGHLINE" in on
+
+
 def test_insight_signaling_quiet_on_specific_prose() -> None:
     doc = _doc(
         "The bridge opened in 1937. Workers poured 389,000 cubic yards of concrete. "

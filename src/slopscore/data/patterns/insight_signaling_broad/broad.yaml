@@ -1,4 +1,4 @@
-# Insight-signaling BROAD tier (v0.7): rationalist/essayist jargon that is legitimate in
+# Insight-signaling BROAD tier: rationalist/essayist jargon that is legitimate in
 # philosophy, analysis, and tech writing and reads as slop only at density. Higher false-positive
 # risk than the core tier, so it is OFF by default and only scored with `--broad` (or
 # `[tool.slopscore] broad = true`). These rules are loaded from a separate directory and merged
@@ -6,6 +6,13 @@
 # Sources: user-reported "serious analysis" LLM tells (2024-2026).
 
 rules:
+  - rule_id: INSIGHT_BROAD_THROUGHLINE
+    severity: low
+    # Bare "through-line" — a structural-metaphor tell at density, but has legitimate film/writing
+    # usage, so it stays behind --broad rather than core.
+    pattern: "\\bthrough-?line\\b"
+    explanation: "'through-line' — structural-metaphor jargon for an organizing thread."
+
   - rule_id: INSIGHT_BROAD_STEELMAN
     severity: low
     pattern: "\\bsteel[-\\s]?man(?:ning|ned|s)?\\b"

@@ -1,4 +1,4 @@
-# Insight-signaling / pseudo-profundity (v0.7): phrases whose job is to announce that insight is
+# Insight-signaling / pseudo-profundity: phrases whose job is to announce that insight is
 # occurring rather than to contain it. Borrowed from a higher-prestige essayist/rationalist
 # register (Substack, LessWrong, Stratechery, Paul Graham), where they are sharp the first time
 # and empty at uniform density. The tell is density, not a single occurrence — the scorer already
@@ -84,3 +84,20 @@ rules:
     pattern: "\\bthe \\w+ is the (?:whole )?point\\b"
     explanation: "'the <noun> is the point' — reframes the obvious as an insight."
     source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_STRUCTURAL_METAPHOR
+    severity: medium
+    # Anatomical/structural metaphor for an organizing principle. Gated to prose/argument nouns so
+    # literal senses (backbone network, construction scaffolding, book spine) are left alone.
+    pattern: "\\b(?:the )?(?:spine|backbone|connective tissue|beating heart|scaffolding|through-?line) of (?:the|this|that|my|our|your|a|an) (?:list|argument|essay|piece|post|guide|case|thesis|claim|approach|strategy|framework|plan|idea|narrative|story)\\b"
+    explanation: "'the spine/backbone of the argument' — structural metaphor for an organizing principle; say what it is."
+    source: "human-reader catch, Summitward finance-books guide (2026-07)"
+
+  - rule_id: INSIGHT_STRUCTURAL_COPULA
+    severity: medium
+    # Copular form ("The spine is the same evidence..."). Complement is gated to abstract/argument
+    # nouns so literal subjects ("The spine is a column of vertebrae", "The backbone is a fiber
+    # link") do not fire.
+    pattern: "\\bthe (?:spine|backbone|through-?line) (?:of [\\w\\s]{1,30} )?is (?:the|our|its|a) (?:same |real |whole |central |underlying |actual )?(?:evidence|argument|thesis|idea|logic|case|point|reason|principle|claim|through-?line|story|framework)\\b"
+    explanation: "'the spine is the <evidence/argument>' — anatomy metaphor for an organizing principle."
+    source: "human-reader catch, Summitward finance-books guide (2026-07)"
