@@ -3,6 +3,15 @@
 All notable changes to slopscore. The PyPI distribution is `slopscore-lint`; the import package
 and the tool are named `slopscore`.
 
+## 0.9.1
+
+- `slopscore.__version__` now reads from the installed distribution metadata instead of a
+  hand-maintained literal. The literal drifted: 0.9.0 shipped with `"0.8.1"`, and
+  `report/sarif.py` publishes it as `tool.driver.version`, so SARIF uploads from 0.9.0 told
+  code-scanning dashboards the findings came from 0.8.1. Anyone reading `__version__` in 0.9.0
+  got the same wrong answer. `SCHEMA_VERSION`, the report payload, and every score are
+  unaffected. `tests/test_version.py` guards against putting the literal back.
+
 ## 0.9.0
 
 - New **`performative_candor`** dimension for manufactured sincerity — a point framed as a
