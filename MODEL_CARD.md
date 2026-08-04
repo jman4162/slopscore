@@ -184,6 +184,48 @@ an opt-in self-editing highlighter, not an accusation. The broad tier also exclu
 is correct epistemics in calibrated writing; only the *hedge + vague adjective* construction is
 treated as a tell.
 
+v0.9 adds a **performative_candor** dimension for manufactured sincerity: a point framed as a
+difficult confession ("I have to be honest", "truth be told", "let me be candid"), a sincerity
+adjective bolted to an abstract noun ("honest framing", "honest limits" standing in for
+"limitations"), and manufactured reluctance ("I don't say this lightly"). It is the third axis
+alongside the two above: `insight_signaling` flags fake *insight*, `weasel_attribution` fake
+*evidence*, and this one fake *vulnerability*. Like `insight_signaling` it is **rules-only**,
+excluded from the ML `FEATURE_ORDER` so the committed model needs no retrain.
+
+It is a separate dimension rather than extra `insight_signaling` rules because the genre
+multipliers point the opposite way. `insight_signaling` boosts `social` to 1.15; candor sets it to
+**0.6**, because conversational "honestly" and "to be fair" are native human speech, and sets
+`marketing` to 1.2 where `insight_signaling` softens to 0.9, because manufactured sincerity is
+marketing's native failure mode. A shared dimension could not express either.
+
+Two conservatism choices, both measured. The dimension saturates at 4.0 weighted hits per 100
+words rather than the 3.0 the other packs use, because at 3.0 a single low-severity hit in a
+60-word document scores 0.56 and crosses the corroboration gate's threshold. And it is a
+`WEAK_DIMENSION`, so it is damped when it fires alone.
+
+**Known limitation.** That damping means concrete, specific, first-person prose carrying heavy
+candor filler scores low: a 119-word passage firing 13 candor rules scores 5.6, because
+`performative_candor` is the only elevated dimension (damped to 0.3) while `human_writing_signals`
+saturates at 1.0 on its dates and figures. This is deliberate. Such a passage reads as plausible
+human memoir, and the benchmark contains no positive fixture of that shape on purpose — labeling
+it slop would teach the eval set to punish specific writing. The findings are still reported as
+evidence spans; only the composite score stays low. The tells the dimension does catch are candor
+filler over generic prose, which is where it was reported.
+
+**Fairness.** Bare sincerity adverbs (`genuinely`, `honestly` outside a clause opener) are
+`--broad`-only, matching the decision made for bare quantifiers above: they carry no discriminative
+power and appear throughout ESL prose. The core tier's most important property is that ESL calques
+("Honestly speaking", "Frankly speaking") do not fire, because `CANDOR_ADVERB_PARENTHETICAL`
+requires the comma directly after the adverb; `benchmark.jsonl` carries `non_native` rows asserting
+this rather than leaving it to unit tests. One core rule does fire on the protected slices:
+`CANDOR_TO_BE_HONEST` at 0.07 (1/15) on `non_native` and `CANDOR_ADVERB_PARENTHETICAL` at 0.06
+(1/17) on `simple_english`. Both are under the 0.10/0.15 acceptance bars and document-level FPR
+stays 0.00 on both slices, but the rates are published rather than tuned away.
+
+**Gap in the fairness command.** `fairness_cmd` builds `SlopScorer(profile="blog")` with default
+settings, so it never measures the `--broad` tier — and `CANDOR_BROAD_BARE_CANDOR` fires on ESL
+rows by construction. That unmeasured risk is the reason the tier is off by default.
+
 ## v0.6: decided modeling non-goals
 
 After the v0.5 benchmark, two modeling directions were evaluated and rejected:

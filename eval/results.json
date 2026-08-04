@@ -3,43 +3,43 @@
     "name": "benchmark",
     "path": "/Users/johnhodge/Documents/code/slopscore/eval/datasets/benchmark.jsonl",
     "eval_only": false,
-    "n": 128,
+    "n": 141,
     "rules": {
       "scorer": "rules",
       "profile": "blog",
       "metrics": {
-        "n": 128,
-        "n_positive": 66,
-        "auroc": 0.8882,
-        "pr_auc": 0.9097,
-        "tpr_at_1fpr": 0.6515,
-        "tpr_at_5fpr": 0.6515,
-        "ece": 0.1771,
-        "brier": 0.1464
+        "n": 141,
+        "n_positive": 70,
+        "auroc": 0.9001,
+        "pr_auc": 0.9143,
+        "tpr_at_1fpr": 0.6571,
+        "tpr_at_5fpr": 0.6571,
+        "ece": 0.1585,
+        "brier": 0.139
       },
       "selective": {
         "coverage": 0.0,
         "accuracy_covered": 0.0,
-        "accuracy_all": 0.8203125
+        "accuracy_all": 0.8297872340425532
       },
       "fairness": {
         "general": {
           "group": "general",
-          "n": 100,
+          "n": 107,
           "fpr": 0.0,
-          "fnr": 0.34375,
+          "fnr": 0.3382352941176471,
           "abstention_rate": 1.0
         },
         "non_native": {
           "group": "non_native",
-          "n": 14,
+          "n": 17,
           "fpr": 0.0,
           "fnr": 0.5,
           "abstention_rate": 1.0
         },
         "simple_english": {
           "group": "simple_english",
-          "n": 14,
+          "n": 17,
           "fpr": 0.0,
           "fnr": 0.0,
           "abstention_rate": 1.0
@@ -50,39 +50,39 @@
       "scorer": "ml",
       "profile": "blog",
       "metrics": {
-        "n": 128,
-        "n_positive": 66,
-        "auroc": 0.9157,
-        "pr_auc": 0.9372,
-        "tpr_at_1fpr": 0.6818,
-        "tpr_at_5fpr": 0.6818,
-        "ece": 0.0578,
-        "brier": 0.1125
+        "n": 141,
+        "n_positive": 70,
+        "auroc": 0.9182,
+        "pr_auc": 0.9333,
+        "tpr_at_1fpr": 0.6571,
+        "tpr_at_5fpr": 0.6571,
+        "ece": 0.0538,
+        "brier": 0.1108
       },
       "selective": {
         "coverage": 0.0,
         "accuracy_covered": 0.0,
-        "accuracy_all": 0.796875
+        "accuracy_all": 0.8014184397163121
       },
       "fairness": {
         "general": {
           "group": "general",
-          "n": 100,
-          "fpr": 0.05555555555555555,
-          "fnr": 0.15625,
+          "n": 107,
+          "fpr": 0.05128205128205128,
+          "fnr": 0.17647058823529413,
           "abstention_rate": 1.0
         },
         "non_native": {
           "group": "non_native",
-          "n": 14,
-          "fpr": 0.3333333333333333,
+          "n": 17,
+          "fpr": 0.26666666666666666,
           "fnr": 0.0,
           "abstention_rate": 1.0
         },
         "simple_english": {
           "group": "simple_english",
-          "n": 14,
-          "fpr": 0.7142857142857143,
+          "n": 17,
+          "fpr": 0.5882352941176471,
           "fnr": 0.0,
           "abstention_rate": 1.0
         }

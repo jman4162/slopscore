@@ -1,3 +1,6 @@
+{"text": "Honestly, I had never rebuilt a carburetor before. It took four hours, two trips to the parts store, and a 10 mm socket I did not own.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "To be fair, the referee was screened on the play. The goal stood and Leeds won 2-1 in front of 34,000 people at Elland Road.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "She gave an honest account of the strike to the committee in March 1984 and named three managers who had signed the order.", "label": 0, "bucket": "human_good", "subgroup": "general"}
 {"text": "The factory opened in 1962 on a 14-acre site east of Cleveland and employed 1,200 people.", "label": 0, "bucket": "human_good", "subgroup": "general"}
 {"text": "Strauss fought the Navy for two years over the bridge design before work began in 1933.", "label": 0, "bucket": "human_good", "subgroup": "general"}
 {"text": "We drove to Bend in October; the pass iced over near the summit and the wipers froze twice.", "label": 0, "bucket": "human_good", "subgroup": "general"}
@@ -14,6 +17,9 @@
 {"text": "The trail climbs 900 meters in four kilometers, then traverses scree below the north face.", "label": 0, "bucket": "human_good", "subgroup": "general"}
 {"text": "Copper prices rose 4 percent in March on a strike at the Escondida mine in Chile.", "label": 0, "bucket": "human_good", "subgroup": "general"}
 {"text": "He coached the team for nine seasons, won two titles, and retired after the 2008 final.", "label": 0, "bucket": "human_good", "subgroup": "general"}
+{"text": "I'll be honest with you: the honest answer is that this is harder than it looks. Truth be told, I don't say this lightly, but the honest limits here are real.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "Frankly, the honest framing is that we do not know yet. Candidly, I want to be transparent about that, and I'm not going to pretend the assessment is settled.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "Real talk: let me be blunt about the unvarnished version. Full disclosure: I have to admit, the honest reckoning here is overdue and genuinely difficult.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
 {"text": "In today's fast-paced world, this platform stands as a testament to innovation, reflecting its broader significance across the evolving landscape.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
 {"text": "It is not just a tool, it is a revolution, fostering a vibrant, dynamic, and transformative ecosystem for everyone involved.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
 {"text": "The festival plays a pivotal role in the region, marking a significant shift and underscoring its enduring cultural importance.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
@@ -28,6 +34,7 @@
 {"text": "Moreover, the framework underscores the crucial interplay between strategy and execution, reflecting a deeper commitment to excellence.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
 {"text": "Despite its success, the program faces several challenges; however, ongoing initiatives position it to continue to thrive in the years ahead.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
 {"text": "The artist's work is a vibrant tapestry of emotion and meaning, resonating deeply and leaving an indelible mark on contemporary culture.", "label": 1, "bucket": "raw_llm", "subgroup": "general"}
+{"text": "Founded in 2019, the platform has become a transformative force in the space. Honestly, the honest assessment is that its 40-person team continues to foster a dynamic culture. Truth be told, I have to admit, the results were genuinely surprising.", "label": 1, "bucket": "edited_llm", "subgroup": "general"}
 {"text": "Founded in 2014, the startup stands as a testament to innovation, and its 40-person team in Austin continues to foster a dynamic and transformative culture.", "label": 1, "bucket": "edited_llm", "subgroup": "general"}
 {"text": "The 1.2-kilometer promenade, opened in 2019, plays a pivotal role in the city, reflecting a broader movement toward walkable, vibrant public space.", "label": 1, "bucket": "edited_llm", "subgroup": "general"}
 {"text": "Dr. Mensah's lab leverages a robust methodology and, with 18 published papers, underscores the enduring significance of its work on coral resilience.", "label": 1, "bucket": "edited_llm", "subgroup": "general"}
@@ -44,6 +51,9 @@
 {"text": "We are committed to excellence and dedicated to helping you succeed every step of the way, no matter how big or small your goals.", "label": 1, "bucket": "human_bad", "subgroup": "general"}
 {"text": "Experience the difference that true quality makes, with premium materials and timeless design crafted to last a lifetime.", "label": 1, "bucket": "human_bad", "subgroup": "general"}
 {"text": "Transform your business with our game-changing approach that redefines what's possible and delivers value you can count on.", "label": 1, "bucket": "human_bad", "subgroup": "general"}
+{"text": "My friend asked me about the engine. Honestly, I did not know the answer. I told him to call the garage on Mill Road, and they fixed it on Tuesday for 40 pounds.", "label": 0, "bucket": "human_good", "subgroup": "simple_english"}
+{"text": "To be fair, the number 12 bus is often late. Today I waited twenty minutes in the rain outside the library. When it came at 8:15 I sat by the window.", "label": 0, "bucket": "human_good", "subgroup": "simple_english"}
+{"text": "He is an honest man. He has worked at the shop on Green Street six days a week since 1998 and gives the right change every time.", "label": 0, "bucket": "human_good", "subgroup": "simple_english"}
 {"text": "The man walks to the shop. He buys bread and milk. He pays with coins and goes home.", "label": 0, "bucket": "human_good", "subgroup": "simple_english"}
 {"text": "My city is near the sea. In summer many people come. They swim and eat fish by the water.", "label": 0, "bucket": "human_good", "subgroup": "simple_english"}
 {"text": "She studies at night. She wants to be a nurse. The school is far, so she takes two buses.", "label": 0, "bucket": "human_good", "subgroup": "simple_english"}

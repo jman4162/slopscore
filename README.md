@@ -91,7 +91,7 @@ slopscore-lint scan src/app.py                       # lints docstring/comment p
 slopscore-lint scan post.md --by-paragraph           # surfaces a sloppy section in a clean doc
 slopscore-lint scan draft.md --suggest               # adds advisory rewrite suggestions
 slopscore-lint scan essay.md --broad                 # opt-in tier: rationalist jargon + bare weasel words
-slopscore-lint explain                               # what each of the 15 dimensions detects
+slopscore-lint explain                               # what each of the 16 dimensions detects
 ```
 
 ### Lint the prose inside code

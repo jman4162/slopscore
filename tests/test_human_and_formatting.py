@@ -31,6 +31,14 @@ def test_human_signals_low_on_abstract_slop() -> None:
     assert result.score < 0.3
 
 
+def test_truth_be_told_is_not_a_human_signal() -> None:
+    # "truth be told" is penalized by CANDOR_DISCLOSURE_MARKER, so the "told" inside it must not
+    # also be rewarded here — a slop rule and this counterweight must never share a span.
+    candor = HumanWritingSignals().extract(_doc("Truth be told, it failed."), "blog")
+    plain = HumanWritingSignals().extract(_doc("She told me the price."), "blog")
+    assert candor.score < plain.score
+
+
 def test_formatting_tells_fire_on_dash_heavy_text() -> None:
     doc = _doc("It was great — really great — and more than that — it was — well — everything.")
     result = FormattingTells().extract(doc, "blog")

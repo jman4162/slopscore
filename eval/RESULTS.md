@@ -13,7 +13,7 @@ Reproduce with `python scripts/eval/report.py` (writes `eval/results.json`). Two
 
 | Set | n | AUROC | PR-AUC | TPR@1%FPR | ECE |
 |---|---|---|---|---|---|
-| benchmark (in-sample, overt slop) | 128 | 0.888 | 0.910 | 0.651 | 0.177 |
+| benchmark (in-sample, overt slop) | 141 | 0.900 | 0.914 | 0.657 | 0.159 |
 | wiki_aicleanup (held-out, real wild slop) | 40 | 0.693 | 0.648 | 0.000 | 0.394 |
 
 **Read this honestly.** slopscore separates overt formulaic slop from clean prose well (benchmark
@@ -29,13 +29,13 @@ Per-subgroup false-positive rate on the benchmark (decision threshold 50):
 
 | Subgroup | n | rules FPR | ml FPR |
 |---|---|---|---|
-| general | 100 | 0.00 | 0.06 |
-| simple_english | 14 | 0.00 | 0.71 |
-| non_native | 14 | 0.00 | 0.33 |
+| general | 107 | 0.00 | 0.05 |
+| simple_english | 17 | 0.00 | 0.59 |
+| non_native | 17 | 0.00 | 0.27 |
 
 The learned (`--scorer ml`) model edges the rule scorer on raw metrics (benchmark PR-AUC 0.933 vs
-0.910) but **over-flags plain and non-native English**: 71% false positives on simple English and
-33% on the non-native slice, versus 0% for the rule scorer. The replace-if-wins gate
+0.914) but **over-flags plain and non-native English**: 59% false positives on simple English and
+27% on the non-native slice, versus 0% for the rule scorer. The replace-if-wins gate
 (`eval.harness.should_promote`: no loss on TPR@1%FPR **and** no subgroup-FPR regression) therefore
 keeps the transparent rule scorer as the default. ml stays opt-in.
 

@@ -18,8 +18,10 @@ from slopscore.features.base import per_hundred_words, register, saturating
 from slopscore.models import Dimension, FeatureResult
 
 # Plain past-tense verbs LLMs tend to dress up (wrote->authored, used->utilized, tried->attempted).
+# "told" excludes "truth be told": that span is penalized by CANDOR_DISCLOSURE_MARKER, and a slop
+# rule and this reward must never fire on the same characters.
 _PLAIN_VERBS = re.compile(
-    r"\b(?:wrote|used|made|found|showed|told|said|gave|took|went|began|built|tried|"
+    r"\b(?:wrote|used|made|found|showed|(?<!truth be )told|said|gave|took|went|began|built|tried|"
     r"died|moved|bought|sold|won|lost|ran|led|kept|held)\b",
     re.IGNORECASE,
 )

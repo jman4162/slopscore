@@ -3,6 +3,31 @@
 All notable changes to slopscore. The PyPI distribution is `slopscore-lint`; the import package
 and the tool are named `slopscore`.
 
+## 0.9.0
+
+- New **`performative_candor`** dimension for manufactured sincerity — a point framed as a
+  difficult confession ("I have to be honest", "truth be told", "let me be candid"), a sincerity
+  adjective on an abstract noun ("honest framing", "honest limits" for "limitations"), and
+  manufactured reluctance ("I don't say this lightly"). Before this, such text scored 0.0 on every
+  slop dimension and earned credit on `human_writing_signals`; a dense probe went from 16.9 ("low",
+  zero evidence spans) to 56.0 ("elevated", 12 spans).
+- Kept separate from `insight_signaling` because the genre multipliers invert: candor sets `social`
+  to 0.6 (conversational "honestly" is native human speech) where `insight_signaling` boosts it to
+  1.15, and sets `marketing` to 1.2 where `insight_signaling` softens it to 0.9.
+- Rules are context-gated so ordinary senses stay quiet: "an honest man", "honest work", "an honest
+  mistake", "the full disclosure schedule", "real talk shows", "he was genuinely surprised", and
+  email sign-offs ("Sincerely,") do not fire. The ESL calques "Honestly speaking" and "Frankly
+  speaking" are excluded by requiring the comma directly after the adverb, and `benchmark.jsonl`
+  gained `non_native` rows asserting it.
+- Bare sincerity adverbs ("genuinely", "honestly" outside a clause opener) are `--broad`-only, the
+  same call already made for bare quantifiers and intensifiers.
+- `human_signals.py` no longer rewards the "told" inside "truth be told", so a candor span is not
+  simultaneously penalized and credited.
+- `insight_signaling` gains "it's not nothing"; `--broad` gains "lands cleanly".
+- Fixes a pre-existing bug: `insight_signaling` was missing from `_DIMENSION_LABELS` and so
+  rendered in neither the markdown nor the console dimension table.
+- The JSON report gains a `performative_candor` key in `dimensions`; `SCHEMA_VERSION` is 0.9.0.
+
 ## 0.8.1
 
 - `insight_signaling` now flags structural/anatomical metaphors for an organizing principle

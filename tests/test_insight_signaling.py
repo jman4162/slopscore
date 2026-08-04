@@ -89,6 +89,16 @@ def test_bare_throughline_is_broad_only() -> None:
     assert "INSIGHT_BROAD_THROUGHLINE" in on
 
 
+def test_not_nothing_fires_and_lands_cleanly_is_broad() -> None:
+    ids = {e.rule_id for e in InsightSignaling.extract(_doc("It's not nothing."), "blog").spans}
+    assert "INSIGHT_NOT_NOTHING" in ids
+    text = "The argument lands cleanly."
+    off = {e.rule_id for e in InsightSignaling.extract(_doc(text), "blog").spans}
+    on = {e.rule_id for e in InsightSignaling.extract(_doc(text), "blog", broad=True).spans}
+    assert "INSIGHT_BROAD_LANDS_CLEANLY" not in off
+    assert "INSIGHT_BROAD_LANDS_CLEANLY" in on
+
+
 def test_insight_signaling_quiet_on_specific_prose() -> None:
     doc = _doc(
         "The bridge opened in 1937. Workers poured 389,000 cubic yards of concrete. "

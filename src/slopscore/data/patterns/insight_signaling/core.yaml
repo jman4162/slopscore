@@ -73,6 +73,15 @@ rules:
     explanation: "'that's the whole game' — emphatic filler."
     source: "AI-tell (2024-2026)"
 
+  - rule_id: INSIGHT_NOT_NOTHING
+    severity: low
+    # Litotes-as-emphasis, in the same family as INSIGHT_WHOLE_GAME and INSIGHT_FULL_STOP: it
+    # asserts significance without supplying any. Gated to the pronoun subject so ordinary
+    # negation ("the result is not nothing more than noise") is unaffected.
+    pattern: "\\b(?:it'?s|that'?s|this is|which is) not nothing\\b"
+    explanation: "'it's not nothing' — litotes used to assert significance without supplying it."
+    source: "AI-tell (2024-2026)"
+
   - rule_id: INSIGHT_FULL_STOP
     severity: low
     pattern: "\\b\\w+, full stop[.]"

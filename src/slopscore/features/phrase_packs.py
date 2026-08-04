@@ -1,4 +1,5 @@
-"""Phrase-pack dimensions: significance inflation and weasel/over-attribution.
+"""Phrase-pack dimensions: significance inflation, weasel/over-attribution, unsupported claims,
+insight signaling, and performative candor.
 
 Both are pure regex phrase packs loaded from ``data/patterns/<category>/``, scored by
 severity-weighted density per 100 words (same shape as formulaic_patterns). New patterns are
@@ -91,7 +92,20 @@ InsightSignaling = _PhrasePack(
     broad_category="insight_signaling_broad",
 )
 
+# Performative candor / manufactured sincerity (v0.9). The broad tier is opt-in via ``--broad``.
+# full_scale is 4.0 rather than the 3.0 the other packs use: candor markers have the highest
+# legitimate-human overlap of any dimension here, and at 3.0 a single low-severity hit in a
+# 60-word doc scores 0.56 — over the corroboration gate's ELEVATED threshold. At 4.0 it is 0.42,
+# under it, with no practical difference at realistic document lengths.
+PerformativeCandor = _PhrasePack(
+    Dimension.performative_candor,
+    "performative_candor",
+    full_scale=4.0,
+    broad_category="performative_candor_broad",
+)
+
 register(SignificanceInflation)
 register(WeaselAttribution)
 register(UnsupportedClaims)
 register(InsightSignaling)
+register(PerformativeCandor)

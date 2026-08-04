@@ -8,6 +8,8 @@ _DIMENSION_LABELS: dict[str, str] = {
     Dimension.lexical_markers.value: "AI-marker phrase density",
     Dimension.formulaic_structure.value: "Formulaic structure",
     Dimension.significance_inflation.value: "Significance inflation",
+    Dimension.insight_signaling.value: "Insight signaling / pseudo-profundity",
+    Dimension.performative_candor.value: "Performative candor / manufactured sincerity",
     Dimension.superficial_analysis.value: "Superficial '-ing' analysis",
     Dimension.weasel_attribution.value: "Vague / over-attribution",
     Dimension.parallelism.value: "Negative parallelism / rule of three",

@@ -31,6 +31,10 @@ DEFAULT_WEIGHTS: dict[Dimension, float] = {
     Dimension.parallelism: 1.6,
     Dimension.copula_avoidance: 1.4,
     Dimension.formatting_tells: 0.8,
+    # Performative candor (v0.9): sits below weasel_attribution because sincerity markers are core
+    # spoken English in a way that "studies show" is not. Weak-alone, so a chatty-but-concrete
+    # human post is damped rather than convicted on candor alone.
+    Dimension.performative_candor: 1.8,
     # negative counterweight
     Dimension.human_writing_signals: -2.2,
 }
@@ -42,6 +46,7 @@ WEAK_DIMENSIONS: frozenset[Dimension] = frozenset(
         Dimension.parallelism,
         Dimension.copula_avoidance,
         Dimension.formatting_tells,
+        Dimension.performative_candor,
     }
 )
 

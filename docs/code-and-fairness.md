@@ -29,9 +29,12 @@ slopscore-lint fairness                  # per-rule false-positive rate on plain
 slopscore-lint fairness --threshold 0.1  # flag rules over 10 percent
 ```
 
-A rule that fires on competent plain or non-native writing is a fairness liability, not a catch. The
-shipped rule scorer fires on neither slice (0 percent), which is why it stays the default over the
-learned model. See [Limitations & authorship](limitations.md) and the
+A rule that fires on competent plain or non-native writing is a fairness liability, not a catch.
+Document-level false positives are 0 percent on both slices, which is why the rule scorer stays the
+default over the learned model. Two `performative_candor` rules do fire at the rule level:
+`CANDOR_TO_BE_HONEST` on 1 of 15 `non_native` rows and `CANDOR_ADVERB_PARENTHETICAL` on 1 of 17
+`simple_english` rows. Neither pushes a document over the threshold, and both are published here
+rather than tuned away. See [Limitations & authorship](limitations.md) and the
 [Benchmark & results](benchmark.md).
 
 ## Triage a long document

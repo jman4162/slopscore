@@ -15,6 +15,7 @@ PROFILES: dict[str, dict[Dimension, float]] = {
         Dimension.genericity: 1.2,
         Dimension.significance_inflation: 1.2,
         Dimension.insight_signaling: 1.15,
+        Dimension.performative_candor: 1.1,
         Dimension.unsupported_claims: 1.1,
         Dimension.cadence_sameness: 0.8,
     },
@@ -23,6 +24,7 @@ PROFILES: dict[str, dict[Dimension, float]] = {
         Dimension.genericity: 1.1,
         Dimension.parallelism: 1.1,
         Dimension.insight_signaling: 1.2,  # essayist register is where this slop concentrates
+        Dimension.performative_candor: 1.1,  # confessional-essay register
     },
     "academic": {
         Dimension.lexical_markers: 0.8,
@@ -38,6 +40,9 @@ PROFILES: dict[str, dict[Dimension, float]] = {
         Dimension.copula_avoidance: 0.6,  # marketing naturally uses "boasts/features"
         Dimension.formatting_tells: 0.7,
         Dimension.insight_signaling: 0.9,
+        # Manufactured sincerity is marketing's native failure mode ("real talk", "let's be real",
+        # "cards on the table"), so this is boosted where insight_signaling is softened.
+        Dimension.performative_candor: 1.2,
     },
     "technical": {
         Dimension.lexical_markers: 0.7,
@@ -45,10 +50,15 @@ PROFILES: dict[str, dict[Dimension, float]] = {
         Dimension.copula_avoidance: 0.5,  # "serves as / functions as" is precise here
         Dimension.parallelism: 0.8,
         Dimension.insight_signaling: 0.6,  # "load-bearing / pressure-test" are apt in eng writing
+        Dimension.performative_candor: 0.8,  # RFCs and code comments hedge colloquially
     },
     "social": {
         Dimension.formatting_tells: 0.6,
         Dimension.insight_signaling: 1.15,
+        # Inverted relative to insight_signaling above: conversational "honestly" and "to be fair"
+        # are native human speech here, not slop. This split is the reason performative_candor is
+        # its own dimension rather than extra rules in the insight_signaling pack.
+        Dimension.performative_candor: 0.6,
     },
 }
 

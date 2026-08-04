@@ -108,7 +108,7 @@ def scan(
     broad: bool = typer.Option(
         False,
         "--broad",
-        help="Enable the broad insight_signaling tier (rationalist/essayist jargon; higher FPR).",
+        help="Enable the broad rule tier on every pack that has one (higher FPR; off by default).",
     ),
     by_paragraph: bool = typer.Option(
         False, "--by-paragraph", help="Also score each paragraph (surfaces a sloppy section)."
@@ -467,6 +467,11 @@ _DIMENSION_GUIDE: dict[str, str] = {
         "Pseudo-profundity: phrases that announce insight rather than contain it "
         "('load-bearing', 'doing the real work', 'the crux of the issue'). --broad adds "
         "rationalist/essayist jargon (steelman, first principles) at higher FPR."
+    ),
+    "performative_candor": (
+        "Manufactured sincerity: a point framed as a difficult confession ('to be honest', "
+        "'truth be told', 'honest limits'). --broad adds bare sincerity adverbs (genuinely, "
+        "honestly) at higher FPR."
     ),
     "superficial_analysis": "Trailing '-ing' clauses that gesture at analysis without substance.",
     "weasel_attribution": "Vague sourcing ('experts say', 'studies show') with no specifics.",

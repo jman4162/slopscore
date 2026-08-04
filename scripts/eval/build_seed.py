@@ -16,6 +16,14 @@ from pathlib import Path
 
 # --- label 0: clean human-good (specific, plain, varied topics) ------------------------------
 HUMAN_GOOD = [
+    # Legitimate candor inside concrete prose: these must stay clean once performative_candor
+    # ships, or the dimension is over-flagging ordinary conversational writing.
+    "Honestly, I had never rebuilt a carburetor before. It took four hours, two trips to the "
+    "parts store, and a 10 mm socket I did not own.",
+    "To be fair, the referee was screened on the play. The goal stood and Leeds won 2-1 in "
+    "front of 34,000 people at Elland Road.",
+    "She gave an honest account of the strike to the committee in March 1984 and named three "
+    "managers who had signed the order.",
     "The factory opened in 1962 on a 14-acre site east of Cleveland and employed 1,200 people.",
     "Strauss fought the Navy for two years over the bridge design before work began in 1933.",
     "We drove to Bend in October; the pass iced over near the summit and the wipers froze twice.",
@@ -36,6 +44,13 @@ HUMAN_GOOD = [
 
 # --- label 1: raw-LLM-style slop (puffery, -ing, parallelism, AI vocab) ----------------------
 RAW_LLM = [
+    # Performative candor: sincerity as filler, with nothing behind the confession.
+    "I'll be honest with you: the honest answer is that this is harder than it looks. Truth be "
+    "told, I don't say this lightly, but the honest limits here are real.",
+    "Frankly, the honest framing is that we do not know yet. Candidly, I want to be transparent "
+    "about that, and I'm not going to pretend the assessment is settled.",
+    "Real talk: let me be blunt about the unvarnished version. Full disclosure: I have to "
+    "admit, the honest reckoning here is overdue and genuinely difficult.",
     "In today's fast-paced world, this platform stands as a testament to innovation, reflecting "
     "its broader significance across the evolving landscape.",
     "It is not just a tool, it is a revolution, fostering a vibrant, dynamic, and transformative "
@@ -68,6 +83,13 @@ RAW_LLM = [
 
 # --- label 1: edited / humanized slop (slop patterns + some concrete details) ----------------
 EDITED_LLM = [
+    # Candor filler grafted onto LLM boilerplate that has been lightly edited to add facts —
+    # the shape "edited_llm" actually names. A purely concrete first-person passage carrying the
+    # same markers is NOT included: that reads as human memoir, and labeling it slop would teach
+    # the benchmark to punish specific writing.
+    "Founded in 2019, the platform has become a transformative force in the space. Honestly, "
+    "the honest assessment is that its 40-person team continues to foster a dynamic culture. "
+    "Truth be told, I have to admit, the results were genuinely surprising.",
     "Founded in 2014, the startup stands as a testament to innovation, and its 40-person team "
     "in Austin continues to foster a dynamic and transformative culture.",
     "The 1.2-kilometer promenade, opened in 2019, plays a pivotal role in the city, reflecting a "
@@ -108,6 +130,15 @@ HUMAN_BAD = [
 
 # --- label 0: fairness subgroup — plain / simple English (clean, must NOT be flagged) --------
 SIMPLE_ENGLISH = [
+    # Ordinary sincerity in plain prose, plus "an honest man" as the noun-gating control. Kept
+    # concrete on purpose: a bland 20-word paragraph scores ~45 on genericity and cadence alone,
+    # which would measure those dimensions rather than this one.
+    "My friend asked me about the engine. Honestly, I did not know the answer. I told him to "
+    "call the garage on Mill Road, and they fixed it on Tuesday for 40 pounds.",
+    "To be fair, the number 12 bus is often late. Today I waited twenty minutes in the rain "
+    "outside the library. When it came at 8:15 I sat by the window.",
+    "He is an honest man. He has worked at the shop on Green Street six days a week since "
+    "1998 and gives the right change every time.",
     "The man walks to the shop. He buys bread and milk. He pays with coins and goes home.",
     "My city is near the sea. In summer many people come. They swim and eat fish by the water.",
     "She studies at night. She wants to be a nurse. The school is far, so she takes two buses.",

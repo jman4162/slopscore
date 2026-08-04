@@ -10,7 +10,7 @@ labeling rubric is in
 
 | Set | n | AUROC | PR-AUC | TPR@1%FPR | ECE |
 |---|---|---|---|---|---|
-| benchmark (overt slop, in-sample) | 128 | 0.89 | 0.91 | 0.65 | 0.18 |
+| benchmark (overt slop, in-sample) | 141 | 0.90 | 0.91 | 0.66 | 0.16 |
 | Wikipedia AI-Cleanup (held-out, real wild slop) | 40 | 0.69 | 0.65 | 0.00 | 0.39 |
 
 slopscore separates overt formulaic slop from clean prose well. On real Wikipedia cases it is only
@@ -23,9 +23,9 @@ Per-subgroup false-positive rate on the benchmark:
 
 | Subgroup | n | rules FPR | ml FPR |
 |---|---|---|---|
-| general | 100 | 0.00 | 0.06 |
-| simple_english | 14 | 0.00 | 0.71 |
-| non_native | 14 | 0.00 | 0.33 |
+| general | 107 | 0.00 | 0.05 |
+| simple_english | 17 | 0.00 | 0.59 |
+| non_native | 17 | 0.00 | 0.27 |
 
 The learned model (`--scorer ml`) edges the rule scorer on raw metrics but over-flags plain and
 non-native English. The replace-if-wins gate keeps the transparent rule scorer as the default; the

@@ -96,3 +96,11 @@ rules:
     pattern: "\\bcash(?:es|ing|ed)? (?:this |that |it )?out (?:what|the|this|to)\\b"
     explanation: "'cash out what this means' — philosophy jargon for 'explain'."
     source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_BROAD_LANDS_CLEANLY
+    severity: low
+    # Craft-metaphor evaluation, sibling of INSIGHT_BROAD_ADVERB_PRECISE. Broad rather than core
+    # because a patch, a jump, and an aircraft all land cleanly in the literal sense.
+    pattern: "\\bland(?:s|ed|ing)? cleanly\\b"
+    explanation: "'lands cleanly' — craft-metaphor praise standing in for an actual judgment."
+    source: "AI-tell (2024-2026)"

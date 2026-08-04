@@ -25,6 +25,7 @@ CLI flags (`--profile`, `--strictness`, `--scorer`, `--suggest`, `--broad`) over
 `--config PATH` to point at an explicit file.
 
 `--broad` enables an opt-in tier of higher-false-positive rules (rationalist/essayist jargon in
-`insight_signaling`; bare quantifiers, hedges, and intensifiers in `weasel_attribution`). It is off
+`insight_signaling`; bare quantifiers, hedges, and intensifiers in `weasel_attribution`; bare
+sincerity adverbs such as "genuinely" and "honestly" in `performative_candor`). It is off
 by default because those bare words also appear in ordinary and non-native English; treat it as a
 self-editing highlighter, not an accusation.

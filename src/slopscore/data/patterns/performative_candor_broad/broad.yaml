@@ -1,0 +1,31 @@
+# Performative-candor BROAD tier: bare sincerity adverbs and fairness markers. OFF by default
+# (scored only with `--broad` / `[tool.slopscore] broad = true`) because these are ordinary spoken
+# English and appear throughout ESL prose ("honestly speaking", "to be fair"), so scoring them by
+# default would over-flag exactly the population the tool exists to protect.
+#
+# Two deliberate exclusions keep the tiers from contradicting each other:
+#   - "truly", "really", "remarkably" and "literally" are already matched by
+#     WEASEL_BROAD_INTENSIFIER. Under --broad both packs re-score, so repeating them here would
+#     charge the same token twice across two dimensions.
+#   - the comma form is excluded via (?!,) because the core tier already owns it
+#     (CANDOR_ADVERB_PARENTHETICAL).
+# Sources: user-reported 2024-2026 LLM tells.
+
+rules:
+  - rule_id: CANDOR_BROAD_SINCERITY_ADVERB
+    severity: low
+    pattern: "\\b(?:genuinely|authentically|earnestly)\\b"
+    explanation: "Bare sincerity adverb — a tell at density; usually deletable."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: CANDOR_BROAD_BARE_CANDOR
+    severity: low
+    pattern: "\\b(?:honestly|frankly|candidly|truthfully)\\b(?!,)"
+    explanation: "Bare candor adverb outside a clause opener — sincerity styling."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: CANDOR_BROAD_TO_BE_FAIR
+    severity: low
+    pattern: "\\b(?:to be fair|in all fairness|in fairness)\\b"
+    explanation: "'to be fair' — balance-signaling filler."
+    source: "AI-tell (2024-2026)"

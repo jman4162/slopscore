@@ -10,7 +10,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-SCHEMA_VERSION = "0.8.0"
+SCHEMA_VERSION = "0.9.0"
 
 # Disclaimers every report carries. The middle line encodes the core conservatism principle
 # (corroborated by research: single tells are weak; ESL writers are over-flagged).
@@ -59,6 +59,10 @@ class Dimension(StrEnum):
     # v0.7: insight-signaling / pseudo-profundity ("load-bearing", "doing the real work").
     # Rules-only for now — deliberately excluded from the ML FEATURE_ORDER (no retrain needed).
     insight_signaling = "insight_signaling"
+    # v0.9: performative candor / manufactured sincerity ("to be honest", "honest limits").
+    # Fake vulnerability, as distinct from insight_signaling's fake insight and
+    # weasel_attribution's fake evidence. Also rules-only (excluded from FEATURE_ORDER).
+    performative_candor = "performative_candor"
     superficial_analysis = "superficial_analysis"
     weasel_attribution = "weasel_attribution"
     parallelism = "parallelism"
@@ -114,6 +118,7 @@ class Dimensions(BaseModel):
     prompt_residue: float = Field(default=0.0, ge=0.0, le=1.0)
     significance_inflation: float = Field(default=0.0, ge=0.0, le=1.0)
     insight_signaling: float = Field(default=0.0, ge=0.0, le=1.0)
+    performative_candor: float = Field(default=0.0, ge=0.0, le=1.0)
     superficial_analysis: float = Field(default=0.0, ge=0.0, le=1.0)
     weasel_attribution: float = Field(default=0.0, ge=0.0, le=1.0)
     parallelism: float = Field(default=0.0, ge=0.0, le=1.0)

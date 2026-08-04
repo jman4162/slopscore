@@ -56,10 +56,12 @@ Key invariants when extending:
   organized into category subdirs loaded by `_ruleset.load_rules_from_directory`; `lexicons/markers.yaml`
   carries `era`/`source` tags. The spaCy path lives behind `features/_nlp.py`.
 - Dimensions: lexical_markers, formulaic_structure, significance_inflation, insight_signaling,
-  superficial_analysis, weasel_attribution, parallelism, copula_avoidance, genericity, redundancy,
-  cadence_sameness, formatting_tells (weak), prompt_residue, human_writing_signals (negative).
-  unsupported_claims has no feature yet (contributes 0). `insight_signaling` (v0.7) is rules-only —
-  deliberately excluded from the ML `FEATURE_ORDER`, so it needs no model retrain.
+  performative_candor (weak), superficial_analysis, weasel_attribution, parallelism,
+  copula_avoidance, genericity, redundancy, cadence_sameness, formatting_tells (weak),
+  prompt_residue, human_writing_signals (negative).
+  unsupported_claims has no feature yet (contributes 0). `insight_signaling` (v0.7) and
+  `performative_candor` (v0.9) are rules-only — deliberately excluded from the ML `FEATURE_ORDER`,
+  so they need no model retrain.
 - **Personal baseline:** `scoring/calibrate.py` builds robust per-dimension stats from a corpus;
   `scan --baseline <name>` attaches z-score deviations. Profiles (`scoring/profiles.py`) are hand-set
   (see `PROFILE_NOTES.md`); citations + fairness caveats live in `MODEL_CARD.md`.
@@ -132,6 +134,23 @@ weasel_attribution today). Bureaucratese (utilize/facilitate/"due to the fact th
 in `--suggest`; `ascertain` was added there. Prose-fiction frequency tics (just/that/really) are a
 deliberate non-goal — per-author frequency, not a static list (a future `calibrate.py` baseline
 feature).
+
+Performative candor (v0.9): the third axis after fake insight (`insight_signaling`) and fake
+evidence (`weasel_attribution`) — fake *vulnerability*. `performative_candor` flags a point framed
+as a difficult confession ("I have to be honest", "truth be told", "let me be candid"), a sincerity
+adjective on an abstract noun ("honest framing", "honest limits" for "limitations"), clause-initial
+"Honestly,"/"Frankly," (comma required), the `genuinely interesting` collocation, and manufactured
+reluctance ("I don't say this lightly"). Rules in `data/patterns/performative_candor/`; bare
+sincerity adverbs are `--broad`-only in `performative_candor_broad/`. **It is a separate dimension
+specifically because the genre multipliers invert** — `social` is 0.6 here vs 1.15 for
+insight_signaling, `marketing` 1.2 vs 0.9 — so folding these rules into insight_signaling would
+boost the genre where "honestly" is legitimate human speech. `full_scale` is 4.0 (not the usual
+3.0) because at 3.0 a single low-severity hit in a 60-word doc crosses the corroboration gate.
+Weak-alone, which means concrete first-person prose with heavy candor filler deliberately scores
+low (see the MODEL_CARD limitation). The comma requirement in `CANDOR_ADVERB_PARENTHETICAL` is what
+keeps the ESL calques "Honestly speaking"/"Frankly speaking" quiet — do not relax it. Do not add
+"Sincerely,"/"Truly," to that rule: patterns compile under MULTILINE, so `^` matches every line
+start and they would fire on email sign-offs.
 
 ## Project state
 

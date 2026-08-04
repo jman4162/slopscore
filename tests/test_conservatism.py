@@ -49,6 +49,28 @@ def test_single_weasel_certainty_in_specific_prose_stays_low() -> None:
     assert report.score.label in (Label.low, Label.mild)
 
 
+def test_single_candor_marker_in_specific_prose_stays_low() -> None:
+    # One sincerity marker inside long, concrete prose must not reach "severe". "Honestly," is
+    # ordinary spoken English and carries no weight on its own.
+    text = _SPECIFIC_PARAGRAPH + " Honestly, the closure surprised the town."
+    report = scan_text(text)
+    assert report.score.label in (Label.low, Label.mild)
+
+
+def test_candor_alone_is_damped() -> None:
+    # Candor-dense but otherwise concrete and specific: performative_candor is the only elevated
+    # dimension, so the corroboration gate must damp it rather than convict on candor alone.
+    text = (
+        "I have to be honest about the 1962 plant. Truth be told, it employed 1,200 workers "
+        "and produced roughly 400 transmissions a day. Let me be candid: output rose 12 "
+        "percent between 1971 and 1973. The honest answer is that it closed in 1989, and the "
+        "city bought the 14-acre site in 1994 for 2.3 million dollars."
+    )
+    report = scan_text(text)
+    assert report.dimensions.performative_candor > 0.5
+    assert any("Damped (weak alone" in w for w in report.warnings)
+
+
 def test_non_english_label_withheld() -> None:
     # A long Spanish paragraph should not be labelled severe (tuned for English).
     spanish = (

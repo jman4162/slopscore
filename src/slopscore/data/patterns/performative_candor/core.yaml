@@ -1,0 +1,106 @@
+# Performative candor / manufactured sincerity: phrases whose job is to SOUND sincere rather than
+# to be informative. Distinct from insight_signaling (fake insight) and weasel_attribution (fake
+# evidence): this is fake *vulnerability*. RL-tuned assistants emit it as filler — hedging a
+# critique by framing it as a difficult confession, or lowering user resistance with confessional
+# styling. The tell is the frame and the density, not the sincerity word itself: "honestly" in
+# speech is ordinary English, and ESL calques ("honestly speaking", "frankly speaking") are
+# deliberately NOT matched here.
+#
+# This is the CORE (conservative) tier, on by default. See ../performative_candor_broad/ for the
+# opt-in `--broad` tier of bare sincerity adverbs.
+# Sources: user-reported 2024-2026 LLM tells.
+
+rules:
+  # --- confessional frame: a first-person or imperative commitment to be sincere ---------------
+  - rule_id: CANDOR_CONFESSIONAL_FRAME
+    severity: medium
+    # Gated to an explicit subject or imperative so bare "to be honest" (a common spoken hedge)
+    # falls to CANDOR_TO_BE_HONEST at low severity instead of landing here at medium.
+    pattern: "\\b(?:I(?:'ll| will|'m going to| am going to| have to| need to| want to| must| should) (?:just )?be (?:honest|candid|blunt|frank|direct|real|straight)|if (?:I'?m|we'?re) being (?:honest|candid|blunt|frank|real)|let(?: me|'s| us) be (?:honest|candid|blunt|frank|direct|real)|I'?ll be straight with you|(?:I'?m going to |let me )level with you)\\b"
+    explanation: "'I have to be honest / let me be candid' — a point framed as a difficult confession."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: CANDOR_DISCLOSURE_MARKER
+    severity: medium
+    # "full disclosure" and "real talk" need the punctuation gate: without it they fire on the
+    # regulatory sense ("the full disclosure schedule under Regulation FD") and the noun sense
+    # ("real talk shows dominated daytime television").
+    pattern: "\\b(?:truth be told|full disclosure(?=\\s*[:,])|real talk(?=\\s*[:,.])|cards on the table|I(?:'ll| will|'m not going to| am not going to| won'?t| will not) sugar-?coat|no sugar-?coating|not to put too fine a point on it)"
+    explanation: "'truth be told / full disclosure: / real talk' — staged frankness marker."
+    source: "AI-tell (2024-2026)"
+
+  # --- sincerity adjective + abstract noun -----------------------------------------------------
+  - rule_id: CANDOR_HONEST_ABSTRACT_NOUN
+    severity: medium
+    # The head noun is the gate. "an honest man", "honest work", "an honest mistake" and "an honest
+    # account" are ordinary English and must stay quiet; only the abstract, meta-discursive nouns
+    # mark the tell ("honest limits" standing in for "limitations" is the canonical case).
+    # "conversation" is deliberately absent — "an honest conversation about the budget" is standard
+    # workplace prose with no LLM signature.
+    pattern: "\\b(?:honest|candid|frank|genuine|unvarnished|unflinching|unsentimental|truthful) (?:framing|frame|limits|limitations|reckoning|appraisal|accounting|admission|diagnosis|verdict|caveats?|trade-?offs?|version)\\b"
+    explanation: "'honest framing / honest limits' — sincerity adjective bolted to an abstract noun."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: CANDOR_HONEST_COMMON_NOUN
+    severity: low
+    # Same construction with nouns that DO have ordinary uses ("the honest answer is 42"). Low
+    # severity so a single legitimate use is near-noise, and a determiner is required to keep this
+    # to the definite, meta-discursive reading.
+    pattern: "\\b(?:the|an|a|my|our|your|this|that|some|more|most) (?:most |more |brutally |refreshingly |uncomfortably )?(?:honest|candid|frank|unvarnished) (?:answer|assessment|take|reading|read|truth|summary)\\b"
+    explanation: "'the honest answer / an honest assessment' — sincerity framing of an ordinary point."
+    source: "AI-tell (2024-2026)"
+
+  # --- clause-initial / parenthetical sincerity adverb -----------------------------------------
+  - rule_id: CANDOR_ADVERB_PARENTHETICAL
+    severity: low
+    # Anchored to a clause opener or a comma-flanked parenthetical, the way attribution/certainty
+    # .yaml anchors "Clearly,". The REQUIRED trailing comma is what keeps the ESL calques
+    # ("Honestly speaking, ...", "Frankly speaking, ...") and the manner adverb ("she answered
+    # honestly") quiet — that is this rule's main fairness property.
+    # Do NOT add "Sincerely," or "Truly,": rules compile under MULTILINE, so ^ matches every line
+    # start and those would fire on every email sign-off.
+    pattern: "(?:^|(?<=[.!?]\\s)|(?<=[.!?]\\s\\s)|(?<=,\\s)|(?<=^[-*]\\s))(?:Honestly|Frankly|Candidly|Truthfully),"
+    explanation: "'Honestly, / Frankly,' opener — sincerity styling with no informational content."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: CANDOR_TO_BE_HONEST
+    severity: low
+    # The negative lookbehind stops this from double-firing inside "I have to be honest", which
+    # CANDOR_CONFESSIONAL_FRAME already scores at medium. The `regex` module supports the
+    # variable-width alternation.
+    pattern: "\\b(?<!\\b(?:have|has|had|need|needs|want|wants|going|got|ought|must|will|would|should|can|could)\\s)(?:to be (?:perfectly |completely |totally |brutally )?(?:honest|frank|blunt|candid)|in all (?:honesty|cando(?:u)?r))\\b"
+    explanation: "'to be honest / in all honesty' — sincerity filler."
+    source: "AI-tell (2024-2026)"
+
+  # --- sincerity adverb + evaluative adjective --------------------------------------------------
+  - rule_id: CANDOR_SINCERITY_COLLOCATION
+    severity: low
+    # The collocation is the tell; the bare adverb is not (that lives in the --broad tier).
+    # "really" is excluded as ordinary speech, and participles of personal state ("genuinely
+    # surprised", "genuinely excited") are excluded — only evaluations of a THING are listed.
+    pattern: "\\b(?:genuinely|truly|authentically) (?:interesting|surprising|hard|difficult|useful|helpful|novel|new|great|good|excellent|impressive|remarkable|thoughtful|delightful|wonderful|clever|insightful|valuable|important|significant|exciting|tricky|unusual|rare|strange|odd|lovely|amazing|brilliant|beautiful)\\b"
+    explanation: "'genuinely interesting / truly remarkable' — sincerity adverb propping up a vague adjective."
+    source: "AI-tell (2024-2026)"
+
+  # --- performative vulnerability ----------------------------------------------------------------
+  - rule_id: CANDOR_NOT_LIGHTLY
+    severity: medium
+    pattern: "\\b(?:I (?:don'?t|do not) say this lightly|(?:this|that) is (?:not something I say lightly|hard (?:for me )?to say)|I(?:'?m| am) not going to pretend|I (?:won'?t|will not) pretend|I want to be (?:transparent|upfront|clear|honest) (?:about|with)|it pains me to say)\\b"
+    explanation: "'I don't say this lightly / I'm not going to pretend' — manufactured reluctance."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: CANDOR_ADMISSION
+    severity: low
+    # Gated to the parenthetical comma: "I have to admit, this is clever" is the tic, whereas
+    # "I have to admit the bike was faster" is ordinary complement-taking prose.
+    pattern: "\\bI (?:have to|must|'ll|will|need to) admit,"
+    explanation: "'I have to admit,' — confession framing used as a transition."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: CANDOR_PUSH_BACK
+    severity: low
+    # Assistant-register performative disagreement: announcing the speech act of disagreeing as an
+    # act of courage. Bare "push back" is ordinary ("pushed back the release") and is not matched.
+    pattern: "\\b(?:I(?:'?m| am) (?:going to |gonna )?push(?:ing)? back on (?:that|this|it)|let me push back|I want to push back)\\b"
+    explanation: "'I'm pushing back on that' — announces disagreement as an act of candor."
+    source: "AI-tell (2024-2026)"

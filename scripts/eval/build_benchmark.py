@@ -311,6 +311,29 @@ NEW_ROWS: list[tuple[str, int, str, str]] = [
         "simple_english",
     ),
     # --- non_native / human_good (label 0): clean content, ESL phrasing. The fairness test. ---
+    # The first three carry sincerity markers on purpose. "Honestly speaking" and "Frankly
+    # speaking" are calques common in Indian and East Asian English; the core candor rules must
+    # stay silent on them (CANDOR_ADVERB_PARENTHETICAL requires the comma directly after the
+    # adverb). "To be honest," DOES fire CANDOR_TO_BE_HONEST at low severity — that is the honest
+    # cost of covering the phrase, and it is measured here rather than hidden.
+    (
+        "Honestly speaking, my first winter in Helsinki was very hard. I bought a thick coat in October and still felt cold until April.",
+        0,
+        "human_good",
+        "non_native",
+    ),
+    (
+        "To be honest, I did not understand the form. My colleague helped me to fill it, and we sent it to the office on 12 March.",
+        0,
+        "human_good",
+        "non_native",
+    ),
+    (
+        "Frankly speaking, the training was too fast for me. I asked the trainer to repeat the second part and he agreed.",
+        0,
+        "human_good",
+        "non_native",
+    ),
     (
         "I am working in this company since three years. My job is to test the software. Last month we found 42 bugs and fixed them before the release.",
         0,
