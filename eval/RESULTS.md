@@ -1,4 +1,4 @@
-# Evaluation results (v0.12)
+# Evaluation results (v0.13)
 
 Reproduce with `python scripts/eval/report.py` (writes `eval/results.json`). Two evaluation sets:
 
@@ -18,10 +18,16 @@ Reproduce with `python scripts/eval/report.py` (writes `eval/results.json`). Two
 
 | Set | n | AUROC | PR-AUC | TPR@1%FPR | ECE |
 |---|---|---|---|---|---|
-| benchmark (in-sample, overt slop, 13-40 words) | 141 | 0.873 | 0.886 | 0.557 | 0.274 |
-| longform (committed, 300+ words, eval-only) | 180 | 0.613 | 0.472 | 0.083 | 0.299 |
-| wiki_aicleanup, full articles (held-out) | 180 | 0.802 | 0.824 | 0.144 | 0.467 |
+| benchmark (in-sample, overt slop, 13-40 words) | 141 | 0.873 | 0.890 | 0.571 | 0.236 |
+| longform (committed, 300+ words, eval-only) | 180 | 0.705 | 0.593 | 0.133 | 0.251 |
+| wiki_aicleanup, full articles (held-out) | 180 | 0.746 | 0.770 | 0.111 | 0.415 |
 | wiki_aicleanup, lead sections only (v0.10 slice) | 40 | 0.647 | 0.627 | 0.000 | 0.463 |
+
+v0.12 measured 0.613 / 0.083 on longform and 0.802 / 0.144 on the full-article slice. v0.13's
+structure tells, quote skipping, and the human-signal cap raised the long-form numbers and
+lowered the full-article ones: flagged Wikipedia articles quote sources heavily (quoted tells are
+now skipped by design) and their unflagged neighbours carry many numbers (the cap limits how far
+those pull a clean article down). Both sets are reported; neither was tuned to.
 
 Full articles separate far better than leads (AUROC 0.80 vs 0.65): the flagged article's lead is
 often clean while later sections carry the tells. The mixed long-form set is harder because its
@@ -40,8 +46,8 @@ not see went from 43.7 to under 5 (`tests/test_golden_scores.py`).
 
 **Read this honestly.** slopscore separates overt formulaic slop from clean prose well (benchmark
 PR-AUC 0.89). On real-world Wikipedia cases it ranks flagged articles above random ones (AUROC
-0.80 on full articles) but catches only one in seven at a strict 1%-false-positive operating point
-(TPR@1%FPR 0.144), and on the mixed long-form set one in twelve. Two reasons: editor flags are subjective and often precautionary, and a flagged
+0.75 on full articles) but catches only one in nine at a strict 1%-false-positive operating point
+(TPR@1%FPR 0.111), and on the mixed long-form set one in eight (0.133). Two reasons: editor flags are subjective and often precautionary, and a flagged
 article's lead paragraph is frequently clean even when later sections are not. The gap between the
 two rows is the real limitation, and it is why the tool's accuracy claims stay modest.
 
@@ -49,8 +55,8 @@ two rows is the real limitation, and it is why the tool's accuracy claims stay m
 
 `scripts/eval/thresholds.py` scores 522 pooled human-good documents of 100+ words (FineWeb-Edu
 pre-2022, arXiv abstracts through 2021, Wikipedia 2023) under every profile. Clean prose sits at
-P50 2.4, P90 about 9, P95 about 11, P99 about 15; a `score_threshold` of 25 gives a 1% false-
-positive rate on every profile. The generated table is `docs/thresholds.md`.
+P50 7.4 to 7.6 and P95 at or under 11.7; a `score_threshold` of 25 gives a 1% false-positive
+rate on every profile. The generated table is `docs/thresholds.md`.
 
 ## Fairness: why the rule scorer remains the default
 

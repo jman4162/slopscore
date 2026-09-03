@@ -19,6 +19,7 @@ _DIMENSION_LABELS: dict[str, str] = {
     Dimension.cadence_sameness.value: "Cadence sameness",
     Dimension.unsupported_claims.value: "Unsupported claims",
     Dimension.formatting_tells.value: "Formatting tells (weak)",
+    Dimension.structure_tells.value: "Structure tells: chatbot Markdown shape (weak)",
     Dimension.prompt_residue.value: "Prompt residue",
     Dimension.human_writing_signals.value: "Human-writing signals (lowers score)",
 }

@@ -35,7 +35,9 @@ rules:
 
   - rule_id: FORMULAIC_LETS_DELVE
     severity: high
-    pattern: "let(?:'s| us) (?:delve|dive|explore|take a (?:closer )?look) (?:into|in)\\b"
+    # Excludes a concrete object ("let's dive into the data file"): the scaffold is the empty
+    # invitation, not an instruction to open something.
+    pattern: "let(?:'s| us) (?:(?:delve|dive|explore|dig) (?:into|in)|take a (?:closer look|deep dive)(?: (?:at|into))?|unpack|break (?:it|this|that) down)\\b(?!\\s+(?:the|a|an|this|that|these|those|its|our|your|their|my)\\s+(?:\\w+\\s+){0,2}?(?:code|data|file|files|repo|repository|dataset|numbers|logs|results|spreadsheet|table|query|function|module|script)\\b)"
     explanation: "'Let's delve into' invitation scaffold."
 
   - rule_id: FORMULAIC_FROM_TO_OFFERS
@@ -50,8 +52,8 @@ rules:
 
   - rule_id: FORMULAIC_IN_CONCLUSION
     severity: low
-    pattern: "\\bin conclusion\\b"
-    explanation: "'In conclusion' formulaic closer."
+    pattern: "\\bin conclusion\\b|(?:^|(?<=[.!?]\\s))(?:to sum up|all in all|in summary|in a nutshell|at the end of the day),"
+    explanation: "'In conclusion' / 'to sum up' formulaic closer."
 
   - rule_id: FORMULAIC_GAME_CHANGER
     severity: medium
@@ -82,7 +84,7 @@ rules:
 
   - rule_id: FORMULAIC_RHETORICAL_HERES
     severity: low
-    pattern: "\\bhere(?:'s| is) (?:the thing|why|what|how|the kicker)\\b[:,]"
+    pattern: "\\bhere(?:'s| is) (?:the thing|the kicker|the catch|the twist)\\b[:,.]|\\bhere(?:'s| is) (?:why|what|how)\\b[:,]"
     explanation: "'Here's the thing:' rhetorical set-up scaffold."
 
   - rule_id: FORMULAIC_RHETORICAL_SOUND_FAMILIAR
@@ -94,3 +96,40 @@ rules:
     severity: low
     pattern: "\\bwhat if (?:I|we) told you\\b"
     explanation: "'What if I told you' rhetorical hook."
+
+  # v0.13 coverage: the connective filler the Wikipedia guide and the slop catalog list that had
+  # no rule ("it's worth noting", "that said", "simply put", "make no mistake").
+  - rule_id: FORMULAIC_WORTH_NOTING
+    severity: low
+    pattern: "\\b(?:it(?:'s| is) (?:also )?worth (?:noting|mentioning|pointing out)|it(?:'s| is) (?:important|worth) to (?:note|mention|remember)|it should be noted)\\b"
+    explanation: "'It's worth noting' announces a point instead of making it."
+
+  - rule_id: FORMULAIC_THAT_SAID
+    severity: low
+    pattern: "(?:^|(?<=[.!?]\\s))(?:that (?:being )?said|with that (?:said|in mind)|having said that),"
+    explanation: "'That said,' reflexive pivot opener."
+
+  - rule_id: FORMULAIC_SIMPLY_PUT
+    severity: low
+    pattern: "(?:^|(?<=[.!?]\\s))(?:in essence|simply put|put simply|in short|in other words|to put it (?:simply|another way)),"
+    explanation: "'Simply put,' restatement opener."
+
+  - rule_id: FORMULAIC_MAKE_NO_MISTAKE
+    severity: medium
+    pattern: "\\b(?:make no mistake|let me be clear|let(?:'s| us) be (?:clear|real|honest)|the reality is|the bottom line is)\\b"
+    explanation: "'Make no mistake' / 'the reality is' emphasis scaffold with no content."
+
+  - rule_id: FORMULAIC_A_WORLD_WHERE
+    severity: medium
+    pattern: "\\b(?:imagine|picture|in) a world (?:where|in which)\\b"
+    explanation: "'Imagine a world where' hypothetical hook."
+
+  - rule_id: FORMULAIC_EMBARK_JOURNEY
+    severity: medium
+    pattern: "\\bembark(?:s|ed|ing)? on (?:a|an|this|your|the|their) (?:\\w+ )?(?:journey|adventure|quest|path)\\b"
+    explanation: "'Embark on a journey' uplift metaphor."
+
+  - rule_id: FORMULAIC_DESPITE_CHALLENGES
+    severity: medium
+    pattern: "\\b(?:despite (?:these|its|their|the|such) (?:\\w+ )?challenges|challenges and (?:future )?(?:prospects|outlook|opportunities)|looking ahead,|the (?:road|path|way) ahead)\\b"
+    explanation: "'Despite these challenges' outline-style conclusion (WP:AICHALLENGES)."

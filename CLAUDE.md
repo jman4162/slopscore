@@ -74,6 +74,7 @@ Key invariants when extending:
 - Dimensions: lexical_markers, formulaic_structure, significance_inflation, insight_signaling,
   performative_candor (weak), superficial_analysis, weasel_attribution, parallelism,
   copula_avoidance, genericity, redundancy, cadence_sameness, formatting_tells (weak),
+  structure_tells (weak, v0.13: Markdown block shape from `Document.blocks`),
   prompt_residue, human_writing_signals (negative). `genericity`, `cadence_sameness`, `redundancy`,
   and `human_writing_signals` are STATISTICAL (no spans, low weight, never corroborate).
   `insight_signaling` (v0.7) and `performative_candor` (v0.9) are rules-only — deliberately

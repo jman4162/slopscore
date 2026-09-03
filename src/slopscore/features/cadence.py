@@ -23,13 +23,19 @@ _VARIED_CV = 0.6
 _RUN_TOLERANCE = 0.2
 _RUN_MIN = 3
 RULE_UNIFORM_RUN = "CADENCE_UNIFORM_RUN"
+_NOT_PROSE = frozenset({"heading", "list_item"})
 
 
 class Cadence:
     dimension = Dimension.cadence_sameness
 
     def extract(self, doc: Document, profile: str) -> FeatureResult:
-        sentences = [s for s in doc.sentences if s.text.split()]
+        # Headings and list items are not prose cadence: a bullet list is uniform by design.
+        sentences = [
+            s
+            for s in doc.sentences
+            if s.text.split() and not doc.in_block_kind(s.start, _NOT_PROSE)
+        ]
         lengths = [len(s.text.split()) for s in sentences]
         if len(lengths) < 3:
             return FeatureResult(dimension=self.dimension, score=0.0, spans=[])

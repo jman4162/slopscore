@@ -11,8 +11,8 @@ labeling rubric is in
 | Set | n | AUROC | PR-AUC | TPR@1%FPR | ECE |
 |---|---|---|---|---|---|
 | benchmark (overt slop, in-sample, 13-40 words) | 141 | 0.87 | 0.89 | 0.56 | 0.27 |
-| long-form (committed, 300+ words) | 180 | 0.61 | 0.47 | 0.08 | 0.30 |
-| Wikipedia AI-Cleanup, full articles (held-out) | 180 | 0.80 | 0.82 | 0.14 | 0.47 |
+| long-form (committed, 300+ words) | 180 | 0.71 | 0.59 | 0.13 | 0.25 |
+| Wikipedia AI-Cleanup, full articles (held-out) | 180 | 0.75 | 0.77 | 0.11 | 0.42 |
 
 Every benchmark row is 13 to 40 words, under the 100-word abstention floor, so its numbers
 describe short-fragment discrimination only. The long-form set (v0.12) is the first evaluation on

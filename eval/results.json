@@ -10,24 +10,24 @@
       "metrics": {
         "n": 141,
         "n_positive": 70,
-        "auroc": 0.8731,
-        "pr_auc": 0.886,
-        "tpr_at_1fpr": 0.5571,
-        "tpr_at_5fpr": 0.5714,
-        "ece": 0.2744,
-        "brier": 0.2544
+        "auroc": 0.8732,
+        "pr_auc": 0.8901,
+        "tpr_at_1fpr": 0.5714,
+        "tpr_at_5fpr": 0.5857,
+        "ece": 0.2365,
+        "brier": 0.2358
       },
       "selective": {
         "coverage": 0.0,
         "accuracy_covered": 0.0,
-        "accuracy_all": 0.6737588652482269
+        "accuracy_all": 0.6808510638297872
       },
       "fairness": {
         "general": {
           "group": "general",
           "n": 107,
           "fpr": 0.0,
-          "fnr": 0.6470588235294118,
+          "fnr": 0.6323529411764706,
           "abstention_rate": 1.0
         },
         "non_native": {
@@ -101,12 +101,12 @@
       "metrics": {
         "n": 180,
         "n_positive": 60,
-        "auroc": 0.6125,
-        "pr_auc": 0.4719,
-        "tpr_at_1fpr": 0.0833,
-        "tpr_at_5fpr": 0.1167,
-        "ece": 0.2992,
-        "brier": 0.3046
+        "auroc": 0.7048,
+        "pr_auc": 0.5933,
+        "tpr_at_1fpr": 0.1333,
+        "tpr_at_5fpr": 0.2333,
+        "ece": 0.2509,
+        "brier": 0.2778
       },
       "selective": {
         "coverage": 1.0,
@@ -143,12 +143,12 @@
       "metrics": {
         "n": 180,
         "n_positive": 60,
-        "auroc": 0.7087,
-        "pr_auc": 0.5313,
+        "auroc": 0.7077,
+        "pr_auc": 0.5309,
         "tpr_at_1fpr": 0.0667,
         "tpr_at_5fpr": 0.15,
-        "ece": 0.2139,
-        "brier": 0.2506
+        "ece": 0.2132,
+        "brier": 0.2505
       },
       "selective": {
         "coverage": 1.0,
@@ -179,7 +179,7 @@
         }
       }
     },
-    "promote_ml": true
+    "promote_ml": false
   },
   {
     "name": "wiki_aicleanup (held-out, eval-only)",
@@ -192,12 +192,12 @@
       "metrics": {
         "n": 180,
         "n_positive": 90,
-        "auroc": 0.8017,
-        "pr_auc": 0.8235,
-        "tpr_at_1fpr": 0.1444,
-        "tpr_at_5fpr": 0.3778,
-        "ece": 0.4671,
-        "brier": 0.4539
+        "auroc": 0.7461,
+        "pr_auc": 0.7697,
+        "tpr_at_1fpr": 0.1111,
+        "tpr_at_5fpr": 0.3222,
+        "ece": 0.4151,
+        "brier": 0.4138
       },
       "selective": {
         "coverage": 0.9,
@@ -220,12 +220,12 @@
       "metrics": {
         "n": 180,
         "n_positive": 90,
-        "auroc": 0.8451,
-        "pr_auc": 0.8654,
+        "auroc": 0.8454,
+        "pr_auc": 0.8658,
         "tpr_at_1fpr": 0.2556,
         "tpr_at_5fpr": 0.4667,
-        "ece": 0.3783,
-        "brier": 0.3583
+        "ece": 0.3782,
+        "brier": 0.3581
       },
       "selective": {
         "coverage": 0.9,

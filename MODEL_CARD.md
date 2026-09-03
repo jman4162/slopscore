@@ -106,19 +106,21 @@ LightGBM**: it needs trees at scan time (breaking the pure-numpy path), and opti
 authorship labels would turn slopscore into an authorship detector, the one thing it refuses to be. The **shipped model stays the seed-trained, slop-labeled LR**, and
 the **rule scorer stays the default**. The shipped model is never trained on MAGE.
 
-## v0.10 to v0.12: score correctness and long-form evaluation
+## v0.10 to v0.13: score correctness, long-form evaluation, and structure tells
 
 An adversarial review (September 2026) found that silenced rules kept their points, the
 corroboration gate was non-monotone, strictness was inverted on clean text, and the genericity
 dimension read abstract human prose as slop. v0.10 fixed those (`CHANGELOG.md`), v0.11 added a
 per-dimension `breakdown` and summary evidence for the statistical dimensions, and v0.12 added
-the first long-form evaluation and data-derived thresholds. Current numbers (`eval/RESULTS.md`):
+the first long-form evaluation and data-derived thresholds; v0.13 added the `structure_tells`
+dimension (chatbot Markdown shape), quote-aware sincerity and sourcing rules, and a cap on the
+human-signal counterweight. Current numbers (`eval/RESULTS.md`):
 
 | set | n | AUROC | PR-AUC | TPR@1%FPR |
 |---|---:|---:|---:|---:|
-| benchmark (13-40 words, in-sample) | 141 | 0.87 | 0.89 | 0.56 |
-| long-form (300+ words, committed, eval-only) | 180 | 0.61 | 0.47 | 0.08 |
-| Wikipedia AI-Cleanup, full articles (held-out) | 180 | 0.80 | 0.82 | 0.14 |
+| benchmark (13-40 words, in-sample) | 141 | 0.87 | 0.89 | 0.57 |
+| long-form (300+ words, committed, eval-only) | 180 | 0.71 | 0.59 | 0.13 |
+| Wikipedia AI-Cleanup, full articles (held-out) | 180 | 0.75 | 0.77 | 0.11 |
 
 Thresholds (`docs/thresholds.md`): on 522 human-good long-form documents, clean prose sits at
 P50 2.4 and P95 about 11 under every profile; `score_threshold = 25` gives a 1% false-positive

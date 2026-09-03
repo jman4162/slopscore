@@ -10,6 +10,7 @@ from slopscore.features import (  # noqa: F401  (imported for registration side 
     prompt_residue,
     redundancy,
     specificity,
+    structure,
     syntactic_tells,
 )
 from slopscore.features.base import Feature, registry

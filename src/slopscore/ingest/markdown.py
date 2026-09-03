@@ -25,6 +25,7 @@ from marko.ext.gfm import elements as gfm
 
 from slopscore.ingest import RawSource
 from slopscore.models import SourceType
+from slopscore.spans import BlockMeta
 
 _SKIP_BLOCKS: tuple[type[Element], ...] = (
     block.FencedCode,
@@ -55,41 +56,146 @@ def _inline_text(el: Element | str) -> str:
     return "".join(_inline_text(c) for c in children)
 
 
-def _walk(el: Element, out: list[str], pending: list[str]) -> None:
+_EMOJI_LEAD = re.compile(r"^\s*(?:\p{Extended_Pictographic}|\p{Emoji_Presentation})")
+_SMALL_WORDS = frozenset(
+    "a an and as at but by for in nor of on or per so the to up via vs".split()
+)
+
+
+def _bold_chars(el: Element | str) -> int:
+    if isinstance(el, str):
+        return 0
+    if isinstance(el, inline.StrongEmphasis):
+        return len(_inline_text(el))
+    children = getattr(el, "children", "")
+    if isinstance(children, str):
+        return 0
+    return sum(_bold_chars(c) for c in children)
+
+
+def _bold_lead(el: Element) -> bool:
+    """``**Label:** text`` or ``**Label**: text``: the first inline child is strong emphasis that
+    ends with a colon, or is followed by one."""
+    children = getattr(el, "children", None)
+    if not isinstance(children, list) or not children:
+        return False
+    first = children[0]
+    if not isinstance(first, inline.StrongEmphasis):
+        return False
+    label = _inline_text(first).strip()
+    if label.endswith(":"):
+        return True
+    nxt = children[1] if len(children) > 1 else None
+    tail = _inline_text(nxt) if nxt is not None else ""
+    return tail.lstrip().startswith(":")
+
+
+def _title_case(text: str) -> bool:
+    words = re.findall(r"[A-Za-z][A-Za-z'-]*", text)
+    if len(words) < 4:
+        return False
+    content = [w for w in words[1:] if w.lower() not in _SMALL_WORDS]
+    return bool(content) and all(w[0].isupper() for w in content)
+
+
+class _Collector:
+    def __init__(self) -> None:
+        self.out: list[str] = []
+        self.blocks: list[BlockMeta] = []
+        self.pending: list[str] = []
+        self.break_pending = False
+        self.offset = 0
+
+    def add(
+        self,
+        text: str,
+        *,
+        kind: str,
+        level: int = 0,
+        bold_lead: bool = False,
+        emoji_lead: bool = False,
+        title_case: bool = False,
+        bold_chars: int = 0,
+    ) -> None:
+        if self.pending:
+            text = "\n".join(self.pending) + "\n" + text
+            self.pending.clear()
+        if self.out:
+            self.offset += 2  # the "\n\n" joiner
+        start = self.offset
+        self.out.append(text)
+        self.offset += len(text)
+        self.blocks.append(
+            BlockMeta(
+                start=start,
+                end=self.offset,
+                kind=kind,
+                level=level,
+                bold_lead=bold_lead,
+                emoji_lead=emoji_lead,
+                title_case=title_case,
+                bold_chars=bold_chars,
+                break_before=self.break_pending,
+            )
+        )
+        self.break_pending = False
+
+
+def _walk(el: Element, col: _Collector, in_list: bool = False) -> None:
     children = getattr(el, "children", None)
     if not isinstance(children, list):
         return
     for child in children:
         if isinstance(child, block.HTMLBlock):
             # Keep slopscore control comments (stash to glue above the next block); drop other HTML.
-            pending.extend(_SLOP_COMMENT.findall(getattr(child, "body", "") or ""))
+            col.pending.extend(_SLOP_COMMENT.findall(getattr(child, "body", "") or ""))
+            continue
+        if isinstance(child, block.ThematicBreak):
+            col.break_pending = True
             continue
         if isinstance(child, _SKIP_BLOCKS):
             continue
         if isinstance(child, (block.Heading, block.Paragraph)):
             text = _inline_text(child).strip()
-            if text:
-                if pending:
-                    text = "\n".join(pending) + "\n" + text
-                    pending.clear()
-                out.append(text)
+            if not text:
+                continue
+            emoji = bool(_EMOJI_LEAD.match(text))
+            bold = _bold_chars(child)
+            if isinstance(child, block.Heading):
+                col.add(
+                    text,
+                    kind="heading",
+                    level=int(getattr(child, "level", 1) or 1),
+                    title_case=_title_case(text),
+                    emoji_lead=emoji,
+                    bold_chars=bold,
+                )
+            else:
+                col.add(
+                    text,
+                    kind="list_item" if in_list else "paragraph",
+                    bold_lead=_bold_lead(child),
+                    emoji_lead=emoji,
+                    bold_chars=bold,
+                )
         else:
-            _walk(child, out, pending)
+            _walk(child, col, in_list or isinstance(child, block.ListItem))
+
+
+def markdown_to_prose_with_blocks(md_text: str) -> tuple[str, list[BlockMeta]]:
+    document = _PARSER.parse(md_text)
+    col = _Collector()
+    _walk(document, col)
+    if col.pending:  # control comments with no following block (e.g. trailing disable-file)
+        col.add("\n".join(col.pending), kind="paragraph")
+        col.pending.clear()
+    return "\n\n".join(col.out), col.blocks
 
 
 def markdown_to_prose(md_text: str) -> str:
-    document = _PARSER.parse(md_text)
-    blocks: list[str] = []
-    pending: list[str] = []
-    _walk(document, blocks, pending)
-    if pending:  # control comments with no following block (e.g. trailing disable-file)
-        blocks.append("\n".join(pending))
-    return "\n\n".join(blocks)
+    return markdown_to_prose_with_blocks(md_text)[0]
 
 
 def ingest_markdown(md_text: str, source: str = "<string>") -> RawSource:
-    return RawSource(
-        text=markdown_to_prose(md_text),
-        source_type=SourceType.markdown,
-        source=source,
-    )
+    prose, blocks = markdown_to_prose_with_blocks(md_text)
+    return RawSource(text=prose, source_type=SourceType.markdown, source=source, blocks=blocks)

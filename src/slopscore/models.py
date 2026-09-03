@@ -10,7 +10,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-SCHEMA_VERSION = "0.11.0"
+SCHEMA_VERSION = "0.13.0"
 
 # Disclaimers every report carries. The middle line encodes the core conservatism principle
 # (corroborated by research: single tells are weak; ESL writers are over-flagged).
@@ -68,6 +68,9 @@ class Dimension(StrEnum):
     parallelism = "parallelism"
     copula_avoidance = "copula_avoidance"
     formatting_tells = "formatting_tells"
+    # v0.13: Markdown scaffolding shape (emoji headings, bold inline-header lists, level jumps).
+    # Rules-only and weak-alone; excluded from the ML FEATURE_ORDER.
+    structure_tells = "structure_tells"
     # Negative signal: high score => more human-writing markers => LOWERS SlopScore.
     human_writing_signals = "human_writing_signals"
 
@@ -138,6 +141,7 @@ class Dimensions(BaseModel):
     parallelism: float = Field(default=0.0, ge=0.0, le=1.0)
     copula_avoidance: float = Field(default=0.0, ge=0.0, le=1.0)
     formatting_tells: float = Field(default=0.0, ge=0.0, le=1.0)
+    structure_tells: float = Field(default=0.0, ge=0.0, le=1.0)
     human_writing_signals: float = Field(default=0.0, ge=0.0, le=1.0)
     optional_ai_detector: float | None = None
 

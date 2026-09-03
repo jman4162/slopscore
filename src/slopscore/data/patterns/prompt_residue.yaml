@@ -44,6 +44,27 @@ rules:
     pattern: "```(?:markdown|json|text|html)?"
     explanation: "Stray Markdown code-fence artifact."
 
+  # v0.13 (WP:AISIGNS "communication intended for the user" and vendor markup residue).
+  - rule_id: RESIDUE_SYCOPHANTIC_OPENER
+    severity: high
+    pattern: "^\\s*(?:(?:great|excellent|good|fantastic|wonderful|interesting|what a (?:great|thoughtful|good)) question[!.]|(?:thank you|thanks) for (?:asking|sharing|the question|reaching out)[!.,])"
+    explanation: "Chatbot reply opener addressed to the prompter."
+
+  - rule_id: RESIDUE_OFFER_MORE
+    severity: medium
+    pattern: "\\b(?:would you like me to|is there anything else|(?:do )?let me know if you(?:'d| would) like|here(?:'s| is) a (?:more )?detailed breakdown|hope (?:that|this) helps|feel free to (?:ask|reach out))\\b"
+    explanation: "Chatbot offer of further help left in the text."
+
+  - rule_id: RESIDUE_LIMITED_INFORMATION
+    severity: medium
+    pattern: "\\b(?:while specific details are (?:limited|scarce|not (?:widely )?available)|based on (?:the )?available information|(?:is|are) not widely documented|as of my last update|as of (?:my|the) (?:latest|last) (?:training|knowledge)|I (?:don't|do not) have (?:access to )?real[- ]time)\\b"
+    explanation: "Knowledge-gap disclaimer typical of a chatbot reply."
+
+  - rule_id: RESIDUE_VENDOR_MARKUP
+    severity: high
+    pattern: "(?:contentReference|oaicite|oai_citation|turn\\d+search\\d+|turn\\d+file\\d+|attributableIndex|\\[cite: ?\\d|\\[span_\\d+\\]\\(start_span\\)|grok_card|grok_render_citation|ppl-ai-file-upload|attached_file|:::writing|utm_source=chatgpt)"
+    explanation: "Assistant citation/markup artifact (ChatGPT, Gemini, Grok, Perplexity)."
+
   - rule_id: RESIDUE_KNOWLEDGE_CUTOFF
     severity: high
     pattern: "\\b(?:my )?(?:knowledge|training) (?:cut[- ]?off|data) (?:is|extends|goes up to)\\b"

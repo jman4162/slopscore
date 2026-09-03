@@ -559,7 +559,11 @@ _DIMENSION_GUIDE: dict[str, str] = {
     "weasel_attribution": "Vague sourcing ('experts say', 'studies show') with no specifics.",
     "parallelism": "Rule-of-three and negative-parallelism padding. Weak alone.",
     "copula_avoidance": "Decline of plain 'is/are' in favor of fancier verbs. Weak alone.",
-    "formatting_tells": "Em dash and curly-quote tics, list-heavy formatting. Weak alone.",
+    "formatting_tells": "Em dash and curly-quote tics. Weak alone.",
+    "structure_tells": (
+        "Chatbot Markdown shape: emoji headings, '**Label:** text' bullet runs, heading-level "
+        "jumps, rules between every section, heavy bold. Weak alone; softened for technical."
+    ),
     "human_writing_signals": "Specific, plain, concrete writing. NEGATIVE: this LOWERS the score.",
 }
 
@@ -584,6 +588,9 @@ def fairness_cmd(
     threshold: float = typer.Option(
         0.2, "--threshold", help="Flag rules whose false-positive rate on a slice exceeds this."
     ),
+    broad: bool = typer.Option(
+        False, "--broad", help="Audit the opt-in broad tier too (it is what --broad scans with)."
+    ),
 ) -> None:
     """Audit per-rule false positives on plain and non-native English.
 
@@ -602,8 +609,10 @@ def fairness_cmd(
             "(text,label,subgroup), or run from a source checkout."
         )
         raise typer.Exit(code=2)
+    from slopscore.config import Settings
+
     rows = load_jsonl(path)
-    engine = SlopScorer(profile="blog")
+    engine = SlopScorer(settings=Settings(profile="blog", broad_rules=broad))
     slices = ["simple_english", "non_native"]
 
     for slice_name in slices:
@@ -614,7 +623,7 @@ def fairness_cmd(
         flagged_docs = 0
         for r in clean:
             report = engine.scan_text(r.text)
-            fired = {e.rule_id for e in report.evidence if not e.rule_id.startswith("SUGGEST_")}
+            fired = {e.rule_id for e in report.findings}  # rule hits only, no summaries
             fires.update(fired)
             if report.score.slop_score >= 50:
                 flagged_docs += 1

@@ -35,6 +35,9 @@ DEFAULT_WEIGHTS: dict[Dimension, float] = {
     Dimension.parallelism: 1.6,
     Dimension.copula_avoidance: 1.4,
     Dimension.formatting_tells: 0.8,
+    # Structure tells (v0.13): the chatbot listicle shape. Weak-alone: READMEs and docs use
+    # headings, bullets, and bold labels legitimately.
+    Dimension.structure_tells: 1.0,
     # Performative candor (v0.9): sits below weasel_attribution because sincerity markers are core
     # spoken English in a way that "studies show" is not. Weak-alone, so a chatty-but-concrete
     # human post is damped rather than convicted on candor alone.
@@ -50,6 +53,7 @@ WEAK_DIMENSIONS: frozenset[Dimension] = frozenset(
         Dimension.parallelism,
         Dimension.copula_avoidance,
         Dimension.formatting_tells,
+        Dimension.structure_tells,
         Dimension.performative_candor,
     }
 )
@@ -81,6 +85,11 @@ RAMP_HI = 0.5
 
 # A dimension counts as "elevated" above this score (reporting only; the gate uses the ramp).
 ELEVATED = 0.5
+
+# The negative human-signal logit is clipped to this fraction of the positive evidence sum, so
+# concrete filler appended to intact slop cannot erase the slop (v0.13). On clean text the
+# positive sum is near zero and the counterweight is moot: the floor is the bias alone.
+HUMAN_CAP = 0.5
 
 
 def weak_gate(strongest_corroborator: float) -> float:

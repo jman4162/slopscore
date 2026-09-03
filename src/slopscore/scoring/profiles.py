@@ -27,6 +27,7 @@ PROFILES: dict[str, dict[Dimension, float]] = {
         Dimension.performative_candor: 1.1,  # confessional-essay register
     },
     "academic": {
+        Dimension.structure_tells: 0.8,
         Dimension.lexical_markers: 0.8,
         Dimension.formulaic_structure: 0.9,
         Dimension.copula_avoidance: 0.7,  # "represents/constitutes" is normal in academia
@@ -34,6 +35,7 @@ PROFILES: dict[str, dict[Dimension, float]] = {
         Dimension.insight_signaling: 0.6,  # "first principles / the crux" are legitimate here
     },
     "marketing": {
+        Dimension.structure_tells: 1.1,  # the emoji-bullet listicle is marketing's slop shape
         Dimension.lexical_markers: 0.7,
         Dimension.genericity: 0.8,
         Dimension.significance_inflation: 0.8,
@@ -45,6 +47,7 @@ PROFILES: dict[str, dict[Dimension, float]] = {
         Dimension.performative_candor: 1.2,
     },
     "technical": {
+        Dimension.structure_tells: 0.7,  # headings, bullets, and bold labels are documentation
         Dimension.lexical_markers: 0.7,
         Dimension.cadence_sameness: 0.7,
         Dimension.copula_avoidance: 0.5,  # "serves as / functions as" is precise here
@@ -54,6 +57,7 @@ PROFILES: dict[str, dict[Dimension, float]] = {
     },
     "social": {
         Dimension.formatting_tells: 0.6,
+        Dimension.structure_tells: 0.8,
         Dimension.insight_signaling: 1.15,
         # Inverted relative to insight_signaling above: conversational "honestly" and "to be fair"
         # are native human speech here, not slop. This split is the reason performative_candor is

@@ -7,10 +7,11 @@ prose, with code blocks and tables removed).
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from slopscore.models import SourceType
+from slopscore.spans import BlockMeta
 
 
 @dataclass
@@ -18,6 +19,9 @@ class RawSource:
     text: str
     source_type: SourceType
     source: str
+    # Block structure recorded by the Markdown ingester (offsets index ``text``). Empty for
+    # sources with no structure to record.
+    blocks: list[BlockMeta] = field(default_factory=list)
 
 
 def from_string(text: str, source: str = "<string>") -> RawSource:

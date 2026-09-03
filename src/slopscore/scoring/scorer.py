@@ -38,6 +38,7 @@ from slopscore.scoring.weights import (
     CORROBORATING_DIMENSIONS,
     DEFAULT_WEIGHTS,
     ELEVATED,
+    HUMAN_CAP,
     STATISTICAL_DIMENSIONS,
     WEAK_DIMENSIONS,
     weak_gate,
@@ -69,21 +70,12 @@ def _score_rules(
     counts = findings or {}
 
     positive = 0.0
-    human = 0.0
+    human_raw = 0.0
     rows: list[DimensionContribution] = []
     for dim, weight in DEFAULT_WEIGHTS.items():
         value = by_dim.get(dim, 0.0)
         if dim is Dimension.human_writing_signals:
-            human = weight * value
-            rows.append(
-                DimensionContribution(
-                    dimension=dim.value,
-                    value=value,
-                    weight=weight,
-                    logit=round(human, 4),
-                    statistical=True,
-                )
-            )
+            human_raw = weight * value
             continue
         dim_gate = gate if dim in WEAK_DIMENSIONS else 1.0
         multiplier = multipliers.get(dim, 1.0)
@@ -101,6 +93,18 @@ def _score_rules(
                 findings=counts.get(dim, 0),
             )
         )
+    # The human counterweight can cancel at most HUMAN_CAP of the positive evidence: appending
+    # five sentences of dates and counts to intact slop used to take 81 down to 25.
+    human = max(human_raw, -HUMAN_CAP * gain * positive)
+    rows.append(
+        DimensionContribution(
+            dimension=Dimension.human_writing_signals.value,
+            value=by_dim.get(Dimension.human_writing_signals, 0.0),
+            weight=DEFAULT_WEIGHTS[Dimension.human_writing_signals],
+            logit=round(human, 4),
+            statistical=True,
+        )
+    )
     logit = BIAS + gain * positive + human
     breakdown = ScoreBreakdown(
         bias=BIAS,

@@ -156,7 +156,7 @@ slopscore-lint scan post.md --format html -o report.html          # highlighted-
 ```yaml
 repos:
   - repo: https://github.com/jman4162/slopscore
-    rev: v0.12.0
+    rev: v0.13.0
     hooks:
       - id: slopscore-lint
         args: ["--fail-on", "high"]
@@ -245,6 +245,15 @@ for f in Path("posts").glob("*.md"):
 ```
 
 ## Status
+
+v0.13: detection coverage. A `structure_tells` dimension scores the chatbot Markdown shape
+(emoji headings, `**Label:** text` bullet runs, heading-level jumps, rules between every section,
+heavy bold) from block metadata the Markdown ingester now records; pasted text that looks like
+Markdown is ingested as Markdown, so emphasis markers no longer hide phrases. Quoted speech is
+skipped by the candor, claims, and attribution packs. Twelve new phrase rules cover the connective
+filler and chatbot residue the review found missing ("it's worth noting", "that said", "Great
+question!", vendor citation markup). The human-signal counterweight is capped at half the
+positive evidence, so appended dates and counts cannot erase intact slop.
 
 v0.12: long-form evaluation and thresholds. A committed 180-document set of 300+ words (pre-LLM
 web pages, 2023 Wikipedia, and full Wikipedia articles flagged as suspected AI-generated) and a

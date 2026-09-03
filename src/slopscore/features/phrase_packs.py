@@ -39,11 +39,14 @@ class _PhrasePack:
         category: str,
         full_scale: float,
         broad_category: str | None = None,
+        skip_quoted: bool = False,
     ) -> None:
         self.dimension = dimension
         self._category = category
         self._full_scale = full_scale
         self._broad_category = broad_category
+        # Packs that judge the author's own sincerity or sourcing ignore quoted speech.
+        self._skip_quoted = skip_quoted
         if broad_category is not None:
             _BROAD_PACKS.append(self)
 
@@ -68,7 +71,7 @@ class _PhrasePack:
 
     def extract(self, doc: Document, profile: str, broad: bool = False) -> FeatureResult:
         rules = self._rules + (self._broad_rules if broad else [])
-        spans = find_matches(doc, rules)
+        spans = find_matches(doc, rules, skip_quoted=self._skip_quoted)
         return FeatureResult(
             dimension=self.dimension,
             score=self.score_spans(doc, profile, spans),
@@ -84,8 +87,11 @@ WeaselAttribution = _PhrasePack(
     "attribution",
     full_scale=3.0,
     broad_category="attribution_broad",
+    skip_quoted=True,
 )
-UnsupportedClaims = _PhrasePack(Dimension.unsupported_claims, "claims", full_scale=3.0)
+UnsupportedClaims = _PhrasePack(
+    Dimension.unsupported_claims, "claims", full_scale=3.0, skip_quoted=True
+)
 # Insight-signaling / pseudo-profundity (v0.7). The broad tier is opt-in via ``--broad``.
 InsightSignaling = _PhrasePack(
     Dimension.insight_signaling,
@@ -104,6 +110,7 @@ PerformativeCandor = _PhrasePack(
     "performative_candor",
     full_scale=4.0,
     broad_category="performative_candor_broad",
+    skip_quoted=True,
 )
 
 register(SignificanceInflation)

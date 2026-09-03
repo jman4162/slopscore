@@ -16,6 +16,7 @@ from slopscore.ingest import RawSource, from_path, from_string, from_url
 from slopscore.models import Report
 from slopscore.normalize.clean import canonicalize, clean
 from slopscore.normalize.language import detect_language
+from slopscore.normalize.quotes import quoted_ranges
 from slopscore.normalize.segment import split_paragraphs, split_sentences
 from slopscore.scoring.scorer import score_document
 
@@ -34,6 +35,9 @@ def build_document(raw: RawSource) -> Document:
         source=raw.source,
         language=language,
         language_confidence=lang_conf,
+        # Block offsets index the ingested prose; keep them only if ftfy left its length alone.
+        blocks=list(raw.blocks) if len(canonical) == len(raw.text) else [],
+        quoted=quoted_ranges(cleaned),
     )
 
 

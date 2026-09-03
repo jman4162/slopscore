@@ -76,7 +76,9 @@ def test_breakdown_is_reported_and_names_the_statistical_rows(clean_text: str) -
     stat = {r.dimension for r in report.breakdown.contributions if r.statistical}
     assert stat == {"genericity", "cadence_sameness", "redundancy", "human_writing_signals"}
     payload = json.loads(report.to_json())
-    assert payload["version"] == "0.11.0"
+    from slopscore.models import SCHEMA_VERSION
+
+    assert payload["version"] == SCHEMA_VERSION
     assert payload["breakdown"]["bias"] == -2.6
 
 

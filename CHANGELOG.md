@@ -3,6 +3,50 @@
 All notable changes to slopscore. The PyPI distribution is `slopscore-lint`; the import package
 and the tool are named `slopscore`.
 
+## 0.13.0
+
+Detection coverage. Schema 0.13.0 (new `structure_tells` dimension).
+
+- **`structure_tells`**: the chatbot Markdown shape, scored from block metadata the Markdown
+  ingester now records (`Document.blocks`, offsets in the extracted prose). Rules:
+  `STRUCTURE_EMOJI_HEADING`, `STRUCTURE_INLINE_HEADER_LIST` (three or more `**Label:** text`
+  bullets in a row), `STRUCTURE_SKIPPED_HEADING_LEVEL`, `STRUCTURE_THEMATIC_BREAKS`,
+  `STRUCTURE_BOLD_DENSITY`, `STRUCTURE_TITLE_CASE_HEADING`. Weak-alone, softened for
+  `technical` (0.7) and `academic` (0.8), boosted for `marketing` (1.1). A plain README with
+  headings and bullets scores 0 on it. Excluded from the ML `FEATURE_ORDER`.
+- **Pasted Markdown is Markdown.** Text with two or more Markdown lines (headings, list markers,
+  fences, bold runs) is routed through the Markdown ingester, so "Let's **dive into**" on stdin
+  now fires the same rule it fires in a `.md` file, tables and code are dropped, and the structure
+  tells are scored. The report's `source_type` says `markdown` in that case.
+- **Quoted speech is not the author's voice.** Straight or curly double-quoted spans are skipped
+  by the performative-candor, unsupported-claims, and attribution packs; a character may say
+  "honestly" and "everyone knows" without the narrator being charged.
+- **Cadence on prose only.** Headings and list items are excluded from sentence-length
+  uniformity, so a bullet list no longer reads as monotone prose.
+- **Phrase coverage.** New formulaic rules for "it's worth noting", "that said", "simply put",
+  "make no mistake" / "the reality is", "imagine a world where", "embark on a journey", "despite
+  these challenges" / "challenges and future prospects"; "Let's unpack" / "take a deep dive" /
+  "break it down" join `FORMULAIC_LETS_DELVE` (with a concrete-object exclusion); "to sum up",
+  "all in all", "in summary", "at the end of the day" join the closer rule (clause-initial with a
+  comma, so "in summary judgment" is untouched); "Here's the thing." without a colon fires.
+  Negative parallelism gains the contraction form ("this isn't just a tool, it's a movement") and
+  the sentence-boundary form ("It's not about speed. It's about clarity."). Prompt residue gains
+  chatbot openers ("Great question!"), offers of more help, knowledge-gap disclaimers, and vendor
+  citation markup (`contentReference`, `oaicite`, `turn0search`, `[cite: N]`, `grok_card`,
+  `utm_source=chatgpt`), all at high or medium severity.
+- **Human-signal cap.** The negative human-signal logit is clipped to half the positive evidence
+  sum. Appending five sentences of dates and counts to intact slop used to take 81 down to 25.
+- `slopscore-lint fairness --broad` audits the broad tier (previously unmeasured), and the
+  command counts rule hits only (summary spans were being listed as over-threshold rules).
+- `scripts/eval/lexicon.py` derives slop-lexicon candidates from corpora by document-frequency
+  ratio with a proper-noun filter, the slop-forensics method. On the 790 LLM-labelled documents
+  available (MAGE machine text, flagged Wikipedia articles) against 1,120 human documents, no
+  n-gram clears a 4x ratio in ten or more documents, so nothing was promoted into
+  `markers.yaml`; the candidates file is `eval/lexicon_candidates.yaml`. A larger corpus of
+  current-model output is the prerequisite.
+- Not done: an elegant-variation (synonym-cycling) feature. The Wikipedia guide lists it as an
+  outdated indicator, and a WordNet-free heuristic would add a weak dimension for little gain.
+
 ## 0.12.0
 
 Thresholds from data, and the first long-form evaluation.
