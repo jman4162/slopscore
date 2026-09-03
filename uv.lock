@@ -3164,7 +3164,7 @@ wheels = [
 
 [[package]]
 name = "slopscore-lint"
-version = "0.9.1"
+version = "0.10.0"
 source = { editable = "." }
 dependencies = [
     { name = "ftfy" },
@@ -3177,12 +3177,12 @@ dependencies = [
     { name = "pyyaml" },
     { name = "regex" },
     { name = "rich" },
-    { name = "scikit-learn" },
     { name = "typer" },
 ]
 
 [package.optional-dependencies]
 all = [
+    { name = "click" },
     { name = "httpx" },
     { name = "jinja2" },
     { name = "lingua-language-detector", version = "2.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
@@ -3197,6 +3197,7 @@ docs = [
 eval = [
     { name = "datasets" },
     { name = "huggingface-hub" },
+    { name = "scikit-learn" },
 ]
 lang = [
     { name = "lingua-language-detector", version = "2.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
@@ -3206,6 +3207,7 @@ ml = [
     { name = "lightgbm" },
 ]
 nlp = [
+    { name = "click" },
     { name = "sentence-transformers" },
     { name = "spacy" },
 ]
@@ -3224,11 +3226,13 @@ dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
+    { name = "scikit-learn" },
     { name = "types-pyyaml" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "click", marker = "extra == 'nlp'", specifier = ">=8.0" },
     { name = "datasets", marker = "extra == 'eval'", specifier = ">=2.19" },
     { name = "ftfy", specifier = ">=6.2" },
     { name = "httpx", marker = "extra == 'web'", specifier = ">=0.27" },
@@ -3245,7 +3249,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "regex", specifier = ">=2024.5" },
     { name = "rich", specifier = ">=13.7" },
-    { name = "scikit-learn", specifier = ">=1.4" },
+    { name = "scikit-learn", marker = "extra == 'eval'", specifier = ">=1.4" },
     { name = "sentence-transformers", marker = "extra == 'nlp'", specifier = ">=3.0" },
     { name = "slopscore-lint", extras = ["web", "nlp", "lang", "report"], marker = "extra == 'all'" },
     { name = "spacy", marker = "extra == 'nlp'", specifier = ">=3.7" },
@@ -3261,6 +3265,7 @@ dev = [
     { name = "pytest", specifier = ">=8.2" },
     { name = "pytest-cov", specifier = ">=5.0" },
     { name = "ruff", specifier = ">=0.5" },
+    { name = "scikit-learn", specifier = ">=1.4" },
     { name = "types-pyyaml", specifier = ">=6.0" },
 ]
 

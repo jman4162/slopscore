@@ -43,8 +43,9 @@ dependencies = [
 [project.optional-dependencies]
 # Web article extraction. Pulls native lxml, so kept out of the lean default.
 web = ["trafilatura>=2.0", "httpx>=0.27"]
-# Heavier NLP: spaCy NER/POS and sentence-transformer embeddings.
-nlp = ["spacy>=3.7", "sentence-transformers>=3.0"]
+# Heavier NLP: spaCy NER/POS and sentence-transformer embeddings. click is listed because spaCy's
+# CLI imports it and typer >= 0.20 no longer depends on it, so `import spacy` fails without it.
+nlp = ["spacy>=3.7", "sentence-transformers>=3.0", "click>=8.0"]
 # Optional language detection (used to lower confidence on non-English text).
 lang = ["lingua-language-detector>=2.0"]
 # HTML report rendering (Jinja2 autoescaping).

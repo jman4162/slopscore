@@ -41,8 +41,9 @@ jobs:
           python-version: "3.12"
       - name: Sync with extras
         run: uv sync --extra nlp --extra report --extra lang
+      # Install the model wheel directly: `spacy download` shells out to pip, which uv venvs lack.
       - name: spaCy model
-        run: uv run python -m spacy download en_core_web_sm
+        run: uv pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
       - name: Tests (extras must not skip)
         run: uv run pytest -q -rs
 

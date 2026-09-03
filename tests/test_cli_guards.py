@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from typer.testing import CliRunner
@@ -16,7 +17,9 @@ def test_fail_on_new_without_baseline_file_is_a_usage_error(tmp_path: Path) -> N
     src.write_text("Let's delve into this. In conclusion, it is a game-changer.\n" * 20)
     result = runner.invoke(app, ["scan", str(src), "--fail-on-new"])
     assert result.exit_code == 2
-    assert "--baseline-file" in result.output
+    # Rich styles the usage error on a terminal-like CI runner; strip the escapes before matching.
+    plain = re.sub(r"\x1b\[[0-9;]*m", "", result.output)
+    assert "--baseline-file" in plain
 
 
 def test_directory_among_multiple_targets_is_walked(tmp_path: Path) -> None:
