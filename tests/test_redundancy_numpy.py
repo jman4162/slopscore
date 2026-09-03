@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import subprocess
 import sys
 from pathlib import Path
+
+import pytest
 
 from slopscore.features.redundancy import lexical_redundancy
 
@@ -36,9 +39,14 @@ def test_short_plain_sentences_do_not_count_as_frames() -> None:
     assert lexical_redundancy(["I like the sea.", "I like the hills.", "I like my town."]) == 0.0
 
 
+@pytest.mark.skipif(
+    importlib.util.find_spec("sentence_transformers") is not None,
+    reason="the [nlp] extra's sentence-transformers imports scikit-learn itself",
+)
 def test_scan_path_does_not_import_sklearn() -> None:
     # A fresh interpreter: other tests import scikit-learn (the eval harness), so checking
-    # sys.modules in-process would depend on test order.
+    # sys.modules in-process would depend on test order. The guarantee is for the default
+    # install; the [nlp] extra pulls scikit-learn in through sentence-transformers.
     code = (
         "import sys; from slopscore import scan_text; "
         "scan_text('Let us delve into this robust tapestry. ' * 30); "
