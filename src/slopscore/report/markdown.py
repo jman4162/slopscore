@@ -50,8 +50,9 @@ def to_markdown(report: Report) -> str:
         lines.append("_No pattern matches._")
     for e in report.evidence[:50]:
         snippet = e.span.replace("\n", " ").strip()
+        tag = ", summary" if e.is_summary else ""
         lines.append(
-            f"- `{e.rule_id}` ({e.severity.value}, chars {e.start_char}-{e.end_char}): "
+            f"- `{e.rule_id}` ({e.severity.value}{tag}, chars {e.start_char}-{e.end_char}): "
             f'"{snippet}" — {e.explanation}'
         )
 

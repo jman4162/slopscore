@@ -58,13 +58,13 @@ def test_concrete_human_prose_is_low(clean_text: str) -> None:
 def test_abstract_human_prose_is_low() -> None:
     report = scan_text(ABSTRACT_HUMAN)
     assert report.score.slop_score < 25
-    assert report.evidence == []
+    assert report.findings == []
 
 
 def test_non_native_plain_english_is_low() -> None:
     report = scan_text(NON_NATIVE)
     assert report.score.slop_score < 25
-    assert report.evidence == []
+    assert report.findings == []
 
 
 def test_technical_documentation_is_low_under_the_default_profile() -> None:

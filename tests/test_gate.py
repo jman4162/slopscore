@@ -19,13 +19,29 @@ def _score(by_dim: dict[Dimension, float], settings: Settings = _S) -> float:
     return _score_rules(by_dim, settings)[0]
 
 
+def test_breakdown_reproduces_the_score() -> None:
+    import math
+
+    by_dim = {_LEX: 0.7, _SIG: 0.4, Dimension.genericity: 0.6, Dimension.human_writing_signals: 0.3}
+    score, _, b = _score_rules(by_dim, _S)
+    logit = b.bias + sum(r.logit for r in b.contributions)
+    assert round(100 / (1 + math.exp(-logit)), 1) == score
+    assert b.statistical_logit != 0.0
+    assert {r.dimension for r in b.contributions if r.statistical} == {
+        "genericity",
+        "cadence_sameness",
+        "redundancy",
+        "human_writing_signals",
+    }
+
+
 def test_weak_dimension_is_monotone_in_its_own_value() -> None:
     scores = [_score({_LEX: x / 50}) for x in range(51)]
     assert all(a <= b for a, b in pairwise(scores)), scores
 
 
 def test_two_weak_dimensions_do_not_corroborate_each_other() -> None:
-    both, notes = _score_rules({_LEX: 1.0, _FMT: 1.0}, _S)
+    both, notes, _ = _score_rules({_LEX: 1.0, _FMT: 1.0}, _S)
     with_strong = _score({_LEX: 1.0, _SIG: 1.0})
     assert notes == ["formatting_tells", "lexical_markers"]
     assert both < 40 < with_strong

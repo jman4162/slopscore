@@ -43,6 +43,11 @@ def render_batch(batch: BatchReport, console: Console | None = None) -> None:
             style = _LABEL_STYLE[f.label]
             mark = " (abstained)" if f.abstained else ""
             console.print(f"  [{style}]{f.slop_score:>5}[/] {f.label.value:<8} {f.path}{mark}")
+            for p in f.preview:
+                console.print(
+                    f"        [dim]line {p.line}[/dim] [cyan]{p.rule_id}[/cyan] "
+                    f'[{_sev_style(p.severity.value)}]{p.severity.value}[/]: "{p.span}"'
+                )
 
 
 def render(report: Report, console: Console | None = None) -> None:
@@ -87,8 +92,9 @@ def render(report: Report, console: Console | None = None) -> None:
             if e.suggestion is not None:
                 target = "delete" if e.suggestion.text == "" else f"→ '{e.suggestion.text}'"
                 fix = f" [green]suggest {target}[/green]"
+            tag = " [dim](summary)[/dim]" if e.is_summary else ""
             console.print(
-                f"  [dim]{e.start_char:>5}[/dim] [cyan]{e.rule_id}[/cyan] "
+                f"  [dim]{e.start_char:>5}[/dim] [cyan]{e.rule_id}[/cyan]{tag} "
                 f"[{_sev_style(e.severity.value)}]{e.severity.value}[/]: "
                 f'"{snippet}" [dim]— {e.explanation}[/dim]{fix}'
             )

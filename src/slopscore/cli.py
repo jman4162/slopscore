@@ -17,7 +17,8 @@ from slopscore.ingest.code import CODE_SUFFIXES as _CODE_SUFFIXES
 from slopscore.ingest.website import WebExtraNotInstalled
 from slopscore.models import Report
 from slopscore.report import render_batch, render_console, to_json, to_markdown, to_sarif
-from slopscore.report.batch import build_batch_report, fail_threshold_rank, max_severity
+from slopscore.report.batch import build_batch_report
+from slopscore.report.gate import failure_reasons
 from slopscore.scoring.model import ModelNotTrained
 from slopscore.scoring.profiles import KNOWN_PROFILES
 
@@ -95,8 +96,27 @@ def scan(
     diff: str | None = typer.Option(
         None, "--diff", help="Scan only files changed vs a git ref (e.g. origin/main)."
     ),
-    fail_on: FailOn = typer.Option(
-        FailOn.none, "--fail-on", help="Exit non-zero if any finding reaches this severity."
+    fail_on: FailOn | None = typer.Option(
+        None,
+        "--fail-on",
+        help="Exit 1 if any finding reaches this severity (config `fail_on`; default none).",
+    ),
+    fail_on_score: float | None = typer.Option(
+        None,
+        "--fail-on-score",
+        min=0.0,
+        max=100.0,
+        help="Exit 1 if any non-abstained document scores at or above this (config "
+        "`score_threshold`).",
+    ),
+    include: list[str] | None = typer.Option(
+        None, "--include", help="Only scan files matching this glob (repeatable)."
+    ),
+    exclude: list[str] | None = typer.Option(
+        None,
+        "--exclude",
+        help="Skip files/directories matching this glob or name (repeatable; replaces the "
+        "default excludes such as node_modules, .venv, build).",
     ),
     baseline_file: Path | None = typer.Option(
         None, "--baseline-file", help="A findings baseline from `slopscore-lint baseline`."
@@ -133,6 +153,10 @@ def scan(
             scorer=scorer.value if scorer else None,
             suggest=suggest or None,
             broad=broad or None,
+            fail_on=fail_on.value if fail_on else None,
+            score_threshold=fail_on_score,
+            include=include,
+            exclude=exclude,
         )
     except ValueError as exc:
         err_console.print(f"[red]Invalid configuration:[/red] {exc}")
@@ -154,7 +178,13 @@ def scan(
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=2) from exc
 
-    paths = _resolve_batch_paths(targets, recursive=recursive, diff=diff)
+    paths = _resolve_batch_paths(
+        targets,
+        recursive=recursive,
+        diff=diff,
+        include=settings.include,
+        exclude=settings.exclude,
+    )
     try:
         if paths is not None:
             reports = []
@@ -178,21 +208,26 @@ def scan(
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=3) from exc
 
+    known: set[str] | None = None
     if baseline_file is not None and fail_on_new:
         from pydantic import ValidationError
 
-        from slopscore.report.baseline import BaselineFile, new_findings
+        from slopscore.report.baseline import BaselineFile
 
         try:
             known = BaselineFile.model_validate_json(baseline_file.read_text("utf-8")).as_set()
         except (OSError, ValueError, ValidationError) as exc:
             err_console.print(f"[red]Could not read baseline file {baseline_file}:[/red] {exc}")
             raise typer.Exit(code=2) from exc
-        total_new = sum(new_findings(r, known) for r in reports)
-        if total_new:
-            err_console.print(f"[red]{total_new} new finding(s) not in the baseline.[/red]")
-            raise typer.Exit(code=1)
-    elif max_severity(reports) >= fail_threshold_rank(fail_on.value):
+    reasons = failure_reasons(
+        reports,
+        fail_on=settings.fail_on,
+        score_threshold=settings.score_threshold,
+        baseline=known,
+    )
+    if reasons:
+        for reason in reasons:
+            err_console.print(f"[red]{escape(reason)}[/red]")
         raise typer.Exit(code=1)
 
 
@@ -200,7 +235,12 @@ _SCANNABLE_SUFFIXES = {".txt", ".md", ".markdown", ".rst", ".json"} | _CODE_SUFF
 
 
 def _resolve_batch_paths(
-    targets: list[str], *, recursive: bool, diff: str | None
+    targets: list[str],
+    *,
+    recursive: bool,
+    diff: str | None,
+    include: tuple[str, ...] = (),
+    exclude: tuple[str, ...] = (),
 ) -> list[Path] | None:
     """Return a file list for batch mode, or None for single-target (file/url/stdin)."""
     if diff is not None:
@@ -240,13 +280,13 @@ def _resolve_batch_paths(
         for t in targets:
             p = Path(t)
             if p.is_dir():
-                paths.extend(iter_paths(t, recursive=recursive))
+                paths.extend(iter_paths(t, recursive=recursive, include=include, exclude=exclude))
             else:
                 paths.append(p)
         return paths
     target = targets[0]
     if target != "-" and not looks_like_url(target) and Path(target).is_dir():
-        return list(iter_paths(target, recursive=recursive))
+        return list(iter_paths(target, recursive=recursive, include=include, exclude=exclude))
     return None
 
 

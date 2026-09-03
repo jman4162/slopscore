@@ -19,6 +19,7 @@ from slopscore.features.base import Feature, SpanScored, registry
 from slopscore.models import (
     STANDARD_WARNINGS,
     Dimension,
+    DimensionContribution,
     Dimensions,
     Evidence,
     FeatureResult,
@@ -26,6 +27,7 @@ from slopscore.models import (
     Label,
     Report,
     Score,
+    ScoreBreakdown,
     Severity,
     label_for_score,
 )
@@ -36,6 +38,7 @@ from slopscore.scoring.weights import (
     CORROBORATING_DIMENSIONS,
     DEFAULT_WEIGHTS,
     ELEVATED,
+    STATISTICAL_DIMENSIONS,
     WEAK_DIMENSIONS,
     weak_gate,
 )
@@ -46,29 +49,67 @@ def _sigmoid(x: float) -> float:
     return 1.0 / (1.0 + math.exp(-x))
 
 
-def _score_rules(by_dim: dict[Dimension, float], settings: Settings) -> tuple[float, list[str]]:
-    """Hand-set weighted sum with the corroboration gate. Returns (slop_score, gated_notes).
+def _score_rules(
+    by_dim: dict[Dimension, float],
+    settings: Settings,
+    findings: dict[Dimension, int] | None = None,
+) -> tuple[float, list[str], ScoreBreakdown]:
+    """Hand-set weighted sum with the corroboration gate.
 
-    ``logit = BIAS + gain * S_pos + w_human * human`` where ``S_pos`` is the gated, profile-
-    weighted sum over the slop-raising dimensions. The strictness gain scales only the evidence
-    sum: scaling the bias as well made "conservative" score HIGHER than "sensitive" on clean text.
+    Returns ``(slop_score, gated_notes, breakdown)``. ``logit = BIAS + gain * S_pos + w_human *
+    human`` where ``S_pos`` is the gated, profile-weighted sum over the slop-raising dimensions.
+    The strictness gain scales only the evidence sum: scaling the bias as well made
+    "conservative" score HIGHER than "sensitive" on clean text.
     """
     multipliers = profile_multipliers(settings.profile)
     strongest = max((by_dim.get(d, 0.0) for d in CORROBORATING_DIMENSIONS), default=0.0)
     gate = weak_gate(strongest)
+    gain = STRICTNESS_GAIN[settings.strictness]
     gated_notes = [d.value for d in WEAK_DIMENSIONS if gate < 1.0 and by_dim.get(d, 0.0) > ELEVATED]
+    counts = findings or {}
 
     positive = 0.0
     human = 0.0
+    rows: list[DimensionContribution] = []
     for dim, weight in DEFAULT_WEIGHTS.items():
         value = by_dim.get(dim, 0.0)
         if dim is Dimension.human_writing_signals:
             human = weight * value
+            rows.append(
+                DimensionContribution(
+                    dimension=dim.value,
+                    value=value,
+                    weight=weight,
+                    logit=round(human, 4),
+                    statistical=True,
+                )
+            )
             continue
         dim_gate = gate if dim in WEAK_DIMENSIONS else 1.0
-        positive += weight * multipliers.get(dim, 1.0) * dim_gate * value
-    logit = BIAS + STRICTNESS_GAIN[settings.strictness] * positive + human
-    return round(100.0 * _sigmoid(logit), 1), sorted(gated_notes)
+        multiplier = multipliers.get(dim, 1.0)
+        contribution = weight * multiplier * dim_gate * value
+        positive += contribution
+        rows.append(
+            DimensionContribution(
+                dimension=dim.value,
+                value=value,
+                weight=weight,
+                multiplier=multiplier,
+                gate=dim_gate,
+                logit=round(gain * contribution, 4),
+                statistical=dim in STATISTICAL_DIMENSIONS,
+                findings=counts.get(dim, 0),
+            )
+        )
+    logit = BIAS + gain * positive + human
+    breakdown = ScoreBreakdown(
+        bias=BIAS,
+        gain=gain,
+        corroboration=round(gate, 4),
+        contributions=rows,
+        statistical_logit=round(sum(r.logit for r in rows if r.statistical), 4),
+    )
+    return round(100.0 * _sigmoid(logit), 1), sorted(gated_notes), breakdown
 
 
 def _score_ml(by_dim: dict[Dimension, float]) -> float:
@@ -159,10 +200,12 @@ def score_document(doc: Document, settings: Settings) -> Report:
     by_dim: dict[Dimension, float] = {r.dimension: r.score for r in results}
 
     gated_notes: list[str] = []
+    breakdown: ScoreBreakdown | None = None
     if settings.scorer is Scorer.ml:
         slop_score = _score_ml(by_dim)
     else:
-        slop_score, gated_notes = _score_rules(by_dim, settings)
+        counts = {r.dimension: sum(1 for e in r.spans if not e.is_summary) for r in results}
+        slop_score, gated_notes, breakdown = _score_rules(by_dim, settings, counts)
 
     confidence, conf_warnings = compute_confidence(doc, settings)
     abstained_reason = abstain_reason(doc, settings)
@@ -210,5 +253,6 @@ def score_document(doc: Document, settings: Settings) -> Report:
         dimensions=Dimensions(**{d.value: v for d, v in by_dim.items()}),
         evidence=evidence,
         warnings=warnings,
+        breakdown=breakdown,
         original_text=doc.original_text,
     )

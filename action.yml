@@ -21,10 +21,14 @@ inputs:
     description: "Fail the job if any finding reaches this severity: none | low | medium | high."
     required: false
     default: "high"
+  fail-on-score:
+    description: "Fail the job if any non-abstained document scores at or above this (0-100). Empty = off."
+    required: false
+    default: ""
   version:
     description: "slopscore-lint version to install from PyPI (pinned per action release)."
     required: false
-    default: "0.10.0"
+    default: "0.11.0"
   upload-sarif:
     description: Upload results to GitHub code scanning.
     required: false
@@ -53,9 +57,11 @@ runs:
         SLOP_RECURSIVE: ${{ inputs.recursive }}
         SLOP_PROFILE: ${{ inputs.profile }}
         SLOP_FAIL_ON: ${{ inputs.fail-on }}
+        SLOP_FAIL_ON_SCORE: ${{ inputs.fail-on-score }}
       run: |
         args=()
         [ "$SLOP_RECURSIVE" = "true" ] && args+=(--recursive)
+        [ -n "$SLOP_FAIL_ON_SCORE" ] && args+=(--fail-on-score "$SLOP_FAIL_ON_SCORE")
         slopscore-lint scan "$SLOP_FILES" "${args[@]}" \
           --profile "$SLOP_PROFILE" \
           --fail-on "$SLOP_FAIL_ON" \

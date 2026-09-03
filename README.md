@@ -38,9 +38,10 @@ not
 > "This was written by AI."
 
 Think of it as a linter for slop, closer to Vale or ruff than to a black-box AI detector.
-Rule-driven dimensions carry an evidence span for every hit. Four statistical dimensions
-(genericity, cadence, redundancy, and the human-signal counterweight) carry no spans; they are
-low-weighted and never corroborate a weak tell.
+Rule-driven dimensions carry an evidence span for every hit. The four statistical dimensions
+(genericity, cadence, redundancy, and the human-signal counterweight) are low-weighted, never
+corroborate a weak tell, and point at the passage that drove them with a labeled summary span;
+the JSON `breakdown` attributes every point of the score to a dimension.
 
 ## Install
 
@@ -155,7 +156,7 @@ slopscore-lint scan post.md --format html -o report.html          # highlighted-
 ```yaml
 repos:
   - repo: https://github.com/jman4162/slopscore
-    rev: v0.10.0
+    rev: v0.11.0
     hooks:
       - id: slopscore-lint
         args: ["--fail-on", "high"]

@@ -3,6 +3,35 @@
 All notable changes to slopscore. The PyPI distribution is `slopscore-lint`; the import package
 and the tool are named `slopscore`.
 
+## 0.11.0
+
+Every point explained, and a CI gate that reads the score. Schema 0.11.0.
+
+- **`breakdown` in every report**: one row per dimension with value, weight, profile multiplier,
+  corroboration gate, and contributed logit, a `statistical` flag on the four span-less
+  dimensions, and their summed `statistical_logit`. `sigmoid(bias + sum(logits)) * 100`
+  reproduces the score.
+- **Summary evidence for the statistical dimensions.** `GENERIC_SENTENCE` (up to three of the
+  longest sentences with no name, number, date, URL, or identifier), `CADENCE_UNIFORM_RUN` (the
+  longest run of same-length sentences), and `REDUNDANT_ADJACENT_PAIR` (the most similar
+  adjacent pairs) carry `kind: summary`. They explain the score and are not rule hits: they are
+  skipped by the HTML highlighter, excluded from SARIF, from `--fail-on`, and from baseline
+  fingerprints, so upgrading does not trip `--fail-on-new`. `Report.findings` returns rule hits
+  only.
+- **`--fail-on-score N` / config `score_threshold`.** The gate used to read evidence severity
+  only, so abstention, the corroboration gate, and the label had no effect on exit codes. Now a
+  scan fails on severity OR on any non-abstained document at or above the threshold; abstained
+  documents never fail on score; reasons are printed to stderr.
+- Config keys `fail_on`, `suggest`, `include`, and `exclude` are honored (all four were accepted
+  and ignored; `suggest` was documented). `fail_on` and `score_threshold` are validated.
+- `--include` / `--exclude` (repeatable) and directory pruning: `node_modules`, `.venv`, `venv`,
+  `.git`, `vendor`, `dist`, `build`, `__pycache__`, `.tox`, `.mypy_cache`, `.ruff_cache`, and
+  `site` are never entered unless `exclude` is overridden.
+- Batch console output lists the top findings of each worst file with rule id, line, and span,
+  so a failing pre-commit run says what to fix.
+- The GitHub Action gains a `fail-on-score` input.
+- A test now asserts that the five dimension enumerations stay in sync.
+
 ## 0.10.0
 
 Score correctness, from the same adversarial review. Scores change in this release; the

@@ -28,6 +28,10 @@ jobs:
         run: uv run mypy src
       - name: Tests
         run: uv run pytest -q
+      # Dogfood: the repository's own prose must stay under the score gate. Severity is not
+      # gated here because the docs quote slop examples on purpose.
+      - name: Dogfood
+        run: uv run slopscore-lint scan README.md MODEL_CARD.md CHANGELOG.md CLAUDE.md docs --recursive --fail-on-score 50
 
   # The optional extras never ran in the default job (their tests skip without the packages), so
   # the HTML renderer, spaCy path, embedding redundancy, and lingua detection were untested in CI.

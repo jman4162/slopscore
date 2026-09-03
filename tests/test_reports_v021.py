@@ -51,7 +51,8 @@ def test_sarif_structure_and_rules() -> None:
 def test_sarif_levels_and_regions() -> None:
     report = scan_text(_SLOP)
     text = report.original_text
-    for res, ev in zip(to_sarif(report)["runs"][0]["results"], report.evidence, strict=True):
+    findings = [e for e in report.evidence if not e.is_summary]
+    for res, ev in zip(to_sarif(report)["runs"][0]["results"], findings, strict=True):
         assert res["level"] in {"error", "warning", "note"}
         region = res["locations"][0]["physicalLocation"]["region"]
         assert region["startLine"] >= 1 and region["startColumn"] >= 1
@@ -103,7 +104,7 @@ def test_batch_summary() -> None:
     reports = [scan_text(_SLOP), scan_text(_CLEAN)]
     batch = build_batch_report(reports, "blog", "conservative")
     assert batch.summary.total_files == 2
-    assert batch.summary.total_findings == sum(len(r.evidence) for r in reports)
+    assert batch.summary.total_findings == sum(len(r.findings) for r in reports)
     assert batch.summary.worst[0].slop_score >= batch.summary.worst[-1].slop_score
 
 

@@ -37,7 +37,8 @@ class BaselineFile(BaseModel):
 
 
 def report_fingerprints(report: Report) -> list[str]:
-    return [fingerprint(report.input.source, e.rule_id, e.span) for e in report.evidence]
+    """Fingerprints of the rule hits (statistical summaries and suggestions are not findings)."""
+    return [fingerprint(report.input.source, e.rule_id, e.span) for e in report.findings]
 
 
 def build_baseline(reports: list[Report]) -> BaselineFile:
@@ -51,6 +52,6 @@ def new_findings(report: Report, known: set[str]) -> int:
     """Count findings whose fingerprint is not in the baseline."""
     return sum(
         1
-        for e in report.evidence
+        for e in report.findings
         if fingerprint(report.input.source, e.rule_id, e.span) not in known
     )

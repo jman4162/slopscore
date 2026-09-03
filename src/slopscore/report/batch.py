@@ -7,6 +7,18 @@ from collections import Counter
 from pydantic import BaseModel, Field
 
 from slopscore.models import SCHEMA_VERSION, Label, Report, Severity
+from slopscore.report.locations import char_to_line_col
+
+_PREVIEW_LIMIT = 3
+
+
+class FindingPreview(BaseModel):
+    """Enough of a finding to act on from a batch summary: where, which rule, what text."""
+
+    rule_id: str
+    severity: Severity
+    line: int
+    span: str
 
 
 class FileResult(BaseModel):
@@ -17,6 +29,7 @@ class FileResult(BaseModel):
     abstained: bool
     word_count: int
     findings: int
+    preview: list[FindingPreview] = Field(default_factory=list)
 
 
 class BatchSummary(BaseModel):
@@ -47,7 +60,8 @@ def build_batch_report(reports: list[Report], profile: str, strictness: str) -> 
             confidence=r.score.confidence,
             abstained=r.score.abstained,
             word_count=r.input.word_count,
-            findings=len(r.evidence),
+            findings=len(r.findings),
+            preview=_preview(r),
         )
         for r in reports
     ]
@@ -70,16 +84,33 @@ def build_batch_report(reports: list[Report], profile: str, strictness: str) -> 
 _SEVERITY_RANK: dict[str, int] = {"low": 1, "medium": 2, "high": 3}
 
 
+def _preview(report: Report) -> list[FindingPreview]:
+    ranked = sorted(
+        report.findings, key=lambda e: (-_SEVERITY_RANK[e.severity.value], e.start_char)
+    )
+    out: list[FindingPreview] = []
+    for e in ranked[:_PREVIEW_LIMIT]:
+        line, _, _, _ = char_to_line_col(report.original_text, e.start_char, e.end_char)
+        out.append(
+            FindingPreview(
+                rule_id=e.rule_id,
+                severity=e.severity,
+                line=line,
+                span=e.span.replace("\n", " ").strip()[:60],
+            )
+        )
+    return out
+
+
 def max_severity(reports: list[Report]) -> int:
     """Highest evidence severity rank across all reports (0 if none).
 
-    Advisory suggestions (``SUGGEST_*``) are excluded — they never trip ``--fail-on``.
+    Advisory suggestions (``SUGGEST_*``) and statistical summaries are excluded; neither is a
+    rule hit, so neither trips ``--fail-on``.
     """
     rank = 0
     for r in reports:
-        for e in r.evidence:
-            if e.rule_id.startswith("SUGGEST_"):
-                continue
+        for e in r.findings:
             rank = max(rank, _SEVERITY_RANK[e.severity.value])
     return rank
 

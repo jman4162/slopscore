@@ -24,9 +24,11 @@ _KEYS = {
     "disabled_rules",
     "rule_severity",
     "broad",
+    "suggest",
     "include",
     "exclude",
 }
+_FAIL_ON_VALUES = ("none", "low", "medium", "high")
 
 
 def _from_pyproject(path: Path) -> dict[str, Any]:
@@ -83,13 +85,29 @@ def resolve_settings(
     scorer: str | None = None,
     suggest: bool | None = None,
     broad: bool | None = None,
+    fail_on: str | None = None,
+    score_threshold: float | None = None,
+    include: list[str] | None = None,
+    exclude: list[str] | None = None,
 ) -> Any:
     """Merge a file-config dict with explicit CLI overrides (None = not set) into a Settings.
 
     Precedence per field: CLI override > file config > built-in default.
     """
-    from slopscore.config import Scorer, Settings, Strictness
+    from slopscore.config import DEFAULT_EXCLUDES, Scorer, Settings, Strictness
     from slopscore.scoring.profiles import KNOWN_PROFILES
+
+    resolved_fail_on = str(fail_on or file_cfg.get("fail_on") or "none")
+    if resolved_fail_on not in _FAIL_ON_VALUES:
+        raise ValueError(
+            f"Unknown fail_on {resolved_fail_on!r}; expected one of: {', '.join(_FAIL_ON_VALUES)}."
+        )
+    raw_threshold = (
+        score_threshold if score_threshold is not None else file_cfg.get("score_threshold")
+    )
+    resolved_threshold = None if raw_threshold is None else float(raw_threshold)
+    if resolved_threshold is not None and not 0.0 <= resolved_threshold <= 100.0:
+        raise ValueError(f"score_threshold must be between 0 and 100, got {resolved_threshold}.")
 
     resolved_profile = profile or file_cfg.get("profile") or "blog"
     if resolved_profile not in KNOWN_PROFILES:
@@ -107,7 +125,21 @@ def resolve_settings(
         rule_severity=dict(file_cfg.get("rule_severity", {}) or {}),
         suggest=bool(suggest if suggest is not None else file_cfg.get("suggest", False)),
         broad_rules=bool(broad if broad is not None else file_cfg.get("broad", False)),
+        fail_on=resolved_fail_on,
+        score_threshold=resolved_threshold,
+        include=tuple(include) if include else tuple(_str_set(file_cfg, "include")),
+        exclude=_resolve_exclude(exclude, file_cfg, DEFAULT_EXCLUDES),
     )
+
+
+def _resolve_exclude(
+    cli: list[str] | None, cfg: dict[str, Any], default: tuple[str, ...]
+) -> tuple[str, ...]:
+    if cli:
+        return tuple(cli)
+    if "exclude" in cfg:
+        return tuple(sorted(_str_set(cfg, "exclude")))
+    return default
 
 
 def _str_set(cfg: dict[str, Any], key: str) -> frozenset[str]:

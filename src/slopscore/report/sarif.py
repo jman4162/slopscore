@@ -69,14 +69,16 @@ def _result(e: Evidence, uri: str, text: str) -> dict[str, Any]:
 def _run(report: Report) -> dict[str, Any]:
     uri = report.input.source
     text = report.original_text
-    results = [_result(e, uri, text) for e in report.evidence]
+    # Statistical summaries would annotate whole sentences in code scanning; findings only.
+    evidence = [e for e in report.evidence if not e.is_summary]
+    results = [_result(e, uri, text) for e in evidence]
     return {
         "tool": {
             "driver": {
                 "name": "slopscore",
                 "version": __version__,
                 "informationUri": _INFO_URI,
-                "rules": _rules_registry(report.evidence),
+                "rules": _rules_registry(evidence),
             }
         },
         "results": results,

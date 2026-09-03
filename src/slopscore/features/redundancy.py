@@ -26,7 +26,11 @@ import regex as re
 from slopscore.document import Document
 from slopscore.features._nlp import embed, is_embeddings_available
 from slopscore.features.base import register
-from slopscore.models import Dimension, FeatureResult
+from slopscore.models import Dimension, Evidence, EvidenceKind, FeatureResult, Severity
+from slopscore.spans import TextSpan
+
+RULE_ADJACENT_PAIR = "REDUNDANT_ADJACENT_PAIR"
+_SUMMARY_LIMIT = 3
 
 _SIMILARITY_THRESHOLD = 0.6
 # Fraction of aligned tokens (longest common subsequence over the longer sentence) at or above
@@ -104,44 +108,69 @@ def _frame_similarity(a: str, b: str) -> float:
     return _lcs_length(ta, tb) / max(len(ta), len(tb))
 
 
-def _embedding_redundancy(sentences: list[str]) -> float | None:
+def _embedding_pairs(sentences: list[str]) -> list[tuple[int, float]] | None:
+    """(index, similarity) for each redundant adjacent pair on the embedding path."""
     try:
         emb = embed(tuple(sentences))
         sims = [float(emb[i] @ emb[i + 1]) for i in range(len(sentences) - 1)]
     except Exception:
         return None
-    return float(np.mean([s >= _EMBED_THRESHOLD for s in sims])) if sims else 0.0
+    return [(i, s) for i, s in enumerate(sims) if s >= _EMBED_THRESHOLD]
+
+
+def lexical_pairs(sentences: list[str]) -> list[tuple[int, float]]:
+    """(index, similarity) for each adjacent pair that is lexically or structurally redundant."""
+    if len(sentences) < 2:
+        return []
+    cosines = _tfidf_cosines(sentences)
+    frames = [_frame_similarity(a, b) for a, b in pairwise(sentences)]
+    return [
+        (i, max(c, f))
+        for i, (c, f) in enumerate(zip(cosines, frames, strict=True))
+        if c >= _SIMILARITY_THRESHOLD or f >= _FRAME_THRESHOLD
+    ]
 
 
 def lexical_redundancy(sentences: list[str]) -> float:
     """Fraction of adjacent pairs that are lexically or structurally redundant (numpy path)."""
     if len(sentences) < 2:
         return 0.0
-    cosines = _tfidf_cosines(sentences)
-    frames = [_frame_similarity(a, b) for a, b in pairwise(sentences)]
-    flags = [
-        c >= _SIMILARITY_THRESHOLD or f >= _FRAME_THRESHOLD
-        for c, f in zip(cosines, frames, strict=True)
-    ]
-    return float(np.mean(flags)) if flags else 0.0
+    return len(lexical_pairs(sentences)) / (len(sentences) - 1)
 
 
 class Redundancy:
     dimension = Dimension.redundancy
 
     def extract(self, doc: Document, profile: str) -> FeatureResult:
-        sentences = [s.text for s in doc.sentences if s.text.strip()]
+        spans_in: list[TextSpan] = [s for s in doc.sentences if s.text.strip()]
+        sentences = [s.text for s in spans_in]
         if len(sentences) < 2:
             return FeatureResult(dimension=self.dimension, score=0.0, spans=[])
 
+        pairs: list[tuple[int, float]] | None = None
         if is_embeddings_available():
-            score = _embedding_redundancy(sentences)
-            if score is not None:
-                return FeatureResult(dimension=self.dimension, score=score, spans=[])
+            pairs = _embedding_pairs(sentences)
+        if pairs is None:
+            pairs = lexical_pairs(sentences)
+        score = len(pairs) / (len(sentences) - 1)
 
-        return FeatureResult(
-            dimension=self.dimension, score=lexical_redundancy(sentences), spans=[]
-        )
+        spans: list[Evidence] = []
+        for i, sim in sorted(pairs, key=lambda t: -t[1])[:_SUMMARY_LIMIT]:
+            spans.append(
+                doc.evidence(
+                    rule_id=RULE_ADJACENT_PAIR,
+                    severity=Severity.low,
+                    clean_start=spans_in[i].start,
+                    clean_end=spans_in[i + 1].end,
+                    explanation=(
+                        f"Adjacent sentences {sim:.2f} similar (redundancy {score:.2f}: "
+                        f"{len(pairs)} of {len(sentences) - 1} adjacent pairs)."
+                    ),
+                    kind=EvidenceKind.summary,
+                )
+            )
+        spans.sort(key=lambda e: e.start_char)
+        return FeatureResult(dimension=self.dimension, score=score, spans=spans)
 
 
 register(Redundancy())

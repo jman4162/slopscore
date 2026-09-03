@@ -10,7 +10,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-SCHEMA_VERSION = "0.9.0"
+SCHEMA_VERSION = "0.11.0"
 
 # Disclaimers every report carries. The middle line encodes the core conservatism principle
 # (corroborated by research: single tells are weak; ESL writers are over-flagged).
@@ -80,6 +80,15 @@ class Suggestion(BaseModel):
     reasoning: str
 
 
+class EvidenceKind(StrEnum):
+    """``finding``: a rule matched this span. ``summary``: a statistical dimension is pointing at
+    the passage that drove its value; it explains the score but is not a rule hit, so it never
+    trips ``--fail-on``, never enters SARIF, and never counts as a new baseline finding."""
+
+    finding = "finding"
+    summary = "summary"
+
+
 class Evidence(BaseModel):
     """A single triggered finding. Offsets index the ORIGINAL source text."""
 
@@ -90,6 +99,11 @@ class Evidence(BaseModel):
     end_char: int
     explanation: str
     suggestion: Suggestion | None = None
+    kind: EvidenceKind = EvidenceKind.finding
+
+    @property
+    def is_summary(self) -> bool:
+        return self.kind is EvidenceKind.summary
 
 
 class FeatureResult(BaseModel):
@@ -151,6 +165,31 @@ class DetectorResult(BaseModel):
     caveat: str = AUTHORSHIP_CAVEAT
 
 
+class DimensionContribution(BaseModel):
+    """One row of the score breakdown: how a dimension's value became logit."""
+
+    dimension: str
+    value: float
+    weight: float
+    multiplier: float = 1.0
+    gate: float = 1.0
+    logit: float
+    # True for span-less dimensions (genericity, cadence, redundancy, human signals).
+    statistical: bool = False
+    findings: int = 0
+
+
+class ScoreBreakdown(BaseModel):
+    """Every point of the score, attributed. ``sigmoid(bias + gain * sum(positive logits) +
+    human logit) * 100`` reproduces ``slop_score`` for the rules scorer."""
+
+    bias: float
+    gain: float
+    corroboration: float  # multiplier applied to the weak dimensions, in [0.3, 1.0]
+    contributions: list[DimensionContribution] = Field(default_factory=list)
+    statistical_logit: float = 0.0  # sum of the logits of the span-less dimensions
+
+
 class Score(BaseModel):
     slop_score: float = Field(ge=0.0, le=100.0)
     label: Label
@@ -168,6 +207,8 @@ class Report(BaseModel):
     dimensions: Dimensions
     evidence: list[Evidence] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=lambda: list(STANDARD_WARNINGS))
+    # Per-dimension attribution of the score (rules scorer; None under --scorer ml).
+    breakdown: ScoreBreakdown | None = None
     baseline: BaselineComparison | None = None
     # Optional, separated authorship signal (never affects score/label). Caveat-bearing.
     authorship: DetectorResult | None = None
@@ -177,6 +218,13 @@ class Report(BaseModel):
 
     def to_json(self, *, indent: int = 2) -> str:
         return self.model_dump_json(indent=indent)
+
+    @property
+    def findings(self) -> list[Evidence]:
+        """Rule hits only: no statistical summaries, no advisory suggestions."""
+        return [
+            e for e in self.evidence if not e.is_summary and not e.rule_id.startswith("SUGGEST_")
+        ]
 
 
 def label_for_score(slop_score: float) -> Label:

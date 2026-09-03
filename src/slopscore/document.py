@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from slopscore.models import STANDARD_WARNINGS, Evidence, Severity, SourceType
+from slopscore.models import STANDARD_WARNINGS, Evidence, EvidenceKind, Severity, SourceType
 from slopscore.normalize.offsets import OffsetMapper
 from slopscore.spans import TextSpan
 
@@ -38,6 +38,7 @@ class Document:
         clean_start: int,
         clean_end: int,
         explanation: str,
+        kind: EvidenceKind = EvidenceKind.finding,
     ) -> Evidence:
         """Build an :class:`Evidence` from a span in cleaned coordinates.
 
@@ -52,6 +53,7 @@ class Document:
             start_char=orig_start,
             end_char=orig_end,
             explanation=explanation,
+            kind=kind,
         )
 
 

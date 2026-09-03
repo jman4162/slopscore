@@ -50,7 +50,11 @@ def to_html(report: Report) -> str:
 def _render_highlight(report: Report, escape) -> str:  # type: ignore[no-untyped-def]
     """Build the highlighted source as one safe HTML string (spans opened+closed in order)."""
     text = report.original_text
-    spans = sorted(report.evidence, key=lambda e: (e.start_char, -(e.end_char - e.start_char)))
+    # Summaries span whole sentences and would swallow the rule spans inside them.
+    spans = sorted(
+        (e for e in report.evidence if not e.is_summary),
+        key=lambda e: (e.start_char, -(e.end_char - e.start_char)),
+    )
     chosen: list[Evidence] = []
     last_end = -1
     for e in spans:

@@ -31,7 +31,7 @@ def test_disabling_every_fired_rule_zeroes_the_span_backed_dimensions(slop_text:
     fired = frozenset(e.rule_id for e in full.evidence)
     assert fired
     muted = SlopScorer(settings=Settings(disabled_rules=fired)).scan_text(slop_text)
-    assert muted.evidence == []
+    assert muted.findings == []
     assert all(v == 0.0 for v in _span_dims(muted).values()), _span_dims(muted)
     assert muted.score.slop_score < 50 < full.score.slop_score
 
@@ -41,7 +41,7 @@ def test_disable_file_comment_matches_disabling_every_rule(slop_text: str) -> No
     fired = frozenset(e.rule_id for e in full.evidence)
     by_config = SlopScorer(settings=Settings(disabled_rules=fired)).scan_text(slop_text)
     by_comment = scan_text("<!-- slopscore-disable-file -->\n" + slop_text)
-    assert by_comment.evidence == []
+    assert by_comment.findings == []
     assert all(v == 0.0 for v in _span_dims(by_comment).values())
     # The comment itself adds two words, which nudges the statistical dimensions slightly.
     assert abs(by_comment.score.slop_score - by_config.score.slop_score) < 1.0
