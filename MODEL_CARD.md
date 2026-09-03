@@ -4,8 +4,9 @@
 
 slopscore scores text for **AI-slop writing patterns**, formulaic, generic, low-specificity,
 over-polished prose, and returns a 0-100 SlopScore with per-dimension breakdowns and evidence
-spans. It is a transparent rule engine: every point comes from a visible rule with a quotable
-span. It does **not** determine authorship.
+spans. It is a transparent rule engine: every finding comes from a visible rule with a quotable
+span, and the four span-less statistical dimensions (genericity, cadence, redundancy, human
+signals) are low-weighted and reported per dimension. It does **not** determine authorship.
 
 ## What it is not
 

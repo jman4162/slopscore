@@ -15,10 +15,17 @@ uv run --no-sync ruff check . && uv run --no-sync ruff format --check .   # lint
 uv run --no-sync mypy src        # type check (strict)
 ```
 
-**Install stability:** `uv sync` installs the project NON-editable and the rebuild can land in a
-broken namespace state (`slopscore.__file__` becomes `None` → `ModuleNotFoundError`). Do an
-editable install once (`uv pip install -e . --no-deps`) and use `uv run --no-sync` so uv does not
-re-sync and clobber it. pytest is insulated regardless via `pythonpath = ["src"]` in pyproject.
+**Install stability:** if `import slopscore` yields an empty namespace package
+(`slopscore.__file__` is `None`, `ModuleNotFoundError: slopscore.cli`), the cause is almost always
+the macOS hidden flag on the venv's `.pth` files: CPython 3.12.13+ and 3.13 skip hidden `.pth`
+files (`uv run python -v -c pass 2>&1 | grep pth` shows "Skipping hidden .pth file"), files under a
+synced `Documents` folder acquire the flag, and the force-included eval datasets under
+`site-packages/slopscore/data/eval/` then resolve as a namespace package. `chflags nohidden
+.venv/lib/python3.12/site-packages/*.pth` fixes it, but the flag has been observed to return within
+minutes on this machine, so the dependable form is `PYTHONPATH=src uv run --no-sync python -m
+slopscore.cli ...` (no `.pth` involved). Reinstall with `uv pip install -e . --no-deps` if the
+`.pth` is gone; use `uv run --no-sync` so uv does not re-sync a non-editable copy. pytest is
+insulated regardless via `pythonpath = ["src"]` in pyproject.
 
 Optional features live behind extras: `[web]` (trafilatura), `[nlp]` (spaCy + sentence-transformers),
 `[lang]` (lingua). Default install is lean; `scan <url>` without `[web]` exits 3 with a hint. For
@@ -49,33 +56,44 @@ Key invariants when extending:
   `OffsetMapper`. The round-trip is enforced across the feature tests — keep it green.
 - **`TextSpan` lives in `spans.py`** (not `document.py`) to avoid a normalize↔document import cycle.
 - **Conservatism is in the scorer, not the features.** `scoring/scorer.py` applies a corroboration
-  gate (`WEAK_DIMENSIONS` damped when they fire alone), `human_writing_signals` enters with a
-  NEGATIVE weight, and `scoring/confidence.py:abstain_reason` caps the label at "mild" on short/
-  non-English input. Don't make individual features "conservative" — let the scorer do it.
+  gate: every `WEAK_DIMENSION` is damped (x0.3) unless the strongest `CORROBORATING_DIMENSION`
+  (strong AND span-backed; never genericity/cadence/redundancy/human) is elevated, ramping to full
+  weight between 0.25 and 0.5 (`weights.py:weak_gate`). The score is continuous and non-decreasing
+  in every dimension; keep it that way. `human_writing_signals` enters with a NEGATIVE weight
+  (unscaled by strictness); `STRICTNESS_GAIN` scales only the positive evidence sum, never the
+  bias; `scoring/confidence.py:abstain_reason` caps the label at "mild" on short/non-English
+  input. Don't make individual features "conservative" — let the scorer do it.
+- **Filter, then score.** Span-backed features implement `SpanScored.score_spans` (`features/
+  base.py`) and route `extract` through it, so `score_spans(all_spans) == extract().score`. The
+  scorer drops disabled/suppressed spans and applies severity overrides BEFORE computing `by_dim`
+  (`scorer.py:_extract_filtered`). A new rule-driven feature must implement `score_spans` and
+  `rule_ids` (the latter feeds `features/catalog.py`, which validates suppression names).
 - **Rule data is YAML** under `src/slopscore/data/` (force-included into the wheel). `patterns/` is
   organized into category subdirs loaded by `_ruleset.load_rules_from_directory`; `lexicons/markers.yaml`
   carries `era`/`source` tags. The spaCy path lives behind `features/_nlp.py`.
 - Dimensions: lexical_markers, formulaic_structure, significance_inflation, insight_signaling,
   performative_candor (weak), superficial_analysis, weasel_attribution, parallelism,
   copula_avoidance, genericity, redundancy, cadence_sameness, formatting_tells (weak),
-  prompt_residue, human_writing_signals (negative).
-  unsupported_claims has no feature yet (contributes 0). `insight_signaling` (v0.7) and
-  `performative_candor` (v0.9) are rules-only — deliberately excluded from the ML `FEATURE_ORDER`,
-  so they need no model retrain.
+  prompt_residue, human_writing_signals (negative). `genericity`, `cadence_sameness`, `redundancy`,
+  and `human_writing_signals` are STATISTICAL (no spans, low weight, never corroborate).
+  `insight_signaling` (v0.7) and `performative_candor` (v0.9) are rules-only — deliberately
+  excluded from the ML `FEATURE_ORDER`, so they need no model retrain.
 - **Personal baseline:** `scoring/calibrate.py` builds robust per-dimension stats from a corpus;
   `scan --baseline <name>` attaches z-score deviations. Profiles (`scoring/profiles.py`) are hand-set
   (see `PROFILE_NOTES.md`); citations + fairness caveats live in `MODEL_CARD.md`.
 
 Scoring engines (v0.3): `scoring/scorer.py` dispatches on `Settings.scorer` (`Scorer.rules` default
 vs `Scorer.ml`). The ML path (`scoring/model.py`) is a pure-numpy logistic model loaded from
-`data/model/slopscore-v0.3.json` over `FEATURE_ORDER`; sign-constrained (slop dims ≥0, human signal
+`data/model/slopscore-v0.5.json` over `FEATURE_ORDER`; sign-constrained (slop dims ≥0, human signal
 ≤0), Platt-calibrated. The corroboration gate is rules-only; abstention applies to both. Train with
 `scripts/eval/train.py` (sklearn+scipy, OOF metrics); evaluate with `slopscore-lint eval` / the
 `slopscore.eval/` package (metrics, fairness, selective, span_metrics). Promotion is gated by
 `eval/harness.py:should_promote` (TPR@1%FPR + no subgroup-FPR regression) — currently rules wins, so
 ML stays opt-in. Eval data: `eval/datasets/seed.jsonl` (committed) + `scripts/eval/fetch.py` (large
 corpora, not committed); licensing in `DATA_SOURCES.md`. **Never train the shipped model on NC data;
-never import sklearn at scan time** (the ML path is numpy-only).
+never import sklearn at scan time** (the ML path and `features/redundancy.py` are numpy-only;
+scikit-learn is the `[eval]` extra and `tests/test_redundancy_numpy.py` asserts it stays out of the
+scan path).
 
 Linter maturity (v0.4): `config_file.py` loads `slopscore.toml`/`[tool.slopscore]` via `tomllib`
 (precedence CLI > slopscore.toml > pyproject > defaults; `resolve_settings` merges, `Settings`

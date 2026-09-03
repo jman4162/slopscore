@@ -17,12 +17,14 @@ rules:
 
   - rule_id: COPULA_BOASTS
     severity: medium
-    pattern: "\\bboasts? (?:a |an |its |the |over |more than )?\\b"
+    pattern: "\\bboasts? (?:a |an |its |the |over |more than )(?=\\w)"
     explanation: "'boasts' (meaning 'has') marketing copula."
     source: "WP:AIVOCAB"
 
   - rule_id: COPULA_FEATURES_OFFERS
     severity: low
-    pattern: "\\b(?:features?|offers?|provides?|delivers?|showcases?) (?:a |an |its |the )(?:wide |diverse |vast |comprehensive |stunning )?\\b"
+    # "provides a" / "offers a" are the commonest constructions in API documentation, so they
+    # count only with a marketing adjective ("offers a wide range"); the others count bare.
+    pattern: "\\b(?:features?|delivers?|showcases?) (?:a |an |its |the )(?:wide |diverse |vast |comprehensive |stunning )?\\b|\\b(?:offers?|provides?) (?:a |an |its |the )(?:wide |diverse |vast |comprehensive |stunning |seamless |unparalleled |rich |unique )\\b"
     explanation: "'features/offers a' marketing verb replacing 'has'."
     source: "WP:AICOPULA"

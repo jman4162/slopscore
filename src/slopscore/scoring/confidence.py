@@ -50,11 +50,12 @@ def compute_confidence(doc: Document, settings: Settings) -> tuple[float, list[s
 _ABSTAIN_WORDS = 100
 
 
-def abstain_reason(doc: Document, settings: Settings, *, elevated_count: int) -> str | None:
+def abstain_reason(doc: Document, settings: Settings) -> str | None:
     """Return a reason to abstain from a confident label, or None to score normally.
 
-    Abstaining caps the reported label at "mild" — slopscore refuses to call a text severe when
-    the evidence base is too thin to be fair (short text, non-English, or no corroborating tell).
+    Abstaining caps the reported label at "mild": slopscore refuses to call a text severe when
+    the evidence base is too thin to be fair (short text or non-English). The "no corroborating
+    tell" case is handled by the scorer's corroboration gate, which damps the score itself.
     """
     if doc.word_count < _ABSTAIN_WORDS:
         return (

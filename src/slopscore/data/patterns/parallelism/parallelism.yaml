@@ -40,7 +40,9 @@ rules:
 
   - rule_id: PARALLEL_X_NOT_Y
     severity: low
-    pattern: "(?:^|(?<=[.!?:]\\s)|(?<=\\*\\*))[A-Z][^.?!,;:]{1,30},\\s+not\\s+[^.?!,;:]{1,30}[.!?]"
+    # (?-i:[A-Z]) keeps the sentence-initial capital case-sensitive: rules compile under
+    # IGNORECASE, so a bare [A-Z] matched any letter and this fired mid-sentence.
+    pattern: "(?:^|(?<=[.!?:]\\s)|(?<=\\*\\*))(?-i:[A-Z])[^.?!,;:]{1,30},\\s+not\\s+[^.?!,;:]{1,30}[.!?]"
     explanation: "'X, not Y' elliptical antithesis slogan (punchy contrast takeaway)."
     source: "WP:AIPARALLEL"
 

@@ -10,7 +10,9 @@ rules:
 
   - rule_id: WEASEL_STUDIES_SHOW
     severity: medium
-    pattern: "\\b(?:studies|research|reports?|data|evidence|sources?|surveys?) (?:show|shows|suggest|suggests|indicate|indicates|reveal|reveals|demonstrate|demonstrates|find|finds)\\b"
+    # Citation lookahead (same as CLAIM_AUTHORITY_NO_CITATION): a bracketed reference, a
+    # parenthetical year, a URL, or "et al" within the sentence means the source IS named.
+    pattern: "\\b(?:studies|research|reports?|data|evidence|sources?|surveys?) (?:show|shows|suggest|suggests|indicate|indicates|reveal|reveals|demonstrate|demonstrates|find|finds)\\b(?![^.?!]{0,80}?(?:\\[|\\(\\d{4}|https?://|et al))"
     explanation: "'studies show' style claim with no specific citation."
     source: "WP:AIWEASEL"
 

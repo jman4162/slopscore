@@ -38,7 +38,9 @@ not
 > "This was written by AI."
 
 Think of it as a linter for slop, closer to Vale or ruff than to a black-box AI detector.
-Every point in the score comes from a visible rule with an evidence span.
+Rule-driven dimensions carry an evidence span for every hit. Four statistical dimensions
+(genericity, cadence, redundancy, and the human-signal counterweight) carry no spans; they are
+low-weighted and never corroborate a weak tell.
 
 ## Install
 
@@ -71,7 +73,7 @@ Evidence (26 findings; each line has a char offset, severity, and explanation):
   152  WEASEL_EXPERTS_ARGUE        medium  "Experts argue"
 ```
 
-Every point in the score traces to a rule and the span that triggered it. `scan` returns exit code
+Every finding traces to a rule and the span that triggered it. `scan` returns exit code
 `1` when findings reach the `--fail-on` threshold, so it drops into CI unchanged:
 
 ```bash
@@ -153,7 +155,7 @@ slopscore-lint scan post.md --format html -o report.html          # highlighted-
 ```yaml
 repos:
   - repo: https://github.com/jman4162/slopscore
-    rev: v0.8.0
+    rev: v0.10.0
     hooks:
       - id: slopscore-lint
         args: ["--fail-on", "high"]
@@ -242,6 +244,19 @@ for f in Path("posts").glob("*.md"):
 ```
 
 ## Status
+
+v0.9: `performative_candor`, a third rule-driven axis after fake insight and fake evidence: points
+framed as difficult confessions ("I have to be honest", "truth be told"), sincerity adjectives on
+abstract nouns, and manufactured reluctance. Kept as its own dimension because its genre
+multipliers invert relative to `insight_signaling`. v0.9.2 hardened the GitHub Action against
+input injection, made `--fail-on-new` without a baseline a usage error, gave `--diff` a clean
+exit on a bad ref, stopped scoring GFM tables as prose, and added a Python matrix, an extras job,
+and a wheel-install smoke test to CI.
+
+v0.8: `insight_signaling` for pseudo-profundity that announces insight rather than containing it
+("load-bearing", "the crux of the issue", "pressure-test the claim"), with an opt-in `--broad`
+tier for rationalist jargon; the weasel dimension gained impersonal-passive attribution and
+unearned-certainty openers; `slopscore-lint explain` documents every rule.
 
 v0.7: accuracy and robustness. Fixed a false "severe" on Markdown posts with code blocks (the code
 fences inflated `prompt_residue` when ingested as text). The `[nlp]` extra now genuinely upgrades two

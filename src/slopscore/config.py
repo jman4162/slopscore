@@ -14,8 +14,9 @@ class Strictness(StrEnum):
     sensitive = "sensitive"
 
 
-# Strictness scales the final logit before the sigmoid: conservative pulls scores
-# down (fewer false accusations), sensitive pushes them up.
+# Strictness scales the positive evidence sum (not the bias, and not the human-signal
+# counterweight): conservative needs 25% more evidence to reach a given score, sensitive 20% less,
+# and the zero-evidence floor is the same at every setting.
 STRICTNESS_GAIN: dict[Strictness, float] = {
     Strictness.conservative: 0.8,
     Strictness.balanced: 1.0,

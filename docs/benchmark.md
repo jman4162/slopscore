@@ -10,8 +10,13 @@ labeling rubric is in
 
 | Set | n | AUROC | PR-AUC | TPR@1%FPR | ECE |
 |---|---|---|---|---|---|
-| benchmark (overt slop, in-sample) | 141 | 0.90 | 0.91 | 0.66 | 0.16 |
-| Wikipedia AI-Cleanup (held-out, real wild slop) | 40 | 0.69 | 0.65 | 0.00 | 0.39 |
+| benchmark (overt slop, in-sample) | 141 | 0.87 | 0.89 | 0.56 | 0.27 |
+| Wikipedia AI-Cleanup (held-out, real wild slop) | 40 | 0.65 | 0.63 | 0.00 | 0.46 |
+
+Every benchmark row is 13 to 40 words, under the 100-word abstention floor, so these numbers
+describe short-fragment discrimination only. v0.10 lowered them slightly (from 0.90 / 0.66 on the
+benchmark) in exchange for a monotone corroboration gate, rules that lose their points when
+silenced, and a genericity dimension that no longer reads abstract human prose as slop.
 
 slopscore separates overt formulaic slop from clean prose well. On real Wikipedia cases it is only
 moderately better than chance and catches almost none at a strict 1%-false-positive operating

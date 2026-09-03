@@ -8,12 +8,16 @@ on:
 jobs:
   gate:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
       - name: Sync (dev deps)
         run: uv sync
       - name: Lint
@@ -24,3 +28,40 @@ jobs:
         run: uv run mypy src
       - name: Tests
         run: uv run pytest -q
+
+  # The optional extras never ran in the default job (their tests skip without the packages), so
+  # the HTML renderer, spaCy path, embedding redundancy, and lingua detection were untested in CI.
+  extras:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Sync with extras
+        run: uv sync --extra nlp --extra report --extra lang
+      - name: spaCy model
+        run: uv run python -m spacy download en_core_web_sm
+      - name: Tests (extras must not skip)
+        run: uv run pytest -q -rs
+
+  # Build the wheel, install it into a clean interpreter, and run the console script. pytest
+  # imports from src/ via pythonpath, so it cannot catch a wheel that ships without the CLI.
+  wheel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Build
+        run: uv build
+      - name: Install wheel into a clean venv and smoke the CLI
+        run: |
+          python -m venv /tmp/smoke
+          /tmp/smoke/bin/python -m pip install --quiet dist/*.whl
+          /tmp/smoke/bin/slopscore-lint --help > /dev/null
+          /tmp/smoke/bin/slopscore-lint scan README.md --format json > /tmp/readme.json
+          /tmp/smoke/bin/python -c "import json; r = json.load(open('/tmp/readme.json')); assert r['score']['label'] == 'low', r['score']"

@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 # PyPI distribution name ("slopscore" was already taken by a different, similar tool). The import
 # package stays `slopscore`; the CLI command is `slopscore-lint` (scikit-learn / sklearn pattern).
 name = "slopscore-lint"
-version = "0.9.1"
+version = "0.10.0"
 description = "Transparent AI-slop writing-pattern analysis for essays, blog posts, Markdown, JSON, and websites."
 readme = "README.md"
 license = "MIT"
@@ -36,7 +36,6 @@ dependencies = [
     "pysbd>=0.3.4",
     "ftfy>=6.2",
     "numpy>=1.26",
-    "scikit-learn>=1.4",
     "pyyaml>=6.0",
     "jsonpath-ng>=1.6",
 ]
@@ -50,8 +49,9 @@ nlp = ["spacy>=3.7", "sentence-transformers>=3.0"]
 lang = ["lingua-language-detector>=2.0"]
 # HTML report rendering (Jinja2 autoescaping).
 report = ["jinja2>=3.1"]
-# Fetching the large public evaluation corpora (scripts/eval/fetch.py).
-eval = ["datasets>=2.19", "huggingface-hub>=0.23"]
+# Evaluation: metrics (scikit-learn), model training, and fetching the large public corpora
+# (scripts/eval/fetch.py). The scan path is numpy-only and never imports scikit-learn.
+eval = ["scikit-learn>=1.4", "datasets>=2.19", "huggingface-hub>=0.23"]
 # Experimental gradient-boosted scorer (research only; never shipped at scan time).
 ml = ["lightgbm>=4.0"]
 # Documentation site.
@@ -72,6 +72,7 @@ Issues = "https://github.com/jman4162/slopscore/issues"
 
 [dependency-groups]
 dev = [
+    "scikit-learn>=1.4",
     "pytest>=8.2",
     "pytest-cov>=5.0",
     "mypy>=1.10",

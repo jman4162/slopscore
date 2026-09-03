@@ -89,9 +89,16 @@ def resolve_settings(
     Precedence per field: CLI override > file config > built-in default.
     """
     from slopscore.config import Scorer, Settings, Strictness
+    from slopscore.scoring.profiles import KNOWN_PROFILES
 
+    resolved_profile = profile or file_cfg.get("profile") or "blog"
+    if resolved_profile not in KNOWN_PROFILES:
+        # An unknown profile used to score silently with neutral multipliers.
+        raise ValueError(
+            f"Unknown profile {resolved_profile!r}; expected one of: {', '.join(KNOWN_PROFILES)}."
+        )
     return Settings(
-        profile=profile or file_cfg.get("profile") or "blog",
+        profile=resolved_profile,
         strictness=Strictness(strictness or file_cfg.get("strictness") or "conservative"),
         scorer=Scorer(scorer or file_cfg.get("scorer") or "rules"),
         min_reliable_words=int(file_cfg.get("min_reliable_words", 300)),

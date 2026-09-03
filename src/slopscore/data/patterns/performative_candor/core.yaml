@@ -59,7 +59,10 @@ rules:
     # honestly") quiet — that is this rule's main fairness property.
     # Do NOT add "Sincerely," or "Truly,": rules compile under MULTILINE, so ^ matches every line
     # start and those would fire on every email sign-off.
-    pattern: "(?:^|(?<=[.!?]\\s)|(?<=[.!?]\\s\\s)|(?<=,\\s)|(?<=^[-*]\\s))(?:Honestly|Frankly|Candidly|Truthfully),"
+    # The comma-flanked parenthetical ("This is, frankly, absurd") counts, but not a manner
+    # adverb inside a list ("plainly, honestly, and without malice"): the list case is excluded
+    # by a preceding "-ly," item or a following ", and/or".
+    pattern: "(?:(?:^|(?<=[.!?]\\s)|(?<=[.!?]\\s\\s)|(?<=^[-*]\\s))(?:Honestly|Frankly|Candidly|Truthfully),|(?<=,\\s)(?<!ly,\\s)(?:Honestly|Frankly|Candidly|Truthfully),(?!\\s*(?:and|or|but)\\b))"
     explanation: "'Honestly, / Frankly,' opener — sincerity styling with no informational content."
     source: "AI-tell (2024-2026)"
 

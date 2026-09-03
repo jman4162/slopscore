@@ -35,6 +35,15 @@ def test_strictness_changes_score(slop_text: str) -> None:
     assert sensitive >= conservative
 
 
+def test_strictness_is_not_inverted_on_clean_text(clean_text: str) -> None:
+    # Before v0.10 the gain multiplied the bias too, so "conservative" scored clean prose HIGHER
+    # than "sensitive". The gain now scales only the evidence sum.
+    conservative = scan_text(clean_text, strictness="conservative").score.slop_score
+    balanced = scan_text(clean_text, strictness="balanced").score.slop_score
+    sensitive = scan_text(clean_text, strictness="sensitive").score.slop_score
+    assert conservative <= balanced <= sensitive
+
+
 def test_json_round_trips_through_model(slop_text: str) -> None:
     from slopscore.models import Report
 

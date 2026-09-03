@@ -51,8 +51,12 @@ def test_prompt_residue_clean_is_zero(clean_text: str) -> None:
     assert result.score == 0.0
 
 
-def test_evidence_offsets_round_trip(slop_text: str) -> None:
-    doc = _doc(slop_text)
-    result = LexicalMarkers().extract(doc, "blog")
-    for e in result.spans:
-        assert doc.original_text[e.start_char : e.end_char] == e.span
+def test_evidence_offsets_round_trip(slop_text: str, residue_text: str) -> None:
+    from slopscore.features.base import registry
+
+    curly = " She said \u201cthat\u2019s fine\u201d and \u201cso be it\u201d \u2014 twice."
+    for text in (slop_text, residue_text, slop_text + curly):
+        doc = _doc(text)
+        for feature in registry():
+            for e in feature.extract(doc, "blog").spans:
+                assert doc.original_text[e.start_char : e.end_char] == e.span, feature.dimension

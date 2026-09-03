@@ -43,6 +43,10 @@ def _swaps() -> list[_Swap]:
     ]
 
 
+def suggestion_rule_ids() -> frozenset[str]:
+    return frozenset(s.rule_id for s in _swaps())
+
+
 def find_suggestions(doc: Document) -> list[Evidence]:
     spans: list[Evidence] = []
     for swap in _swaps():

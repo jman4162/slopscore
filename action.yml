@@ -21,6 +21,10 @@ inputs:
     description: "Fail the job if any finding reaches this severity: none | low | medium | high."
     required: false
     default: "high"
+  version:
+    description: "slopscore-lint version to install from PyPI (pinned per action release)."
+    required: false
+    default: "0.10.0"
   upload-sarif:
     description: Upload results to GitHub code scanning.
     required: false
@@ -35,17 +39,26 @@ runs:
 
     - name: Install slopscore
       shell: bash
-      run: pip install slopscore-lint
+      env:
+        SLOP_VERSION: ${{ inputs.version }}
+      run: python -m pip install "slopscore-lint==${SLOP_VERSION}"
 
+    # Inputs are passed through `env:` and quoted, never interpolated into the script body, so an
+    # input derived from untrusted event data cannot inject shell.
     - name: Scan
       id: scan
       shell: bash
+      env:
+        SLOP_FILES: ${{ inputs.files }}
+        SLOP_RECURSIVE: ${{ inputs.recursive }}
+        SLOP_PROFILE: ${{ inputs.profile }}
+        SLOP_FAIL_ON: ${{ inputs.fail-on }}
       run: |
-        recurse=""
-        [ "${{ inputs.recursive }}" = "true" ] && recurse="--recursive"
-        slopscore-lint scan "${{ inputs.files }}" $recurse \
-          --profile "${{ inputs.profile }}" \
-          --fail-on "${{ inputs.fail-on }}" \
+        args=()
+        [ "$SLOP_RECURSIVE" = "true" ] && args+=(--recursive)
+        slopscore-lint scan "$SLOP_FILES" "${args[@]}" \
+          --profile "$SLOP_PROFILE" \
+          --fail-on "$SLOP_FAIL_ON" \
           --format sarif --output slopscore.sarif
 
     - name: Upload SARIF

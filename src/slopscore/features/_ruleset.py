@@ -10,7 +10,16 @@ import yaml
 
 from slopscore.config import data_path
 from slopscore.document import Document
+from slopscore.features.base import SEVERITY_WEIGHT
 from slopscore.models import Evidence, Severity
+
+__all__ = [
+    "SEVERITY_WEIGHT",
+    "Rule",
+    "find_matches",
+    "load_rules",
+    "load_rules_from_directory",
+]
 
 
 @dataclass(frozen=True)
@@ -72,11 +81,3 @@ def find_matches(doc: Document, rules: list[Rule]) -> list[Evidence]:
                 )
             )
     return spans
-
-
-# Severity weights used when turning a set of hits into a [0, 1] score.
-SEVERITY_WEIGHT: dict[Severity, float] = {
-    Severity.low: 1.0,
-    Severity.medium: 2.0,
-    Severity.high: 4.0,
-}

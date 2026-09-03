@@ -37,8 +37,10 @@ rules:
     pattern: "\\[(?:insert[^\\]]*|placeholder|your \\w+ here|citation needed)\\]"
     explanation: "Unfilled placeholder left in the text."
 
+  # Low: Markdown ingest strips fenced code, so this only fires on Markdown pasted through the
+  # plain-text path, or on a lone backtick run inside a sentence about code fences.
   - rule_id: RESIDUE_CODE_FENCE
-    severity: medium
+    severity: low
     pattern: "```(?:markdown|json|text|html)?"
     explanation: "Stray Markdown code-fence artifact."
 

@@ -1,8 +1,12 @@
 """Combine feature results into a 0-100 SlopScore and assemble the Report.
 
-Conservatism (v0.2): weak-alone dimensions are damped by a corroboration gate unless another
-dimension co-fires; ``human_writing_signals`` enters with a negative weight; and the score
-abstains from a confident label on very short or non-English input.
+Conservatism: weak-alone dimensions are damped by a corroboration gate unless a strong,
+span-backed dimension co-fires; ``human_writing_signals`` enters with a negative weight; and the
+score abstains from a confident label on very short or non-English input.
+
+Ordering matters: disabled rules, inline suppressions, and severity overrides are applied to each
+feature's spans BEFORE its score is computed (``SpanScored.score_spans``), so silencing a rule
+removes its points as well as its evidence.
 """
 
 from __future__ import annotations
@@ -11,7 +15,7 @@ import math
 
 from slopscore.config import STRICTNESS_GAIN, Scorer, Settings
 from slopscore.document import Document
-from slopscore.features.base import registry
+from slopscore.features.base import Feature, SpanScored, registry
 from slopscore.models import (
     STANDARD_WARNINGS,
     Dimension,
@@ -29,90 +33,117 @@ from slopscore.scoring.confidence import abstain_reason, compute_confidence
 from slopscore.scoring.profiles import profile_multipliers
 from slopscore.scoring.weights import (
     BIAS,
+    CORROBORATING_DIMENSIONS,
     DEFAULT_WEIGHTS,
     ELEVATED,
-    LONE_WEAK_DAMP,
     WEAK_DIMENSIONS,
+    weak_gate,
 )
+from slopscore.suppress import Suppressions
 
 
 def _sigmoid(x: float) -> float:
     return 1.0 / (1.0 + math.exp(-x))
 
 
-def _score_rules(
-    by_dim: dict[Dimension, float], settings: Settings, elevated: set[Dimension]
-) -> tuple[float, list[str]]:
-    """Hand-set weighted sum with the corroboration gate. Returns (slop_score, gated_notes)."""
+def _score_rules(by_dim: dict[Dimension, float], settings: Settings) -> tuple[float, list[str]]:
+    """Hand-set weighted sum with the corroboration gate. Returns (slop_score, gated_notes).
+
+    ``logit = BIAS + gain * S_pos + w_human * human`` where ``S_pos`` is the gated, profile-
+    weighted sum over the slop-raising dimensions. The strictness gain scales only the evidence
+    sum: scaling the bias as well made "conservative" score HIGHER than "sensitive" on clean text.
+    """
     multipliers = profile_multipliers(settings.profile)
-    logit = BIAS
-    gated_notes: list[str] = []
+    strongest = max((by_dim.get(d, 0.0) for d in CORROBORATING_DIMENSIONS), default=0.0)
+    gate = weak_gate(strongest)
+    gated_notes = [d.value for d in WEAK_DIMENSIONS if gate < 1.0 and by_dim.get(d, 0.0) > ELEVATED]
+
+    positive = 0.0
+    human = 0.0
     for dim, weight in DEFAULT_WEIGHTS.items():
         value = by_dim.get(dim, 0.0)
-        gate = 1.0
-        if dim in WEAK_DIMENSIONS and dim in elevated and elevated == {dim}:
-            gate = LONE_WEAK_DAMP
-            gated_notes.append(dim.value)
-        logit += weight * multipliers.get(dim, 1.0) * gate * value
-    logit *= STRICTNESS_GAIN[settings.strictness]
-    return round(100.0 * _sigmoid(logit), 1), gated_notes
+        if dim is Dimension.human_writing_signals:
+            human = weight * value
+            continue
+        dim_gate = gate if dim in WEAK_DIMENSIONS else 1.0
+        positive += weight * multipliers.get(dim, 1.0) * dim_gate * value
+    logit = BIAS + STRICTNESS_GAIN[settings.strictness] * positive + human
+    return round(100.0 * _sigmoid(logit), 1), sorted(gated_notes)
 
 
 def _score_ml(by_dim: dict[Dimension, float]) -> float:
     """Learned logistic-regression score over the raw dimension vector (no corroboration gate;
     the model's learned weights and calibration are the scoring rule)."""
-    from slopscore.models import Dimensions
     from slopscore.scoring.model import feature_vector, load_model
 
     dims = Dimensions(**{d.value: v for d, v in by_dim.items()})
     return load_model().slop_score(feature_vector(dims))
 
 
-def _assemble_evidence(
-    results: list[FeatureResult],
+def _filter_spans(
+    result: FeatureResult, settings: Settings, suppressions: Suppressions
+) -> tuple[list[Evidence], bool]:
+    """Apply per-rule disable, inline suppression, and severity overrides to one feature's spans.
+
+    Returns the surviving spans and whether anything changed (so an unchanged feature keeps its
+    already-computed score without a second pass).
+    """
+    kept: list[Evidence] = []
+    changed = False
+    for e in result.spans:
+        if e.rule_id in settings.disabled_rules or suppressions.is_suppressed(
+            e.start_char, e.rule_id, result.dimension.value
+        ):
+            changed = True
+            continue
+        override = settings.rule_severity.get(e.rule_id)
+        if override and override != e.severity.value:
+            e = e.model_copy(update={"severity": Severity(override)})
+            changed = True
+        kept.append(e)
+    return kept, changed
+
+
+def _extract_filtered(
+    feature: Feature,
     doc: Document,
     settings: Settings,
-    warnings: list[str],
-) -> list[Evidence]:
-    """Collect spans, then apply per-rule disable, severity overrides, and inline suppression."""
-    from slopscore.suppress import parse_suppressions
-
-    known = frozenset(d.value for d in Dimension) | {e.rule_id for r in results for e in r.spans}
-    suppressions = parse_suppressions(doc.original_text, known)
-    if suppressions.unknown_names:
-        warnings.insert(
-            0,
-            "Unknown name(s) in a slopscore suppression comment: "
-            + ", ".join(sorted(suppressions.unknown_names)),
-        )
-
-    out: list[Evidence] = []
-    for r in results:
-        for e in r.spans:
-            if e.rule_id in settings.disabled_rules:
-                continue
-            if suppressions.is_suppressed(e.start_char, e.rule_id, r.dimension.value):
-                continue
-            override = settings.rule_severity.get(e.rule_id)
-            if override and override != e.severity.value:
-                e = e.model_copy(update={"severity": Severity(override)})
-            out.append(e)
-    if settings.suggest:
-        from slopscore.features.suggestions import find_suggestions
-
-        out.extend(e for e in find_suggestions(doc) if e.rule_id not in settings.disabled_rules)
-    out.sort(key=lambda e: e.start_char)
-    return out
+    suppressions: Suppressions,
+    *,
+    broad: bool = False,
+) -> FeatureResult:
+    """Run one feature, drop its silenced spans, and rescore it from what survives."""
+    if broad:
+        result = feature.extract(doc, settings.profile, broad=True)  # type: ignore[call-arg]
+    else:
+        result = feature.extract(doc, settings.profile)
+    kept, changed = _filter_spans(result, settings, suppressions)
+    if not changed:
+        return result
+    if isinstance(feature, SpanScored):
+        score = feature.score_spans(doc, settings.profile, kept)
+        return FeatureResult(dimension=result.dimension, score=score, spans=kept)
+    return result.model_copy(update={"spans": kept})
 
 
 def score_document(doc: Document, settings: Settings) -> Report:
+    from slopscore.features.catalog import known_suppression_names
+    from slopscore.suppress import parse_suppressions
+
+    warnings: list[str] = []
+    suppressions = parse_suppressions(doc.original_text, known_suppression_names())
+    if suppressions.unknown_names:
+        warnings.append(
+            "Unknown name(s) in a slopscore suppression comment: "
+            + ", ".join(sorted(suppressions.unknown_names))
+        )
+
     # Disabled dimensions skip their feature entirely (contribute 0 and emit no findings).
     results: list[FeatureResult] = [
-        f.extract(doc, settings.profile)
+        _extract_filtered(f, doc, settings, suppressions)
         for f in registry()
         if f.dimension.value not in settings.disabled_dimensions
     ]
-    by_dim: dict[Dimension, float] = {r.dimension: r.score for r in results}
 
     # Opt-in broad tier: re-score each broad-capable phrase pack over core + broad rules (mirrors
     # the settings.suggest special-case). Off by default so dimensions stay conservative.
@@ -122,23 +153,19 @@ def score_document(doc: Document, settings: Settings) -> Report:
         for pack in broad_packs():
             if pack.dimension.value in settings.disabled_dimensions:
                 continue
-            broad_result = pack.extract(doc, settings.profile, broad=True)
+            broad_result = _extract_filtered(pack, doc, settings, suppressions, broad=True)
             results = [broad_result if r.dimension is pack.dimension else r for r in results]
-            by_dim[pack.dimension] = broad_result.score
 
-    # Positive (slop-raising) dimensions that are elevated, ignoring the negative human signal.
-    elevated: set[Dimension] = {
-        d for d, v in by_dim.items() if v > ELEVATED and d is not Dimension.human_writing_signals
-    }
+    by_dim: dict[Dimension, float] = {r.dimension: r.score for r in results}
 
     gated_notes: list[str] = []
     if settings.scorer is Scorer.ml:
         slop_score = _score_ml(by_dim)
     else:
-        slop_score, gated_notes = _score_rules(by_dim, settings, elevated)
+        slop_score, gated_notes = _score_rules(by_dim, settings)
 
     confidence, conf_warnings = compute_confidence(doc, settings)
-    abstained_reason = abstain_reason(doc, settings, elevated_count=len(elevated))
+    abstained_reason = abstain_reason(doc, settings)
 
     label = label_for_score(slop_score)
     if abstained_reason is not None:
@@ -146,16 +173,23 @@ def score_document(doc: Document, settings: Settings) -> Report:
         if label in (Label.elevated, Label.severe):
             label = Label.mild
 
-    warnings = [*conf_warnings, *STANDARD_WARNINGS]
     if gated_notes:
-        warnings.insert(
-            0,
+        warnings.append(
             "Damped (weak alone, no corroborating tell): "
-            + ", ".join(sorted(gated_notes))
-            + ". Use --strictness sensitive to include these.",
+            + ", ".join(gated_notes)
+            + ". These dimensions count in full only when a strong tell co-fires."
         )
+    warnings.extend(conf_warnings)
+    warnings.extend(STANDARD_WARNINGS)
 
-    evidence = _assemble_evidence(results, doc, settings, warnings)
+    evidence: list[Evidence] = [e for r in results for e in r.spans]
+    if settings.suggest:
+        from slopscore.features.suggestions import find_suggestions
+
+        evidence.extend(
+            e for e in find_suggestions(doc) if e.rule_id not in settings.disabled_rules
+        )
+    evidence.sort(key=lambda e: e.start_char)
 
     return Report(
         input=InputMeta(

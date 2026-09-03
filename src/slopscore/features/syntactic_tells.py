@@ -9,19 +9,14 @@ approximation also fires on ordinary participles). parallelism and copula stay r
 
 from __future__ import annotations
 
-from functools import lru_cache
+from functools import cached_property
 
 import regex as re
 
 from slopscore.document import Document
 from slopscore.features._nlp import is_nlp_available, parse
-from slopscore.features._ruleset import (
-    SEVERITY_WEIGHT,
-    Rule,
-    find_matches,
-    load_rules_from_directory,
-)
-from slopscore.features.base import per_hundred_words, register, saturating
+from slopscore.features._ruleset import Rule, find_matches, load_rules_from_directory
+from slopscore.features.base import per_hundred_words, register, saturating, severity_rate_score
 from slopscore.models import Dimension, Evidence, FeatureResult, Severity
 
 # --- superficial analysis ('-ing' adjunct clauses) -------------------------------------------
@@ -55,11 +50,17 @@ class SuperficialAnalysis:
     dimension = Dimension.superficial_analysis
     _full_scale = 2.0
 
+    def rule_ids(self) -> frozenset[str]:
+        return frozenset({"SUPERFICIAL_PARTICIPLE_CLAUSE"})
+
+    def score_spans(self, doc: Document, profile: str, spans: list[Evidence]) -> float:
+        # Unweighted: every clause is medium severity, so the count is the signal.
+        return saturating(per_hundred_words(len(spans), doc.word_count), self._full_scale)
+
     def extract(self, doc: Document, profile: str) -> FeatureResult:
         spans = self._nlp_spans(doc) if is_nlp_available() else self._regex_spans(doc)
-        rate = per_hundred_words(len(spans), doc.word_count)
         return FeatureResult(
-            dimension=self.dimension, score=saturating(rate, self._full_scale), spans=spans
+            dimension=self.dimension, score=self.score_spans(doc, profile, spans), spans=spans
         )
 
     def _regex_spans(self, doc: Document) -> list[Evidence]:
@@ -118,28 +119,47 @@ class SuperficialAnalysis:
 
 # Three coordinated abstract/evaluative items ("vibrant, dynamic, and transformative").
 _TRICOLON = re.compile(r"\b(\w+), (\w+),? and (\w+)\b")
-_ABSTRACT_SUFFIX = re.compile(r"(?:ing|ity|ness|tion|ment|ive|ous|ful|ant|ent|al|ic)$")
+# Evaluative / abstract-uplift vocabulary that makes a list of three read as a rhetorical
+# tricolon. A suffix heuristic (-ing, -al, -ic, -ity ...) was used before and fired on any
+# technical enumeration: "electrical, mechanical, and thermal properties", "parsing, formatting,
+# and printing", "testing, staging, and production". Two of the three items must be in this set.
+_EVALUATIVE = frozenset(
+    """vibrant dynamic transformative innovative robust seamless holistic meaningful impactful
+    powerful essential crucial pivotal sustainable inclusive resilient authentic engaging
+    compelling insightful thoughtful unique diverse rich profound enduring timeless intuitive
+    scalable efficient effective empowering inspiring groundbreaking cutting-edge revolutionary
+    strategic agile versatile comprehensive elegant nuanced multifaceted thriving flourishing
+    creativity innovation growth resilience clarity purpose passion excellence integrity
+    collaboration community connection empowerment sustainability wellbeing well-being harmony
+    curiosity ambition vision impact synergy transparency accountability adaptability
+    fostering empowering inspiring nurturing cultivating driving unlocking elevating
+    streamlining enhancing leveraging harnessing embracing transforming""".split()
+)
 
 
 def _abstract(word: str) -> bool:
-    return bool(_ABSTRACT_SUFFIX.search(word.lower())) and len(word) > 4
+    return word.lower() in _EVALUATIVE
 
 
 class Parallelism:
     dimension = Dimension.parallelism
     _full_scale = 3.0
 
-    @lru_cache(maxsize=1)  # noqa: B019
+    @cached_property
     def _rules(self) -> list[Rule]:
         return load_rules_from_directory("patterns", "parallelism")
 
+    def rule_ids(self) -> frozenset[str]:
+        return frozenset(r.rule_id for r in self._rules) | {"PARALLEL_RULE_OF_THREE"}
+
+    def score_spans(self, doc: Document, profile: str, spans: list[Evidence]) -> float:
+        return severity_rate_score(doc, spans, self._full_scale)
+
     def extract(self, doc: Document, profile: str) -> FeatureResult:
-        spans = find_matches(doc, self._rules())
+        spans = find_matches(doc, self._rules)
         spans.extend(self._tricolon_spans(doc))
-        weighted = sum(SEVERITY_WEIGHT[s.severity] for s in spans)
-        rate = per_hundred_words(weighted, doc.word_count)
         return FeatureResult(
-            dimension=self.dimension, score=saturating(rate, self._full_scale), spans=spans
+            dimension=self.dimension, score=self.score_spans(doc, profile, spans), spans=spans
         )
 
     def _tricolon_spans(self, doc: Document) -> list[Evidence]:
@@ -166,16 +186,20 @@ class CopulaAvoidance:
     dimension = Dimension.copula_avoidance
     _full_scale = 4.0
 
-    @lru_cache(maxsize=1)  # noqa: B019
+    @cached_property
     def _rules(self) -> list[Rule]:
         return load_rules_from_directory("patterns", "copula")
 
+    def rule_ids(self) -> frozenset[str]:
+        return frozenset(r.rule_id for r in self._rules)
+
+    def score_spans(self, doc: Document, profile: str, spans: list[Evidence]) -> float:
+        return severity_rate_score(doc, spans, self._full_scale)
+
     def extract(self, doc: Document, profile: str) -> FeatureResult:
-        spans = find_matches(doc, self._rules())
-        weighted = sum(SEVERITY_WEIGHT[s.severity] for s in spans)
-        rate = per_hundred_words(weighted, doc.word_count)
+        spans = find_matches(doc, self._rules)
         return FeatureResult(
-            dimension=self.dimension, score=saturating(rate, self._full_scale), spans=spans
+            dimension=self.dimension, score=self.score_spans(doc, profile, spans), spans=spans
         )
 
 

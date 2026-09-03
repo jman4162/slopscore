@@ -37,8 +37,10 @@ _HEDGES = re.compile(
     r"a (?:bit|little)|sort of|kind of)\b",
     re.IGNORECASE,
 )
-# Concrete numbers, years, measurements, money.
-_CONCRETE = re.compile(r"\b\d[\d,.]*\b|\$\d|\b(?:19|20)\d{2}\b")
+# Concrete numbers, years, measurements, money. One alternative: a digit run already covers
+# years and the digits after a currency sign (the old "$\d" and year alternatives were
+# unreachable because the first branch consumed them).
+_CONCRETE = re.compile(r"\b\d[\d,.]*\b")
 
 # Rate (per 100 words) of combined human markers at which the signal saturates.
 _FULL_SCALE_PER_100 = 6.0

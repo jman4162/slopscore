@@ -1,8 +1,11 @@
 """Markdown ingestion: extract prose, dropping code, tables, and blockquotes.
 
-We walk marko's CommonMark AST and keep heading and paragraph/list text while skipping
-fenced/indented code, inline code spans, blockquotes, and raw HTML, none of which should be
-scored as prose. Blocks are rejoined with blank lines so paragraph segmentation still works.
+We walk marko's GFM AST and keep heading and paragraph/list text while skipping fenced/indented
+code, tables, inline code spans, blockquotes, and raw HTML, none of which should be scored as
+prose. Blocks are rejoined with blank lines so paragraph segmentation still works. The parser
+must be the GFM one: CommonMark has no table node, so pipe tables used to flow through as one
+long "sentence" of cell text. Link text is kept and the URL appended in parentheses so the
+specificity feature can count it as concrete evidence.
 
 One exception: standalone ``<!-- slopscore-... -->`` control comments are kept (other HTML is
 still dropped) and glued onto the line directly above the block they guard, so inline suppression
@@ -18,6 +21,7 @@ import marko
 import regex as re
 from marko import block, inline
 from marko.element import Element
+from marko.ext.gfm import elements as gfm
 
 from slopscore.ingest import RawSource
 from slopscore.models import SourceType
@@ -27,7 +31,9 @@ _SKIP_BLOCKS: tuple[type[Element], ...] = (
     block.CodeBlock,
     block.Quote,
     block.ThematicBreak,
+    gfm.Table,
 )
+_PARSER = marko.Markdown(extensions=["gfm"])
 _SKIP_INLINE: tuple[type[Element], ...] = (inline.CodeSpan, inline.Image)
 _SLOP_COMMENT = re.compile(r"<!--\s*slopscore-[^>]*-->", re.IGNORECASE)
 
@@ -39,6 +45,10 @@ def _inline_text(el: Element | str) -> str:
         return ""
     if isinstance(el, inline.LineBreak):
         return " "
+    if isinstance(el, inline.Link):
+        label = "".join(_inline_text(c) for c in el.children)
+        dest = getattr(el, "dest", "") or ""
+        return f"{label} ({dest})" if dest.startswith(("http://", "https://")) else label
     children = getattr(el, "children", "")
     if isinstance(children, str):
         return children
@@ -68,7 +78,7 @@ def _walk(el: Element, out: list[str], pending: list[str]) -> None:
 
 
 def markdown_to_prose(md_text: str) -> str:
-    document = marko.parse(md_text)
+    document = _PARSER.parse(md_text)
     blocks: list[str] = []
     pending: list[str] = []
     _walk(document, blocks, pending)

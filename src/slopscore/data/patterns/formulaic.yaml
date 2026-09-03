@@ -10,7 +10,7 @@ rules:
 
   - rule_id: FORMULAIC_WHETHER_BEGINNER
     severity: medium
-    pattern: "whether you(?:'re| are) a (?:seasoned|complete )?\\w+ or (?:an? )?\\w+"
+    pattern: "whether you(?:'re| are) an? (?:seasoned |complete |total |absolute |busy )?\\w+ or (?:an? )?\\w+"
     explanation: "Templated 'whether you're a beginner or an expert' framing."
 
   - rule_id: FORMULAIC_MORE_THAN_JUST

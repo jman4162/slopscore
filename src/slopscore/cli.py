@@ -118,6 +118,12 @@ def scan(
     """Scan a file, directory, URL, or stdin for AI-slop writing patterns."""
     from slopscore.config_file import discover_config, load_config, resolve_settings
 
+    if fail_on_new and baseline_file is None:
+        # Without a baseline there is nothing to compare against; silently exiting 0 (the old
+        # behaviour) made a mistyped CI invocation a permanently green gate.
+        raise typer.BadParameter(
+            "--fail-on-new requires --baseline-file.", param_hint="--fail-on-new"
+        )
     file_cfg = load_config(config) if config else discover_config()[0]
     try:
         settings = resolve_settings(
@@ -198,21 +204,46 @@ def _resolve_batch_paths(
 ) -> list[Path] | None:
     """Return a file list for batch mode, or None for single-target (file/url/stdin)."""
     if diff is not None:
+        import os
         import subprocess
 
-        out = subprocess.run(
-            ["git", "diff", "--name-only", diff],
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout
+        try:
+            root = subprocess.run(
+                ["git", "rev-parse", "--show-toplevel"],
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+            out = subprocess.run(
+                ["git", "diff", "--name-only", diff],
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout
+        except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+            # Exit 2 (usage), not 1: exit 1 means "findings reached --fail-on", and CI must be
+            # able to tell a bad ref from bad prose.
+            detail = (getattr(exc, "stderr", "") or str(exc)).strip()
+            err_console.print(f"[red]git diff against {diff!r} failed:[/red] {detail}")
+            raise typer.Exit(code=2) from exc
+        # git prints repo-root-relative paths; re-anchor them on the cwd so a scan from a
+        # subdirectory finds them, but keep them relative so baseline fingerprints are stable.
         return [
-            Path(line)
+            Path(os.path.relpath(Path(root, line)))
             for line in out.splitlines()
             if Path(line).suffix.lower() in _SCANNABLE_SUFFIXES
         ]
     if len(targets) > 1:
-        return [Path(t) for t in targets]
+        # A directory among several targets is walked like a lone directory target; it used to be
+        # opened as a file and crash with IsADirectoryError.
+        paths: list[Path] = []
+        for t in targets:
+            p = Path(t)
+            if p.is_dir():
+                paths.extend(iter_paths(t, recursive=recursive))
+            else:
+                paths.append(p)
+        return paths
     target = targets[0]
     if target != "-" and not looks_like_url(target) and Path(target).is_dir():
         return list(iter_paths(target, recursive=recursive))
@@ -415,8 +446,16 @@ def eval_cmd(
     import json as _json
 
     from slopscore.eval.datasets import load_jsonl, load_seed
-    from slopscore.eval.harness import evaluate, should_promote
     from slopscore.scoring.model import model_available
+
+    try:
+        from slopscore.eval.harness import evaluate, should_promote
+    except ImportError as exc:  # scikit-learn lives in the [eval] extra
+        err_console.print(
+            "[yellow]The eval command needs the [eval] extra: "
+            'pip install "slopscore-lint[eval]"[/yellow]'
+        )
+        raise typer.Exit(code=3) from exc
 
     rows = load_jsonl(dataset) if dataset else load_seed()
     results = {"rules": evaluate(rows, profile=profile, scorer="rules")}

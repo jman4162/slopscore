@@ -8,17 +8,12 @@ added by dropping a YAML file in the category directory — no code change.
 
 from __future__ import annotations
 
-from functools import lru_cache
+from functools import cached_property
 
 from slopscore.document import Document
-from slopscore.features._ruleset import (
-    SEVERITY_WEIGHT,
-    Rule,
-    find_matches,
-    load_rules_from_directory,
-)
-from slopscore.features.base import per_hundred_words, register, saturating
-from slopscore.models import Dimension, FeatureResult
+from slopscore.features._ruleset import Rule, find_matches, load_rules_from_directory
+from slopscore.features.base import register, severity_rate_score
+from slopscore.models import Dimension, Evidence, FeatureResult
 
 # Phrase packs that carry an opt-in broad tier (populated in __init__). The scorer re-scores each
 # of these over core+broad rules when --broad is set.
@@ -52,24 +47,31 @@ class _PhrasePack:
         if broad_category is not None:
             _BROAD_PACKS.append(self)
 
-    @lru_cache(maxsize=1)  # noqa: B019  (one instance per dimension; cache is fine)
+    # cached_property, not lru_cache(maxsize=1) on the method: that cache lived on the function
+    # and was shared by all five packs, so each call evicted the previous pack's rules and every
+    # scan re-read and re-compiled every YAML pack (0% hit rate).
+    @cached_property
     def _rules(self) -> list[Rule]:
         return load_rules_from_directory("patterns", self._category)
 
-    @lru_cache(maxsize=1)  # noqa: B019  (one instance per dimension; cache is fine)
+    @cached_property
     def _broad_rules(self) -> list[Rule]:
         if self._broad_category is None:
             return []
         return load_rules_from_directory("patterns", self._broad_category)
 
+    def rule_ids(self) -> frozenset[str]:
+        return frozenset(r.rule_id for r in self._rules + self._broad_rules)
+
+    def score_spans(self, doc: Document, profile: str, spans: list[Evidence]) -> float:
+        return severity_rate_score(doc, spans, self._full_scale)
+
     def extract(self, doc: Document, profile: str, broad: bool = False) -> FeatureResult:
-        rules = self._rules() + (self._broad_rules() if broad else [])
+        rules = self._rules + (self._broad_rules if broad else [])
         spans = find_matches(doc, rules)
-        weighted = sum(SEVERITY_WEIGHT[s.severity] for s in spans)
-        rate = per_hundred_words(weighted, doc.word_count)
         return FeatureResult(
             dimension=self.dimension,
-            score=saturating(rate, self._full_scale),
+            score=self.score_spans(doc, profile, spans),
             spans=spans,
         )
 

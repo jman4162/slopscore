@@ -3,6 +3,95 @@
 All notable changes to slopscore. The PyPI distribution is `slopscore-lint`; the import package
 and the tool are named `slopscore`.
 
+## 0.10.0
+
+Score correctness, from the same adversarial review. Scores change in this release; the
+fairness slices stay at 0.00 document-level false positives and the repository's own docs all
+score under 7.
+
+- **Silencing a rule now removes its points.** `disabled_rules`, `rule_severity`, and inline
+  `<!-- slopscore-disable ... -->` comments were applied to the evidence list after the score
+  was fixed, so a 99.8 document with every fired rule disabled still scored 99.8 with zero
+  findings. Every span-backed feature now exposes `score_spans`, the scorer filters spans first
+  and rescores from what survives, and the slop fixture drops from 100 to 26 (the statistical
+  floor) when all of its rules are disabled. Suppression names are validated against the full
+  rule catalog, so a header naming a rule that did not fire in this file no longer warns.
+- **Monotone corroboration gate.** The old gate damped a weak dimension only when it was above
+  0.5 AND the sole elevated dimension, so more evidence could lower the score (lexical 0.500
+  scored 23.1, 0.501 scored 14.0) and two weak tells corroborated each other (a fancy word plus
+  an em dash reached 52 "elevated"). The gate is now a ramp on the strongest strong, span-backed
+  dimension: every weak dimension is kept at 30% until a corroborator reaches 0.25 and at 100%
+  from 0.5. Genericity, cadence, redundancy, and the human signal never unlock it.
+- **Strictness no longer inverted.** The gain multiplied the bias too, so "conservative" scored
+  clean prose HIGHER than "sensitive" (18.6 vs 9.1). It now scales only the evidence sum; the
+  zero-evidence floor is 6.9 at every setting and `sensitive >= balanced >= conservative` holds
+  on every input.
+- **Genericity weight 1.6 to 0.8**, with acronyms and code identifiers counted as evidence and
+  years no longer double-counted. Reflective first-person prose with no names or numbers scored
+  43.7 "mild" with zero findings; it now scores under 5. A technical paragraph full of
+  identifiers scores 12.7.
+- **Prompt residue decays in long documents.** One quoted "as an AI language model" in 800
+  clean words took the document to "severe"; the dimension is presence-based up to 300 words
+  and a rate above that (the same quote now scores 3.5). A short pasted reply still saturates.
+- Rule fixes: `FORMULAIC_WHETHER_BEGINNER` did not match its own "seasoned developer" example;
+  `WEASEL_STUDIES_SHOW` gains the citation lookahead its sibling `CLAIM_AUTHORITY_NO_CITATION`
+  already had, so "(Smith et al., 2020)" is not weasel wording; `PARALLEL_X_NOT_Y`'s capital
+  gate was void under the global IGNORECASE; `COPULA_BOASTS` matched bare "boasts";
+  `COPULA_FEATURES_OFFERS` no longer fires on "provides a" / "offers a" (the commonest
+  constructions in API docs) unless a marketing adjective follows; the list-adverb case
+  ("plainly, honestly, and") no longer fires `CANDOR_ADVERB_PARENTHETICAL`;
+  `RESIDUE_CODE_FENCE` is low severity; the rule-of-three heuristic requires evaluative
+  vocabulary instead of any three gerunds or "-al" adjectives ("electrical, mechanical, and
+  thermal properties" no longer fires).
+- The curly-quote branch of `formatting_tells` was dead: ftfy straightens quotes before
+  features run. Quotes are now counted on the original text and the branch emits its own
+  `FORMATTING_CURLY_QUOTES` summary span.
+- `--profile` (CLI or config) is validated; an unknown name used to score silently with
+  neutral multipliers.
+- **scikit-learn is no longer a required dependency.** Redundancy uses a numpy TF-IDF plus a
+  token-alignment frame check that catches templated neighbours ("The get_user function
+  returns a user object. The get_group function returns a group object.") which TF-IDF alone
+  missed. scikit-learn moves to the `[eval]` extra; `slopscore-lint eval` exits 3 with a hint
+  without it.
+- The recurring "broken editable install" (`slopscore.__file__` is `None`, then
+  `ModuleNotFoundError: slopscore.cli`) has a cause: CPython 3.12.13+/3.13 skips `.pth` files
+  that carry the macOS hidden flag (`python -v` prints "Skipping hidden .pth file"), and files
+  under a synced `Documents` folder can acquire that flag. With the editable `.pth` ignored, the
+  force-included eval datasets under `site-packages/slopscore/data/eval/` made the package
+  resolve as an empty namespace package instead of failing loudly. `chflags nohidden` on the
+  `.pth` files fixes it until the sync re-flags them; `PYTHONPATH=src uv run --no-sync python -m
+  slopscore.cli` does not depend on the `.pth` at all. Documented in `CLAUDE.md`.
+- `scan a.md docs/` (a directory among several targets) walked nothing and crashed with
+  `IsADirectoryError`; directories are now expanded like a lone directory target.
+- Benchmark (141 rows of 13 to 40 words, all below the abstention floor): rules AUROC 0.900 to
+  0.873, TPR@1%FPR 0.657 to 0.557; held-out Wikipedia AI-Cleanup slice AUROC 0.693 to 0.647.
+  The benchmark's negatives were written with dates and prices so genericity would not fire on
+  them, so it does not reward the genericity fix and it penalizes the residue decay on short
+  rows. A long-form benchmark is the v0.12 deliverable.
+
+## 0.9.2
+
+Hotfixes from an adversarial review. No score changes.
+
+- **GitHub Action:** inputs are passed through `env:` and quoted instead of being interpolated
+  into the `run:` script, closing a shell-injection path for callers who derive `files` from
+  event data. The PyPI install is pinned by a new `version` input (default: the action's own
+  release) instead of installing whatever is latest.
+- `scan --fail-on-new` without `--baseline-file` is now a usage error (exit 2). It used to exit 0
+  with no output, which made a mistyped CI invocation a permanently green gate.
+- `scan --diff <ref>` with a bad ref exits 2 with a one-line message instead of a traceback with
+  exit 1 (which CI could not tell from "findings found"). Changed paths are re-anchored on the
+  working directory, so `--diff` works from a subdirectory.
+- Markdown ingest parses with marko's GFM extension. CommonMark has no table node, so pipe tables
+  were scored as one long sentence of cell text. Link text now keeps its URL in parentheses so the
+  specificity feature counts it as concrete evidence.
+- Rule packs cache per instance (`cached_property`). The old `lru_cache(maxsize=1)` on the method
+  was shared by all five packs, so each scan re-read and re-compiled every YAML pack.
+- CI runs on Python 3.11, 3.12, and 3.13, adds a job with the `[nlp]`, `[report]`, and `[lang]`
+  extras so their tests stop skipping, and builds the wheel, installs it into a clean venv, and
+  runs the console script (pytest imports from `src/` and cannot catch a broken wheel). Four stale
+  `.coverage N` files were removed from the repository.
+
 ## 0.9.1
 
 - `slopscore.__version__` now reads from the installed distribution metadata instead of a
