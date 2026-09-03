@@ -11,6 +11,19 @@ Sources and their use:
                     suspected AI-generated -> slop(1); random clean articles -> clean(0).
                     Subjective labels: **EVAL-ONLY**, never trains the shipped model.
 - ``slop_cshaib`` : "Measuring AI Slop" (arXiv:2509.19163) span annotations. Not released yet (stub).
+- ``fineweb_edu_pre2022`` : FineWeb-Edu rows whose Common Crawl dump predates 2022 (pre-LLM by
+                    construction) with educational score >= 3.5 -> human-good(0). Long-form.
+- ``arxiv_pre2022`` : arXiv abstracts submitted through 2021 (``gfissore/arxiv-abstracts-2021``,
+                    CC0 metadata) -> human-good(0), academic register.
+- ``wiki_2023``   : ``wikimedia/wikipedia`` 20231101.en (CC-BY-SA-4.0) random articles ->
+                    human-good(0), encyclopedic register. The snapshot postdates ChatGPT; most
+                    article text is older, but treat the label as "not flagged", not "pre-LLM".
+- ``gutenberg_essays`` : public-domain essays (Emerson, Thoreau, Montaigne) chunked to ~400
+                    words -> human-good(0). Pre-1929 register: reported as its own subgroup and
+                    NEVER pooled with modern prose.
+
+Every row carries ``word_count``; ``--full`` fetches whole Wikipedia articles instead of leads so
+the 300-word threshold set is reachable.
 
 The SHIPPED model is trained only on permissive / CC-BY / CC-BY-SA train-eligible sources; eval-only
 sources (Wikipedia AI Cleanup, HC3) are never used for training. Output JSONL lands in
@@ -34,7 +47,7 @@ from pathlib import Path
 CACHE = Path.home() / ".cache" / "slopscore"
 _UA = "slopscore-eval/0.5 (https://github.com/jman4162/slopscore)"
 _MIN_WORDS = 40
-_MAX_CHARS = 2000
+_MAX_CHARS = 6000  # ~1000 words: enough for 300-word documents to survive intact
 
 
 @dataclass(frozen=True)
@@ -51,6 +64,10 @@ SOURCES: dict[str, Source] = {
     "wiki_aicleanup": Source("Wikipedia AI Cleanup category", "CC-BY-SA-4.0", False),  # eval-only
     "hc3": Source("Hello-SimpleAI/HC3", "CC-BY-NC-4.0", False),  # eval-only
     "slop_cshaib": Source("cshaib/slop (arXiv:2509.19163)", "MIT", False),  # not released
+    "fineweb_edu_pre2022": Source("HuggingFaceFW/fineweb-edu (dump<=2021)", "ODC-BY", True),
+    "arxiv_pre2022": Source("gfissore/arxiv-abstracts-2021", "CC0-1.0 (metadata)", True),
+    "wiki_2023": Source("wikimedia/wikipedia 20231101.en", "CC-BY-SA-4.0", True),
+    "gutenberg_essays": Source("gutenberg.org (public domain)", "Public domain", True),
 }
 
 
@@ -73,6 +90,7 @@ def _write(name: str, rows: list[dict], counts: dict) -> Path:
     out = CACHE / f"{name}.jsonl"
     with out.open("w", encoding="utf-8") as fh:
         for r in rows:
+            r.setdefault("word_count", len(r["text"].split()))
             fh.write(json.dumps(r, ensure_ascii=False) + "\n")
     print(f"[{name}] wrote {len(rows)} rows ({counts}) to {out}")
     return out
@@ -87,11 +105,11 @@ def _ok(text: str) -> bool:
 _ROWS = "https://datasets-server.huggingface.co/rows"
 
 
-def _hf_rows(dataset: str, length: int, offset: int) -> list[dict]:
+def _hf_rows(dataset: str, length: int, offset: int, config: str = "default") -> list[dict]:
     q = urllib.parse.urlencode(
         {
             "dataset": dataset,
-            "config": "default",
+            "config": config,
             "split": "train",
             "offset": offset,
             "length": length,
@@ -149,21 +167,30 @@ _WIKI = "https://en.wikipedia.org/w/api.php"
 _AI_CAT = "Category:Articles containing suspected AI-generated texts"
 
 
+_FULL_ARTICLES = False  # set by --full: whole article text instead of the lead section
+
+
 def _wiki_extract(title: str) -> str:
-    q = urllib.parse.urlencode(
-        {
-            "action": "query",
-            "prop": "extracts",
-            "exintro": 1,
-            "explaintext": 1,
-            "redirects": 1,
-            "titles": title,
-            "format": "json",
-        }
-    )
-    pages = _get_json(f"{_WIKI}?{q}").get("query", {}).get("pages", {})
+    params = {
+        "action": "query",
+        "prop": "extracts",
+        "explaintext": 1,
+        "redirects": 1,
+        "titles": title,
+        "format": "json",
+    }
+    if not _FULL_ARTICLES:
+        params["exintro"] = 1
+    pages = _get_json(f"{_WIKI}?{urllib.parse.urlencode(params)}").get("query", {}).get("pages", {})
     for page in pages.values():
-        return (page.get("extract") or "").strip()[:_MAX_CHARS]
+        text = (page.get("extract") or "").strip()
+        if _FULL_ARTICLES:
+            # Drop the reference/see-also tail, which is lists and citations rather than prose.
+            for marker in ("\n\n\n== See also ==", "\n\n\n== References ==", "\n\n\n== Notes =="):
+                cut = text.find(marker)
+                if cut > 0:
+                    text = text[:cut]
+        return text[:_MAX_CHARS]
     return ""
 
 
@@ -223,7 +250,16 @@ def fetch_wiki_aicleanup(per_class: int) -> Path:
         text = _wiki_extract(title)
         if _ok(text):
             counts[1] += 1
-            rows.append({"text": text, "label": 1, "bucket": "wild_slop", "subgroup": "wiki"})
+            rows.append(
+                {
+                    "text": text,
+                    "label": 1,
+                    "bucket": "wild_slop",
+                    "subgroup": "wiki",
+                    "title": title,
+                    "url": "https://en.wikipedia.org/wiki/" + title.replace(" ", "_"),
+                }
+            )
         time.sleep(0.15)
     while counts[0] < per_class:
         for title in _wiki_random_titles(min(20, per_class)):
@@ -232,7 +268,16 @@ def fetch_wiki_aicleanup(per_class: int) -> Path:
             text = _wiki_extract(title)
             if _ok(text):
                 counts[0] += 1
-                rows.append({"text": text, "label": 0, "bucket": "wiki_clean", "subgroup": "wiki"})
+                rows.append(
+                    {
+                        "text": text,
+                        "label": 0,
+                        "bucket": "wiki_clean",
+                        "subgroup": "wiki",
+                        "title": title,
+                        "url": "https://en.wikipedia.org/wiki/" + title.replace(" ", "_"),
+                    }
+                )
             time.sleep(0.15)
     return _write("wiki_aicleanup", rows, counts)
 
@@ -264,8 +309,159 @@ def fetch_mage(per_class: int) -> Path:
     return _write("mage", rows, counts)
 
 
+# --- pre-LLM human-good sources (v0.12 thresholds) -------------------------------------------
+
+_LONG_WORDS = 300
+
+
+def _long(text: str) -> bool:
+    return len(text.split()) >= _LONG_WORDS
+
+
+def fetch_fineweb_edu_pre2022(per_class: int) -> Path:
+    """Educational web prose from Common Crawl dumps dated 2021 or earlier: pre-LLM by
+    construction. Score >= 3.5 -> human-good(0). Only documents of >= 300 words are kept."""
+    rows: list[dict] = []
+    offset = 0
+    while len(rows) < per_class and offset < 20000:
+        for row in _hf_rows("HuggingFaceFW/fineweb-edu", 100, offset):
+            dump = str(row.get("dump", ""))  # e.g. CC-MAIN-2019-35
+            year = int(dump.split("-")[2]) if dump.count("-") >= 2 and dump[8:12].isdigit() else 0
+            score = float(row.get("score", 0) or 0)
+            text = (row.get("text") or "").strip()[:_MAX_CHARS]
+            if year == 0 or year > 2021 or score < 3.5 or not _long(text):
+                continue
+            rows.append(
+                {
+                    "text": text,
+                    "label": 0,
+                    "bucket": "human_good",
+                    "subgroup": "web_edu_pre2022",
+                    "url": row.get("url", ""),
+                    "dump": dump,
+                }
+            )
+            if len(rows) >= per_class:
+                break
+        offset += 100
+        time.sleep(0.2)
+    return _write("fineweb_edu_pre2022", rows, {0: len(rows), 1: 0})
+
+
+def fetch_arxiv_pre2022(per_class: int) -> Path:
+    """arXiv abstracts (submissions through 2021) -> human-good(0), academic register. Abstracts are
+    150-250 words: above the abstention floor, below the 300-word target."""
+    rows: list[dict] = []
+    offset = 0
+    step = 100
+    while len(rows) < per_class and offset < 200000:
+        for row in _hf_rows("gfissore/arxiv-abstracts-2021", step, offset):
+            text = " ".join((row.get("abstract") or "").split())
+            if len(text.split()) < 100:
+                continue
+            rows.append(
+                {
+                    "text": text,
+                    "label": 0,
+                    "bucket": "human_good",
+                    "subgroup": "arxiv_pre2022",
+                    "url": f"https://arxiv.org/abs/{row.get('id', '')}",
+                }
+            )
+            if len(rows) >= per_class:
+                break
+        offset += 997  # stride through the corpus so one month/category does not dominate
+        time.sleep(0.2)
+    return _write("arxiv_pre2022", rows, {0: len(rows), 1: 0})
+
+
+def fetch_wiki_2023(per_class: int) -> Path:
+    """Random articles from the 20231101.en snapshot -> human-good(0). Strided offsets so the
+    sample is not the alphabetical head of the dump."""
+    import random
+
+    rng = random.Random(20260902)
+    rows: list[dict] = []
+    tries = 0
+    while len(rows) < per_class and tries < 60:
+        offset = rng.randrange(0, 6_000_000)
+        for row in _hf_rows("wikimedia/wikipedia", 20, offset, config="20231101.en"):
+            text = (row.get("text") or "").strip()
+            for marker in ("\n\nSee also\n", "\n\nReferences\n", "\n\nNotes\n"):
+                cut = text.find(marker)
+                if cut > 0:
+                    text = text[:cut]
+            text = text[:_MAX_CHARS]
+            if not _long(text):
+                continue
+            rows.append(
+                {
+                    "text": text,
+                    "label": 0,
+                    "bucket": "human_good",
+                    "subgroup": "wiki_2023",
+                    "title": row.get("title", ""),
+                    "url": row.get("url", ""),
+                }
+            )
+            if len(rows) >= per_class:
+                break
+        tries += 1
+        time.sleep(0.2)
+    return _write("wiki_2023", rows, {0: len(rows), 1: 0})
+
+
+_GUTENBERG = {
+    16643: "Emerson, Essays (First Series)",
+    2944: "Emerson, Essays (Second Series)",
+    205: "Thoreau, Walden",
+    3600: "Montaigne, Essays (Cotton translation)",
+}
+
+
+def fetch_gutenberg_essays(per_class: int) -> Path:
+    """Public-domain essays chunked into ~400-word paragraph groups -> human-good(0).
+    Pre-1929 register; reported as its own subgroup and never pooled."""
+    rows: list[dict] = []
+    per_book = max(1, per_class // len(_GUTENBERG))
+    for book_id, title in _GUTENBERG.items():
+        url = f"https://www.gutenberg.org/cache/epub/{book_id}/pg{book_id}.txt"
+        req = urllib.request.Request(url, headers={"User-Agent": _UA})
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            raw = resp.read().decode("utf-8", errors="replace").replace("\r\n", "\n")
+        start = raw.find("*** START OF")
+        end = raw.find("*** END OF")
+        body = raw[raw.find("\n", start) + 1 : end if end > 0 else None]
+        paras = [" ".join(p.split()) for p in body.split("\n\n") if len(p.split()) >= 30]
+        chunk: list[str] = []
+        taken = 0
+        for para in paras:
+            chunk.append(para)
+            if sum(len(c.split()) for c in chunk) >= 400:
+                rows.append(
+                    {
+                        "text": "\n\n".join(chunk),
+                        "label": 0,
+                        "bucket": "human_good",
+                        "subgroup": "gutenberg",
+                        "title": title,
+                        "url": url,
+                    }
+                )
+                chunk = []
+                taken += 1
+                if taken >= per_book:
+                    break
+        time.sleep(1.0)
+    return _write("gutenberg_essays", rows, {0: len(rows), 1: 0})
+
+
 _FETCHERS = {
     "mage": fetch_mage,
+    "fineweb_edu_pre2022": fetch_fineweb_edu_pre2022,
+    "arxiv_pre2022": fetch_arxiv_pre2022,
+    "wiki_2023": fetch_wiki_2023,
+    "gutenberg_essays": fetch_gutenberg_essays,
     "fineweb_edu": fetch_fineweb_edu,
     "finerweb": fetch_finerweb,
     "wiki_aicleanup": fetch_wiki_aicleanup,
@@ -276,7 +472,12 @@ def main(argv: list[str]) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("names", nargs="*", default=["wiki_aicleanup"])
     parser.add_argument("--per-class", type=int, default=40)
+    parser.add_argument(
+        "--full", action="store_true", help="Wikipedia: whole articles instead of lead sections."
+    )
     args = parser.parse_args(argv)
+    global _FULL_ARTICLES
+    _FULL_ARTICLES = args.full
     for name in args.names or ["wiki_aicleanup"]:
         if name not in SOURCES:
             raise SystemExit(f"unknown source '{name}'; choose from {sorted(SOURCES)}")

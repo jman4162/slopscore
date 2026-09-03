@@ -106,12 +106,32 @@ LightGBM**: it needs trees at scan time (breaking the pure-numpy path), and opti
 authorship labels would turn slopscore into an authorship detector, the one thing it refuses to be. The **shipped model stays the seed-trained, slop-labeled LR**, and
 the **rule scorer stays the default**. The shipped model is never trained on MAGE.
 
+## v0.10 to v0.12: score correctness and long-form evaluation
+
+An adversarial review (September 2026) found that silenced rules kept their points, the
+corroboration gate was non-monotone, strictness was inverted on clean text, and the genericity
+dimension read abstract human prose as slop. v0.10 fixed those (`CHANGELOG.md`), v0.11 added a
+per-dimension `breakdown` and summary evidence for the statistical dimensions, and v0.12 added
+the first long-form evaluation and data-derived thresholds. Current numbers (`eval/RESULTS.md`):
+
+| set | n | AUROC | PR-AUC | TPR@1%FPR |
+|---|---:|---:|---:|---:|
+| benchmark (13-40 words, in-sample) | 141 | 0.87 | 0.89 | 0.56 |
+| long-form (300+ words, committed, eval-only) | 180 | 0.61 | 0.47 | 0.08 |
+| Wikipedia AI-Cleanup, full articles (held-out) | 180 | 0.80 | 0.82 | 0.14 |
+
+Thresholds (`docs/thresholds.md`): on 522 human-good long-form documents, clean prose sits at
+P50 2.4 and P95 about 11 under every profile; `score_threshold = 25` gives a 1% false-positive
+rate. Recall on flagged Wikipedia articles at that cutoff is 1%: their tells are sparse and
+per-100-word rates dilute them. Closing that gap is the v0.13 detection work, not a threshold
+change.
+
 ## v0.5: slop-labeled benchmark
 
 v0.5 adds a real slop-labeled benchmark and retrains the learned scorer on it. Full numbers and
 reproduction are in `eval/RESULTS.md` (`python scripts/eval/report.py`). Two evaluation sets:
 
-- `eval/datasets/benchmark.jsonl` (128 rows): hand-authored, taxonomy-graded (Shaib et al.,
+- `eval/datasets/benchmark.jsonl` (141 rows): hand-authored, taxonomy-graded (Shaib et al.,
   "Measuring AI Slop", arXiv:2509.19163) slop vs clean text, with `simple_english` and `non_native`
   fairness slices. In-sample (overlaps the training seed); measures discrimination on overt slop.
 - Wikipedia AI-Cleanup (40 rows): articles editors flagged as suspected AI-generated vs random
@@ -132,9 +152,12 @@ Per-subgroup false-positive rate on the benchmark, which keeps the rule scorer t
 
 | subgroup | n | rules FPR | ml FPR |
 |---|---|---|---|
-| general | 100 | 0.00 | 0.06 |
-| simple_english | 14 | 0.00 | 0.71 |
-| non_native | 14 | 0.00 | 0.33 |
+| general | 107 | 0.00 | 0.05 |
+| simple_english | 17 | 0.00 | 0.59 |
+| non_native | 17 | 0.00 | 0.27 |
+
+(Current numbers; the v0.5 release reported 100 / 14 / 14 rows and 0.71 / 0.33. A 0.00 rate on
+17 rows has a 95% upper bound near 0.20.)
 
 The learned model, retrained on the benchmark (`slopscore-v0.5.json`), edges the rule scorer on raw
 metrics but over-flags simple and non-native English. The replace-if-wins gate therefore keeps the

@@ -1,0 +1,835 @@
+{
+  "strictness": "conservative",
+  "min_words": 100,
+  "sources": [
+    "/Users/johnhodge/.cache/slopscore/wiki_aicleanup.jsonl",
+    "/Users/johnhodge/.cache/slopscore/fineweb_edu_pre2022.jsonl",
+    "/Users/johnhodge/.cache/slopscore/arxiv_pre2022.jsonl",
+    "/Users/johnhodge/.cache/slopscore/wiki_2023.jsonl",
+    "/Users/johnhodge/.cache/slopscore/gutenberg_essays.jsonl"
+  ],
+  "profiles": {
+    "blog": {
+      "n_scored": 732,
+      "n_abstained": 0,
+      "n_clean_pooled": 522,
+      "n_slop_pooled": 90,
+      "clean_percentiles": {
+        "p50": 2.4,
+        "p90": 8.6,
+        "p95": 11.2,
+        "p99": 15.5
+      },
+      "cutoffs": [
+        {
+          "cutoff": 25,
+          "fpr": 0.005747126436781609,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 30,
+          "fpr": 0.005747126436781609,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 35,
+          "fpr": 0.005747126436781609,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 40,
+          "fpr": 0.005747126436781609,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 45,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 50,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 55,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 60,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 65,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 70,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 75,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        }
+      ],
+      "recommended_score_threshold": 25.0,
+      "subgroups": {
+        "arxiv_pre2022": {
+          "n_clean": 150,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 5.7,
+            "p90": 12.5,
+            "p95": 14.4,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.02,
+          "tpr_at_recommended": null
+        },
+        "gutenberg": {
+          "n_clean": 120,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 5.6,
+            "p90": 9.5,
+            "p95": 10.8,
+            "p99": null
+          },
+          "pooled": false,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": null
+        },
+        "web_edu_pre2022": {
+          "n_clean": 150,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 3.1,
+            "p90": 7.5,
+            "p95": 9.1,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": null
+        },
+        "wiki": {
+          "n_clean": 72,
+          "n_slop": 90,
+          "clean_percentiles": {
+            "p50": 1.2,
+            "p90": 2.7,
+            "p95": null,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": 0.011111111111111112
+        },
+        "wiki_2023": {
+          "n_clean": 150,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 1.3,
+            "p90": 3.9,
+            "p95": 5.2,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": null
+        }
+      }
+    },
+    "essay": {
+      "n_scored": 732,
+      "n_abstained": 0,
+      "n_clean_pooled": 522,
+      "n_slop_pooled": 90,
+      "clean_percentiles": {
+        "p50": 2.4,
+        "p90": 9.0,
+        "p95": 11.2,
+        "p99": 15.7
+      },
+      "cutoffs": [
+        {
+          "cutoff": 25,
+          "fpr": 0.005747126436781609,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 30,
+          "fpr": 0.005747126436781609,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 35,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 40,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 45,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 50,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 55,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 60,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 65,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 70,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 75,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        }
+      ],
+      "recommended_score_threshold": 25.0,
+      "subgroups": {
+        "arxiv_pre2022": {
+          "n_clean": 150,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 6.0,
+            "p90": 12.9,
+            "p95": 14.6,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.02,
+          "tpr_at_recommended": null
+        },
+        "gutenberg": {
+          "n_clean": 120,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 5.6,
+            "p90": 9.1,
+            "p95": 10.6,
+            "p99": null
+          },
+          "pooled": false,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": null
+        },
+        "web_edu_pre2022": {
+          "n_clean": 150,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 3.2,
+            "p90": 7.4,
+            "p95": 9.1,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": null
+        },
+        "wiki": {
+          "n_clean": 72,
+          "n_slop": 90,
+          "clean_percentiles": {
+            "p50": 1.2,
+            "p90": 2.8,
+            "p95": null,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": 0.011111111111111112
+        },
+        "wiki_2023": {
+          "n_clean": 150,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 1.3,
+            "p90": 3.9,
+            "p95": 5.2,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": null
+        }
+      }
+    },
+    "academic": {
+      "n_scored": 732,
+      "n_abstained": 0,
+      "n_clean_pooled": 522,
+      "n_slop_pooled": 90,
+      "clean_percentiles": {
+        "p50": 2.4,
+        "p90": 8.8,
+        "p95": 10.9,
+        "p99": 14.6
+      },
+      "cutoffs": [
+        {
+          "cutoff": 25,
+          "fpr": 0.005747126436781609,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 30,
+          "fpr": 0.005747126436781609,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 35,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 40,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 45,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 50,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 55,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 60,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 65,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 70,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 75,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        }
+      ],
+      "recommended_score_threshold": 25.0,
+      "subgroups": {
+        "arxiv_pre2022": {
+          "n_clean": 150,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 5.8,
+            "p90": 12.5,
+            "p95": 14.0,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.02,
+          "tpr_at_recommended": null
+        },
+        "gutenberg": {
+          "n_clean": 120,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 5.5,
+            "p90": 8.7,
+            "p95": 10.2,
+            "p99": null
+          },
+          "pooled": false,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": null
+        },
+        "web_edu_pre2022": {
+          "n_clean": 150,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 3.2,
+            "p90": 7.0,
+            "p95": 8.8,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": null
+        },
+        "wiki": {
+          "n_clean": 72,
+          "n_slop": 90,
+          "clean_percentiles": {
+            "p50": 1.2,
+            "p90": 2.7,
+            "p95": null,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": 0.011111111111111112
+        },
+        "wiki_2023": {
+          "n_clean": 150,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 1.3,
+            "p90": 3.8,
+            "p95": 5.2,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": null
+        }
+      }
+    },
+    "marketing": {
+      "n_scored": 732,
+      "n_abstained": 0,
+      "n_clean_pooled": 522,
+      "n_slop_pooled": 90,
+      "clean_percentiles": {
+        "p50": 2.4,
+        "p90": 8.6,
+        "p95": 10.6,
+        "p99": 14.4
+      },
+      "cutoffs": [
+        {
+          "cutoff": 25,
+          "fpr": 0.005747126436781609,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 30,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 35,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 40,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 45,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 50,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 55,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 60,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 65,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 70,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 75,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        }
+      ],
+      "recommended_score_threshold": 25.0,
+      "subgroups": {
+        "arxiv_pre2022": {
+          "n_clean": 150,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 5.8,
+            "p90": 11.9,
+            "p95": 13.4,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.02,
+          "tpr_at_recommended": null
+        },
+        "gutenberg": {
+          "n_clean": 120,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 5.5,
+            "p90": 8.4,
+            "p95": 9.4,
+            "p99": null
+          },
+          "pooled": false,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": null
+        },
+        "web_edu_pre2022": {
+          "n_clean": 150,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 3.2,
+            "p90": 6.6,
+            "p95": 8.2,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": null
+        },
+        "wiki": {
+          "n_clean": 72,
+          "n_slop": 90,
+          "clean_percentiles": {
+            "p50": 1.2,
+            "p90": 2.7,
+            "p95": null,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": 0.011111111111111112
+        },
+        "wiki_2023": {
+          "n_clean": 150,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 1.3,
+            "p90": 3.8,
+            "p95": 5.2,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": null
+        }
+      }
+    },
+    "technical": {
+      "n_scored": 732,
+      "n_abstained": 0,
+      "n_clean_pooled": 522,
+      "n_slop_pooled": 90,
+      "clean_percentiles": {
+        "p50": 2.3,
+        "p90": 8.2,
+        "p95": 10.1,
+        "p99": 13.6
+      },
+      "cutoffs": [
+        {
+          "cutoff": 25,
+          "fpr": 0.005747126436781609,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 30,
+          "fpr": 0.005747126436781609,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 35,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 40,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 45,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 50,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 55,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 60,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 65,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 70,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 75,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        }
+      ],
+      "recommended_score_threshold": 25.0,
+      "subgroups": {
+        "arxiv_pre2022": {
+          "n_clean": 150,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 5.2,
+            "p90": 11.2,
+            "p95": 13.1,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.02,
+          "tpr_at_recommended": null
+        },
+        "gutenberg": {
+          "n_clean": 120,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 5.5,
+            "p90": 8.5,
+            "p95": 10.0,
+            "p99": null
+          },
+          "pooled": false,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": null
+        },
+        "web_edu_pre2022": {
+          "n_clean": 150,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 3.0,
+            "p90": 6.9,
+            "p95": 8.3,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": null
+        },
+        "wiki": {
+          "n_clean": 72,
+          "n_slop": 90,
+          "clean_percentiles": {
+            "p50": 1.1,
+            "p90": 2.7,
+            "p95": null,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": 0.011111111111111112
+        },
+        "wiki_2023": {
+          "n_clean": 150,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 1.3,
+            "p90": 3.8,
+            "p95": 5.2,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": null
+        }
+      }
+    },
+    "social": {
+      "n_scored": 732,
+      "n_abstained": 0,
+      "n_clean_pooled": 522,
+      "n_slop_pooled": 90,
+      "clean_percentiles": {
+        "p50": 2.4,
+        "p90": 8.9,
+        "p95": 11.0,
+        "p99": 15.1
+      },
+      "cutoffs": [
+        {
+          "cutoff": 25,
+          "fpr": 0.005747126436781609,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 30,
+          "fpr": 0.005747126436781609,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 35,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 40,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 45,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 50,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.011111111111111112
+        },
+        {
+          "cutoff": 55,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 60,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 65,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 70,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        },
+        {
+          "cutoff": 75,
+          "fpr": 0.0038314176245210726,
+          "tpr": 0.0
+        }
+      ],
+      "recommended_score_threshold": 25.0,
+      "subgroups": {
+        "arxiv_pre2022": {
+          "n_clean": 150,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 5.9,
+            "p90": 12.7,
+            "p95": 14.4,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.02,
+          "tpr_at_recommended": null
+        },
+        "gutenberg": {
+          "n_clean": 120,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 5.6,
+            "p90": 8.7,
+            "p95": 10.1,
+            "p99": null
+          },
+          "pooled": false,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": null
+        },
+        "web_edu_pre2022": {
+          "n_clean": 150,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 3.2,
+            "p90": 7.2,
+            "p95": 8.8,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": null
+        },
+        "wiki": {
+          "n_clean": 72,
+          "n_slop": 90,
+          "clean_percentiles": {
+            "p50": 1.2,
+            "p90": 2.7,
+            "p95": null,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": 0.011111111111111112
+        },
+        "wiki_2023": {
+          "n_clean": 150,
+          "n_slop": 0,
+          "clean_percentiles": {
+            "p50": 1.3,
+            "p90": 3.8,
+            "p95": 5.2,
+            "p99": null
+          },
+          "pooled": true,
+          "fpr_at_recommended": 0.0,
+          "tpr_at_recommended": null
+        }
+      }
+    }
+  }
+}

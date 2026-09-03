@@ -156,7 +156,7 @@ slopscore-lint scan post.md --format html -o report.html          # highlighted-
 ```yaml
 repos:
   - repo: https://github.com/jman4162/slopscore
-    rev: v0.11.0
+    rev: v0.12.0
     hooks:
       - id: slopscore-lint
         args: ["--fail-on", "high"]
@@ -245,6 +245,22 @@ for f in Path("posts").glob("*.md"):
 ```
 
 ## Status
+
+v0.12: long-form evaluation and thresholds. A committed 180-document set of 300+ words (pre-LLM
+web pages, 2023 Wikipedia, and full Wikipedia articles flagged as suspected AI-generated) and a
+threshold report over 522 human-good documents: clean prose sits under 11 at P95 under every
+profile, so `score_threshold = 25` gives a 1% false-positive rate ([docs](https://jman4162.github.io/slopscore/thresholds/)).
+Recall on flagged Wikipedia articles at that cutoff is 1%, stated plainly.
+
+v0.11: every point explained. Reports carry a per-dimension `breakdown`, the statistical
+dimensions emit labeled summary spans, and CI can gate on the score (`--fail-on-score`,
+`score_threshold`) instead of evidence severity alone. Config `fail_on`, `suggest`, `include`,
+and `exclude` are honored.
+
+v0.10: score correctness from an adversarial review. Silenced rules lose their points, the
+corroboration gate is monotone, strictness is no longer inverted on clean text, genericity no
+longer reads abstract human prose as slop, prompt residue decays in long documents, scikit-learn
+left the scan path, and eight rule bugs were fixed.
 
 v0.9: `performative_candor`, a third rule-driven axis after fake insight and fake evidence: points
 framed as difficult confessions ("I have to be honest", "truth be told"), sincerity adjectives on

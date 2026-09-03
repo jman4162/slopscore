@@ -84,7 +84,10 @@ def scan(
         None, "--baseline", "-b", help="Compare against a personal baseline from `calibrate`."
     ),
     scorer: Scorer | None = typer.Option(
-        None, "--scorer", help="Scoring engine: rules (default) or ml (learned model)."
+        None,
+        "--scorer",
+        help="Scoring engine: rules (default) or ml (research-only learned model: ignores "
+        "--strictness and --profile, no breakdown, trained on a 128-row snapshot).",
     ),
     config: Path | None = typer.Option(
         None, "--config", help="Explicit config file (else auto-discovered)."

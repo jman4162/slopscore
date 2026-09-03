@@ -91,35 +91,49 @@
     "promote_ml": false
   },
   {
-    "name": "wiki_aicleanup (held-out, eval-only)",
-    "path": "/Users/johnhodge/.cache/slopscore/wiki_aicleanup.jsonl",
+    "name": "longform (300+ words, eval-only)",
+    "path": "/Users/johnhodge/Documents/code/slopscore/eval/datasets/longform.jsonl",
     "eval_only": true,
-    "n": 40,
+    "n": 180,
     "rules": {
       "scorer": "rules",
       "profile": "blog",
       "metrics": {
-        "n": 40,
-        "n_positive": 20,
-        "auroc": 0.6475,
-        "pr_auc": 0.6269,
-        "tpr_at_1fpr": 0.0,
-        "tpr_at_5fpr": 0.3,
-        "ece": 0.4632,
-        "brier": 0.4419
+        "n": 180,
+        "n_positive": 60,
+        "auroc": 0.6125,
+        "pr_auc": 0.4719,
+        "tpr_at_1fpr": 0.0833,
+        "tpr_at_5fpr": 0.1167,
+        "ece": 0.2992,
+        "brier": 0.3046
       },
       "selective": {
-        "coverage": 0.475,
-        "accuracy_covered": 0.3157894736842105,
-        "accuracy_all": 0.475
+        "coverage": 1.0,
+        "accuracy_covered": 0.6722222222222223,
+        "accuracy_all": 0.6722222222222223
       },
       "fairness": {
+        "web_edu_pre2022": {
+          "group": "web_edu_pre2022",
+          "n": 60,
+          "fpr": 0.0,
+          "fnr": 0.0,
+          "abstention_rate": 0.0
+        },
         "wiki": {
           "group": "wiki",
-          "n": 40,
-          "fpr": 0.05,
-          "fnr": 1.0,
-          "abstention_rate": 0.525
+          "n": 60,
+          "fpr": 0.0,
+          "fnr": 0.9833333333333333,
+          "abstention_rate": 0.0
+        },
+        "wiki_2023": {
+          "group": "wiki_2023",
+          "n": 60,
+          "fpr": 0.0,
+          "fnr": 0.0,
+          "abstention_rate": 0.0
         }
       }
     },
@@ -127,27 +141,104 @@
       "scorer": "ml",
       "profile": "blog",
       "metrics": {
-        "n": 40,
-        "n_positive": 20,
-        "auroc": 0.6987,
-        "pr_auc": 0.6702,
-        "tpr_at_1fpr": 0.0,
-        "tpr_at_5fpr": 0.25,
-        "ece": 0.3664,
-        "brier": 0.3441
+        "n": 180,
+        "n_positive": 60,
+        "auroc": 0.7087,
+        "pr_auc": 0.5313,
+        "tpr_at_1fpr": 0.0667,
+        "tpr_at_5fpr": 0.15,
+        "ece": 0.2139,
+        "brier": 0.2506
       },
       "selective": {
-        "coverage": 0.475,
-        "accuracy_covered": 0.5263157894736842,
-        "accuracy_all": 0.575
+        "coverage": 1.0,
+        "accuracy_covered": 0.6833333333333333,
+        "accuracy_all": 0.6833333333333333
+      },
+      "fairness": {
+        "web_edu_pre2022": {
+          "group": "web_edu_pre2022",
+          "n": 60,
+          "fpr": 0.0,
+          "fnr": 0.0,
+          "abstention_rate": 0.0
+        },
+        "wiki": {
+          "group": "wiki",
+          "n": 60,
+          "fpr": 0.0,
+          "fnr": 0.95,
+          "abstention_rate": 0.0
+        },
+        "wiki_2023": {
+          "group": "wiki_2023",
+          "n": 60,
+          "fpr": 0.0,
+          "fnr": 0.0,
+          "abstention_rate": 0.0
+        }
+      }
+    },
+    "promote_ml": true
+  },
+  {
+    "name": "wiki_aicleanup (held-out, eval-only)",
+    "path": "/Users/johnhodge/.cache/slopscore/wiki_aicleanup.jsonl",
+    "eval_only": true,
+    "n": 180,
+    "rules": {
+      "scorer": "rules",
+      "profile": "blog",
+      "metrics": {
+        "n": 180,
+        "n_positive": 90,
+        "auroc": 0.8017,
+        "pr_auc": 0.8235,
+        "tpr_at_1fpr": 0.1444,
+        "tpr_at_5fpr": 0.3778,
+        "ece": 0.4671,
+        "brier": 0.4539
+      },
+      "selective": {
+        "coverage": 0.9,
+        "accuracy_covered": 0.4506172839506173,
+        "accuracy_all": 0.5055555555555555
       },
       "fairness": {
         "wiki": {
           "group": "wiki",
-          "n": 40,
-          "fpr": 0.05,
-          "fnr": 0.8,
-          "abstention_rate": 0.525
+          "n": 180,
+          "fpr": 0.0,
+          "fnr": 0.9888888888888889,
+          "abstention_rate": 0.1
+        }
+      }
+    },
+    "ml": {
+      "scorer": "ml",
+      "profile": "blog",
+      "metrics": {
+        "n": 180,
+        "n_positive": 90,
+        "auroc": 0.8451,
+        "pr_auc": 0.8654,
+        "tpr_at_1fpr": 0.2556,
+        "tpr_at_5fpr": 0.4667,
+        "ece": 0.3783,
+        "brier": 0.3583
+      },
+      "selective": {
+        "coverage": 0.9,
+        "accuracy_covered": 0.47530864197530864,
+        "accuracy_all": 0.5277777777777778
+      },
+      "fairness": {
+        "wiki": {
+          "group": "wiki",
+          "n": 180,
+          "fpr": 0.0,
+          "fnr": 0.9444444444444444,
+          "abstention_rate": 0.1
         }
       }
     },

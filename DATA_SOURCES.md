@@ -7,7 +7,12 @@ model is trained only on permissive / CC-BY / CC-BY-SA data, so its weights stay
 ## Committed corpora
 
 - `eval/datasets/seed.jsonl` (54 rows): the original hand-authored seed (`scripts/eval/build_seed.py`).
-- `eval/datasets/benchmark.jsonl` (128 rows): the v0.5 benchmark (`scripts/eval/build_benchmark.py`),
+- `eval/datasets/longform.jsonl` (180 rows, 300+ words, eval-only, not shipped in the wheel): 60
+  FineWeb-Edu pages from Common Crawl dumps dated 2021 or earlier (ODC-BY, `url` per row), 60
+  random Wikipedia articles from the 2023-11 snapshot (CC-BY-SA-4.0, `title`/`url` per row), and
+  60 full Wikipedia articles from the AI-Cleanup category (CC-BY-SA-4.0, `title`/`url` per row).
+  Subjective positives, so never used for training.
+- `eval/datasets/benchmark.jsonl` (141 rows): the v0.5 benchmark (`scripts/eval/build_benchmark.py`),
   the seed plus a taxonomy-graded expansion. Labels follow `eval/RUBRIC.md` (Shaib et al.,
   "Measuring AI Slop", arXiv:2509.19163). All rows are original and hand-authored, so this set is
   committed and train-eligible. The shipped learned model is trained on it.
@@ -35,6 +40,14 @@ Pulled by `scripts/eval/fetch.py` into `~/.cache/slopscore/`; never redistribute
 | MAGE (Li et al.) | `yaful/MAGE` | CC-BY-4.0 | authorship (not slop) | authorship-null panel only |
 | HC3 (Guo et al., 2023) | `Hello-SimpleAI/HC3` | **CC-BY-NC-4.0** | authorship | **eval-only**, never trains |
 | "Measuring AI Slop" | `cshaib/slop` (arXiv:2509.19163) | MIT | span-level slop | dataset not yet released (taxonomy used as the rubric) |
+| FineWeb-Edu, dumps <= 2021 | `fineweb_edu_pre2022` | ODC-BY | human-good (pre-LLM by construction) | thresholds, long-form benchmark |
+| arXiv abstracts through 2021 | `gfissore/arxiv-abstracts-2021` | CC0 (metadata) | human-good, academic | thresholds, long-form benchmark |
+| Wikipedia 20231101.en | `wikimedia/wikipedia` | CC-BY-SA-4.0 | human-good ("not flagged"; snapshot postdates ChatGPT) | thresholds |
+| Project Gutenberg essays | gutenberg.org ids 16643, 2944, 205, 3600 | public domain | human-good, pre-1929 register | thresholds, never pooled |
+
+The thresholds report (`scripts/eval/thresholds.py`, `docs/thresholds.md`) uses only the sources
+above plus the Wikipedia AI-Cleanup positives; HC3 (CC-BY-NC) is excluded from published
+aggregates as well as from training.
 
 Notes on accuracy of the above: Wikipedia AI-Cleanup labels are subjective editor judgments (a
 real-world signal, but noisy), so they are eval-only. MAGE/RAID label authorship, not slop, so they
@@ -50,4 +63,5 @@ the same construct, and are not in the headline numbers.
 - Splits are domain/era-separated where possible to avoid leakage, since the features themselves
   derive from WP:AISIGNS (see the plan's leakage-guard notes).
 - Fairness is measured per subgroup (plain/simple English, short text) and reported in
-  `MODEL_CARD.md`; CI fails if subgroup false-positive rates regress.
+  `MODEL_CARD.md` and by `slopscore-lint fairness`. CI does not yet gate on it; the numbers are
+  re-run by hand with `scripts/eval/report.py` at each release.

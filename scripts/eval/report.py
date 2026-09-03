@@ -29,6 +29,9 @@ def _run(path: Path, name: str, eval_only: bool) -> dict:
 def main() -> None:
     root = Path(__file__).resolve().parents[2]
     results = [_run(root / "eval" / "datasets" / "benchmark.jsonl", "benchmark", eval_only=False)]
+    longform = root / "eval" / "datasets" / "longform.jsonl"
+    if longform.exists():
+        results.append(_run(longform, "longform (300+ words, eval-only)", eval_only=True))
     wiki = CACHE / "wiki_aicleanup.jsonl"
     if wiki.exists():
         results.append(_run(wiki, "wiki_aicleanup (held-out, eval-only)", eval_only=True))
