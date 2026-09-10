@@ -101,7 +101,7 @@ Linter maturity (v0.4): `config_file.py` loads `slopscore.toml`/`[tool.slopscore
 carries `disabled_dimensions/rules`, `rule_severity`, `suggest`). The scorer skips disabled
 dimensions and post-filters evidence for disabled rules, severity overrides, and inline suppression
 (`suppress.py`, HTML-comment grammar). `report/baseline.py` fingerprints findings for
-`scan --baseline-file --fail-on-new`. `unsupported_claims` is now a real `_PhrasePack`
+`scan --baseline-file --fail-on-new`. `unsupported_claims` is now a real `PhrasePack`
 (`data/patterns/claims/`). Opt-in `--suggest` adds `Evidence.suggestion` + SARIF `fixes`
 (`features/suggestions.py`, `data/patterns/suggestions/`) — advisory, excluded from score/`--fail-on`
 (`SUGGEST_*` skipped in `max_severity`). `detectors/` is an interface-only authorship adapter
@@ -171,26 +171,41 @@ keeps the ESL calques "Honestly speaking"/"Frankly speaking" quiet — do not re
 "Sincerely,"/"Truly," to that rule: patterns compile under MULTILINE, so `^` matches every line
 start and they would fire on email sign-offs.
 
-Metadiscourse (v0.14): writing that refers to the text rather than to its subject — Hyland's
+Metadiscourse (v0.14): writing that refers to the text rather than to its subject. This is
+Hyland's
 (2005) *interactive* metadiscourse (frame markers, endophoric markers, code glosses), where the
 interactional half was already covered by `weasel_attribution`, `significance_inflation`, and
-`performative_candor`. Rules in `data/patterns/metadiscourse/` plus a `--broad` tier. Two things
-make it unlike the other packs. First, **it is not a `_PhrasePack`**: `features/metadiscourse.py`
-scores `max(rate, concentration, recap)`, because hits-per-100-words cannot see this defect in
-long-form prose (the originating passage reads 1.0 at 123 words and 0.064 at 3,373). The
-concentration term is the longest run of consecutive metadiscourse sentences that carry **no**
-concrete evidence, mapped `{2: 0.35, 3: 0.55, 4: 0.75, 5+: 0.90}` and length-invariant; the
-recap term flags a closing section that restates the body (cosine over `redundancy.pair_cosine`).
-Second, it is deliberately **not weak** — weak means damped x0.3 alone, which is the failure it
-exists to fix — so it becomes a corroborator by derivation. What contains it: a high-precision
-core tier, `full_scale=4.0`, and a **100-word floor on the density denominator** (without it one
-low-severity hit in a 17-word doc saturates the dimension). The **evidence gate** is the fairness
-gate: a marker over a concrete fact is exempt, because restatement scaffolding over facts is an
-ESL clarity strategy. `concrete_evidence_count()` in `specificity.py` is the shared predicate,
-with an opt-in `spelled_numbers` flag used only here (genericity is calibrated on digits only).
-No rules were migrated out of `formulaic.yaml` — that would break rule-id suppressions and
+`performative_candor`. Rules in `data/patterns/metadiscourse/` plus a `--broad` tier. Three things
+make it unlike the other packs.
+
+- **It subclasses `PhrasePack` rather than instantiating one** (`features/metadiscourse.py`),
+  because hits-per-100-words cannot see this defect in long-form prose: the originating passage
+  reads 1.0 at 123 words and 0.064 at 3,373. It scores `max(rate, concentration, recap)`. The
+  concentration term is the longest run of consecutive sentences that carry a marker and **no**
+  concrete evidence, mapped `{2: 0.35, 3: 0.55, 4: 0.75, 5+: 0.90}` and length-invariant. The
+  recap term flags a closing section that restates the body, measured with
+  `redundancy.content_containment` — containment, not cosine, because cosine falls as the body
+  grows in vocabulary (0.219 to 0.071 on the same pair) and the recap would silently die in long
+  documents. Both terms carry their own `Evidence`, must be excluded from the rate term to avoid
+  double-charging, and must honor `rule_severity` overrides (`_severity_factor`); run length is
+  recovered by re-classifying `doc.sentences` inside the span, never by re-splitting span text.
+- **It is in neither `WEAK_DIMENSIONS` nor `CORROBORATING_DIMENSIONS`.** Weak means damped x0.3
+  alone, which is the failure it exists to fix. But left in the derived corroborating set, a
+  length-invariant 0.55 clears the gate on its own: three meta sentences took an otherwise
+  identical 600-word document from 46.4 "mild" to 97.6 "severe" by counting every weak dimension
+  at full weight. `weights.py:NON_CORROBORATING_DIMENSIONS` subtracts it: full weight for
+  itself, no vote on anyone else.
+- **The evidence gate is the fairness gate.** A marker over a concrete fact is exempt, because
+  restatement scaffolding over facts is an ESL clarity strategy. `concrete_evidence_count()` in
+  `specificity.py` is the shared predicate, with an opt-in `spelled_numbers` flag used only here
+  (genericity is calibrated on digits only). Cut the marker's own characters out before counting
+  or a marker exempts itself ("In plain English" contains "English"). The density denominator is
+  floored at 100 words; that is a local fix for a defect every `severity_rate_score` pack shares.
+
+No rules were migrated out of `formulaic.yaml`, which would break rule-id suppressions and
 baseline fingerprints; the run detector reads `data/lexicons/metadiscourse_markers.yaml`, a
-non-scoring superset, so it sees the whole surface without them moving.
+non-scoring superset compiled with the same `regex` flags as the YAML rule files, so it sees the
+whole surface without them moving.
 
 ## Project state
 

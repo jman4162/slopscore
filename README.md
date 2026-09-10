@@ -274,9 +274,9 @@ left the scan path, and eight rule bugs were fixed.
 v0.14: `metadiscourse` for writing that refers to the text rather than to its subject: frame
 markers ("in this section we will discuss"), endophoric markers ("as noted above"), code glosses
 ("put simply:"), and prose-grading ("the defensible version is"). It scores concentration as well
-as density — the longest run of consecutive metadiscourse sentences that carry no name, number,
-date, or identifier — so a run of three reads the same in a 120-word passage and a 3,000-word
-essay, where a per-100-word rate would have divided it away. A marker over a concrete fact is
+as density. It scores the longest run of consecutive metadiscourse sentences that carry no name,
+number, date, or identifier, so a run of three reads the same in a 120-word passage and a
+3,000-word essay, where a per-100-word rate would have divided it away. A marker over a concrete fact is
 exempt, which is both the precision gate and the fairness gate.
 
 v0.9: `performative_candor`, a third rule-driven axis after fake insight and fake evidence: points

@@ -77,9 +77,21 @@ STATISTICAL_DIMENSIONS: frozenset[Dimension] = frozenset(
     }
 )
 
+# Span-backed dimensions that still must not unlock the weak ones. metadiscourse (v0.14) scores
+# a length-invariant concentration term: a run of three sentences reads 0.55 whatever the
+# document length, which clears the gate's RAMP_HI on its own. Left in the derived set, three
+# sentences of prose-about-the-prose took an otherwise identical 600-word document from 46.4
+# "mild" to 97.6 "severe" by counting every weak dimension at full weight document-wide. It is
+# not weak either — that damping is the failure it exists to fix — so it sits in neither set:
+# full weight for itself, no vote on anyone else.
+NON_CORROBORATING_DIMENSIONS: frozenset[Dimension] = frozenset({Dimension.metadiscourse})
+
 # The dimensions whose elevation unlocks full weight for the weak ones: strong AND span-backed.
 CORROBORATING_DIMENSIONS: frozenset[Dimension] = (
-    frozenset(DEFAULT_WEIGHTS) - WEAK_DIMENSIONS - STATISTICAL_DIMENSIONS
+    frozenset(DEFAULT_WEIGHTS)
+    - WEAK_DIMENSIONS
+    - STATISTICAL_DIMENSIONS
+    - NON_CORROBORATING_DIMENSIONS
 )
 
 # How much a weak dimension's contribution is kept when nothing strong corroborates it.

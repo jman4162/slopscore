@@ -25,9 +25,9 @@ the score is not ``severity_rate_score`` alone. It subclasses ``PhrasePack`` so 
 
 from __future__ import annotations
 
-import re
 from functools import lru_cache
 
+import regex as re
 import yaml
 
 from slopscore.config import data_path
@@ -39,7 +39,7 @@ from slopscore.features.base import (
     saturating,
 )
 from slopscore.features.phrase_packs import PhrasePack
-from slopscore.features.redundancy import pair_cosine
+from slopscore.features.redundancy import content_containment
 from slopscore.features.specificity import concrete_evidence_count
 from slopscore.models import Dimension, Evidence, EvidenceKind, FeatureResult, Severity
 from slopscore.spans import TextSpan
@@ -83,12 +83,17 @@ _RUN_SCORE: dict[int, float] = {2: 0.35, 3: 0.55, 4: 0.75}
 _RUN_SCORE_MAX = 0.90
 
 # Floor on the density denominator. per_hundred_words amplifies a 17-word document 5.9x, so a
-# single low-severity marker there saturates the dimension at 1.0 — measured on two clean
-# benchmark rows that went 13.8 -> 50.2 on one hit each. The other packs survive this because
-# they are weak-damped; this one deliberately is not, so it needs the floor instead. Smoothing a
-# rate estimated from a tiny sample toward zero is the same judgment abstention already encodes
-# about short input, applied to the score rather than only to the label. No effect above 100
-# words, which is where every real document lives.
+# single low-severity marker there saturates the dimension at 1.0: measured on two clean
+# benchmark rows that went 13.8 -> 50.2 on one hit each. Smoothing a rate estimated from a tiny
+# sample is the same judgment abstention already encodes about short input, applied to the score
+# rather than only to the label. No effect above 100 words.
+#
+# This is a local fix for a shared defect, and it is worth being honest about which. Every pack
+# using severity_rate_score has it: significance_inflation, formulaic_structure,
+# weasel_attribution, unsupported_claims and insight_signaling are all non-weak with no floor,
+# and one medium hit in a 17-word document saturates each of them too. The right fix is a
+# minimum-denominator argument on severity_rate_score itself, which moves every dimension's
+# scores and needs its own calibration pass; it is not done here.
 _MIN_RATE_WORDS = 100
 
 
@@ -101,19 +106,37 @@ def _markers() -> list[re.Pattern[str]]:
     """The non-scoring marker superset used to classify a sentence as metadiscourse."""
     with data_path("lexicons", "metadiscourse_markers.yaml").open(encoding="utf-8") as fh:
         raw = yaml.safe_load(fh)
-    return [re.compile(m, re.IGNORECASE) for m in raw.get("markers", [])]
+    # Same module and flags _ruleset.py compiles the YAML rules with, so a marker copied
+    # from patterns/*.yaml behaves identically here.
+    return [re.compile(m, re.IGNORECASE | re.MULTILINE) for m in raw.get("markers", [])]
 
 
-def _is_empty_meta(doc: Document, sentence: TextSpan) -> bool:
-    """A metadiscourse sentence that carries no concrete reference of its own."""
+def _classify(doc: Document, sentence: TextSpan) -> str:
+    """``"meta"``, ``"concrete"``, or ``"skip"`` for one sentence.
+
+    ``"skip"`` neither extends nor breaks a run. A sentence too short to judge, or one that is
+    not prose at all, says nothing about whether the passage around it is about the writing;
+    treating it as concrete used to sever a run, so a denser passage of prose-about-the-prose
+    could score lower than a sparser one.
+    """
     text = sentence.text.strip()
-    if len(text.split()) < _MIN_SENTENCE_WORDS:
-        return False
     if doc.in_block_kind(sentence.start, _NOT_PROSE):
-        return False
-    if concrete_evidence_count(text, spelled_numbers=True) > 0:
-        return False
-    return any(m.search(text) for m in _markers())
+        return "skip"
+    match = next((m for pat in _markers() if (m := pat.search(text))), None)
+    if match is None:
+        # Short and factless says nothing either way; short with a fact is a real interruption.
+        if len(text.split()) < _MIN_SENTENCE_WORDS:
+            return (
+                "skip" if concrete_evidence_count(text, spelled_numbers=True) == 0 else "concrete"
+            )
+        return "concrete"
+    if len(text.split()) < _MIN_SENTENCE_WORDS:
+        return "skip"
+    # Cut the marker's own characters out before counting, or a marker that looks concrete
+    # exempts itself: "In plain English" contains "English", which reads as a proper noun, and
+    # "three things to notice" contains "three".
+    rest = text[: match.start()] + " " + text[match.end() :]
+    return "concrete" if concrete_evidence_count(rest, spelled_numbers=True) > 0 else "meta"
 
 
 def _runs(doc: Document) -> list[list[TextSpan]]:
@@ -123,7 +146,10 @@ def _runs(doc: Document) -> list[list[TextSpan]]:
     for s in doc.sentences:
         if not s.text.strip():
             continue
-        if _is_empty_meta(doc, s):
+        kind = _classify(doc, s)
+        if kind == "skip":
+            continue
+        if kind == "meta":
             current.append(s)
             continue
         if len(current) >= _MIN_RUN:
@@ -136,19 +162,25 @@ def _runs(doc: Document) -> list[list[TextSpan]]:
 
 # A closing section has to be announced as one; a final paragraph that simply continues the
 # argument is not a recap however much vocabulary it shares with the body.
+# "Overall" and "Takeaways" need the punctuation gate that META_BROAD_OVERALL_CLOSER requires
+# and for the same reason: bare "Overall performance improved 12%" is ordinary English, and the
+# broad tier holds the comma-less form back on purpose. The recap detector scores by default, so
+# it must not be a way around that.
 _CLOSER = re.compile(
-    r"^\W{0,4}(?:\*\*)?(?:in summary|in conclusion|to sum up|to summari[sz]e|all in all|"
-    r"in a nutshell|overall|to recap|key takeaways?|takeaways?|the bottom line|conclusion)\b",
+    r"^\W{0,4}(?:\*\*)?(?:(?:in summary|in conclusion|to sum up|to summari[sz]e|all in all|"
+    r"in a nutshell|to recap|the bottom line)\b"
+    r"|(?:overall|takeaways?|key takeaways?|conclusion)\s*(?:[,:]|\*\*\s*[,:]?))",
     re.IGNORECASE,
 )
 
 # Below this the "body" is too short for shared vocabulary to mean anything.
 _MIN_BODY_WORDS = 150
 
-# Cosine over content unigrams and bigrams. A genuine restatement of the body lands near 0.75; a
-# closing paragraph that adds something new lands near 0.
-_RECAP_LO = 0.35
-_RECAP_HI = 0.75
+# Share of the closing paragraph's content terms that already appear in the body. Calibrated
+# against a body of dated facts: a verbatim restatement reads 0.88, a close paraphrase 0.26, and
+# a closer that makes a new claim 0.00. Both bounds sit inside that gap.
+_RECAP_LO = 0.20
+_RECAP_HI = 0.70
 
 
 def _recap_score(cosine: float) -> float:
@@ -156,6 +188,21 @@ def _recap_score(cosine: float) -> float:
         return 0.0
     ramp = min(1.0, (cosine - _RECAP_LO) / (_RECAP_HI - _RECAP_LO))
     return 0.30 + 0.40 * ramp
+
+
+def _recap_state(doc: Document) -> tuple[TextSpan | None, float]:
+    """The closing paragraph and the share of it that already appears in the body.
+
+    ``extract`` and ``score_spans`` both need it, and the measure tokenizes the whole body,
+    so without the cache a document with a closing summary paid for it twice (four times under
+    ``--broad``, where the scorer re-scores the pack).
+    """
+    cached = doc.__dict__.get("_metadiscourse_recap")
+    if cached is None:
+        split = _terminal_split(doc)
+        cached = (split[0], content_containment(split[0].text, split[1])) if split else (None, 0.0)
+        doc.__dict__["_metadiscourse_recap"] = cached
+    return cached
 
 
 def _terminal_split(doc: Document) -> tuple[TextSpan, str] | None:
@@ -173,8 +220,8 @@ def _terminal_split(doc: Document) -> tuple[TextSpan, str] | None:
 
 
 def _sentence_ranges(doc: Document) -> list[tuple[int, int]]:
-    """Original-coordinate ranges of every non-empty sentence."""
-    return [doc.mapper.to_original(s.start, s.end) for s in doc.sentences if s.text.strip()]
+    """Original-coordinate range of every sentence, positionally aligned with ``doc.sentences``."""
+    return [doc.mapper.to_original(s.start, s.end) for s in doc.sentences]
 
 
 def _restates_a_fact(doc: Document, span: Evidence, ranges: list[tuple[int, int]]) -> bool:
@@ -196,13 +243,34 @@ def _restates_a_fact(doc: Document, span: Evidence, ranges: list[tuple[int, int]
     return False
 
 
-def _count_sentences(text: str) -> int:
-    """Recover a run's sentence count from the span text itself.
+def _count_sentences(doc: Document, span: Evidence) -> int:
+    """A run's sentence count, recovered from the document's own segmentation.
 
     ``score_spans`` must be a pure function of the surviving spans — the scorer re-scores after
-    suppression and severity overrides — so the run length cannot be cached on the feature.
+    suppression and severity overrides — so the length cannot be cached on the feature. Counting
+    pysbd's sentences inside the span rather than re-splitting the span text keeps the number
+    identical to the one ``_runs`` used: a naive ``(?<=[.!?])\\s+`` resplit counts "e.g." and
+    "U.S." as sentence ends, so the score disagreed with the count the evidence reports.
     """
-    return len([p for p in re.split(r"(?<=[.!?])\s+", text.strip()) if p])
+    counted = 0
+    for sentence, (start, _) in zip(doc.sentences, _sentence_ranges(doc), strict=True):
+        if span.start_char <= start < span.end_char and _classify(doc, sentence) == "meta":
+            counted += 1
+    return counted
+
+
+def _natural_severity(run_length: int) -> Severity:
+    return Severity.high if run_length >= 4 else Severity.medium
+
+
+def _severity_factor(span: Evidence, natural: Severity) -> float:
+    """How far a `rule_severity` override moved this span from the severity it would have had.
+
+    Without this the length-invariant terms ignore severity overrides entirely, so
+    ``--rule-severity META_RUN_OF_META_SENTENCES=low`` changed the report label and nothing else,
+    against the scorer contract that overrides apply before ``by_dim``.
+    """
+    return min(1.0, SEVERITY_WEIGHT[span.severity] / SEVERITY_WEIGHT[natural])
 
 
 class Metadiscourse(PhrasePack):
@@ -212,19 +280,27 @@ class Metadiscourse(PhrasePack):
         return super().rule_ids() | {RULE_META_RUN, RULE_TERMINAL_RECAP}
 
     def score_spans(self, doc: Document, profile: str, spans: list[Evidence]) -> float:
-        rule_spans = [s for s in spans if s.rule_id != RULE_META_RUN]
-        run_spans = [s for s in spans if s.rule_id == RULE_META_RUN]
+        # The two length-invariant terms have their own spans and must not also be charged to
+        # the rate term, or one recap paragraph is counted twice.
+        own = {RULE_META_RUN, RULE_TERMINAL_RECAP}
+        rule_spans = [s for s in spans if s.rule_id not in own]
         weighted = sum(SEVERITY_WEIGHT[s.severity] for s in rule_spans)
         rate = saturating(
             per_hundred_words(weighted, max(doc.word_count, _MIN_RATE_WORDS)), self._full_scale
         )
-        concentration = max((_run_score(_count_sentences(s.span)) for s in run_spans), default=0.0)
+
+        concentration = 0.0
+        for s in (s for s in spans if s.rule_id == RULE_META_RUN):
+            n = _count_sentences(doc, s)
+            concentration = max(
+                concentration, _run_score(n) * _severity_factor(s, _natural_severity(n))
+            )
+
         recap = 0.0
-        if any(s.rule_id == RULE_TERMINAL_RECAP for s in spans):
-            split = _terminal_split(doc)
-            if split is not None:
-                last, body = split
-                recap = _recap_score(pair_cosine(last.text, body))
+        for s in (s for s in spans if s.rule_id == RULE_TERMINAL_RECAP):
+            _, overlap = _recap_state(doc)
+            recap = max(recap, _recap_score(overlap) * _severity_factor(s, Severity.medium))
+
         return max(rate, concentration, recap)
 
     def _recap_span(self, doc: Document) -> list[Evidence]:
@@ -234,12 +310,8 @@ class Metadiscourse(PhrasePack):
         information" as a finding. Length-invariant for the same reason the run term is: one
         recap paragraph is one hit, and a per-100-word rate would erase it in long-form.
         """
-        split = _terminal_split(doc)
-        if split is None:
-            return []
-        last, body = split
-        cosine = pair_cosine(last.text, body)
-        if _recap_score(cosine) == 0.0:
+        last, overlap = _recap_state(doc)
+        if last is None or _recap_score(overlap) == 0.0:
             return []
         return [
             doc.evidence(
@@ -248,8 +320,8 @@ class Metadiscourse(PhrasePack):
                 clean_start=last.start,
                 clean_end=last.end,
                 explanation=(
-                    f"Closing section restates the body ({cosine:.0%} content overlap) "
-                    "rather than adding to it."
+                    f"Closing section restates the body ({overlap:.0%} of its content terms "
+                    "already appear above) rather than adding to it."
                 ),
                 kind=EvidenceKind.finding,
             )

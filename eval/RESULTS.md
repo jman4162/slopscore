@@ -2,7 +2,7 @@
 
 Reproduce with `python scripts/eval/report.py` (writes `eval/results.json`). Two evaluation sets:
 
-- **benchmark** (`eval/datasets/benchmark.jsonl`, 141 rows): hand-authored, taxonomy-graded slop vs
+- **benchmark** (`eval/datasets/benchmark.jsonl`, 149 rows): hand-authored, taxonomy-graded slop vs
   clean text (see `eval/RUBRIC.md`). This is **in-sample**: it includes the seed the model trained
   on, so its numbers measure discrimination on *overt* slop, not generalization.
 - **longform** (`eval/datasets/longform.jsonl`, 180 rows, all 300+ words, committed): 60
@@ -16,9 +16,17 @@ Reproduce with `python scripts/eval/report.py` (writes `eval/results.json`). Two
 
 ## Headline numbers (rule scorer, the shipped default)
 
+**v0.14 note on the benchmark row.** The set gained eight `label 0` rows exercising
+metadiscourse, and the headline TPR@1%FPR fell 0.571 to 0.329. That drop is not caused by the new
+dimension: with `metadiscourse` disabled the same set gives the same threshold and the same TPR.
+It is one pre-existing false positive the new rows made visible, `FORMULAIC_SIMPLY_PUT` scoring
+"In other words, you need two coins before you get on" at 66.0, which raises the 1%-FPR operating
+point and crowds out real positives. The old 0.571 was measured on a set that did not contain
+that row, not on a better scorer.
+
 | Set | n | AUROC | PR-AUC | TPR@1%FPR | ECE |
 |---|---|---|---|---|---|
-| benchmark (in-sample, overt slop, 13-40 words) | 141 | 0.873 | 0.890 | 0.571 | 0.236 |
+| benchmark (in-sample, overt slop, 13-40 words) | 149 | 0.857 | 0.863 | 0.329 | 0.213 |
 | longform (committed, 300+ words, eval-only) | 180 | 0.705 | 0.593 | 0.133 | 0.251 |
 | wiki_aicleanup, full articles (held-out) | 180 | 0.746 | 0.770 | 0.111 | 0.415 |
 | wiki_aicleanup, lead sections only (v0.10 slice) | 40 | 0.647 | 0.627 | 0.000 | 0.463 |
@@ -94,4 +102,4 @@ patterns," not "written by AI."
 - The fairness slices are 17 and 15 self-authored clean rows; a 0.00 rate on 15 rows has a 95%
   upper bound near 0.22. `slopscore-lint fairness` reports the per-rule rates.
 - `--scorer ml` ignores `--strictness` and `--profile`, was trained on a 128-row snapshot of
-  this 141-row set, and has zero weight on `prompt_residue`. Treat it as research-only.
+  this 149-row set, and has zero weight on `prompt_residue`. Treat it as research-only.

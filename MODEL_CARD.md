@@ -118,7 +118,7 @@ human-signal counterweight. Current numbers (`eval/RESULTS.md`):
 
 | set | n | AUROC | PR-AUC | TPR@1%FPR |
 |---|---:|---:|---:|---:|
-| benchmark (13-40 words, in-sample) | 141 | 0.87 | 0.89 | 0.57 |
+| benchmark (13-40 words, in-sample) | 149 | 0.86 | 0.86 | 0.33 |
 | long-form (300+ words, committed, eval-only) | 180 | 0.71 | 0.59 | 0.13 |
 | Wikipedia AI-Cleanup, full articles (held-out) | 180 | 0.75 | 0.77 | 0.11 |
 
@@ -133,7 +133,7 @@ change.
 v0.5 adds a real slop-labeled benchmark and retrains the learned scorer on it. Full numbers and
 reproduction are in `eval/RESULTS.md` (`python scripts/eval/report.py`). Two evaluation sets:
 
-- `eval/datasets/benchmark.jsonl` (141 rows): hand-authored, taxonomy-graded (Shaib et al.,
+- `eval/datasets/benchmark.jsonl` (149 rows): hand-authored, taxonomy-graded (Shaib et al.,
   "Measuring AI Slop", arXiv:2509.19163) slop vs clean text, with `simple_english` and `non_native`
   fairness slices. In-sample (overlaps the training seed); measures discrimination on overt slop.
 - Wikipedia AI-Cleanup (40 rows): articles editors flagged as suspected AI-generated vs random
@@ -211,8 +211,8 @@ is correct epistemics in calibrated writing; only the *hedge + vague adjective* 
 treated as a tell.
 
 v0.14 adds a **metadiscourse** dimension for writing that refers to the text rather than to its
-subject. This is Hyland's (2005) *interactive* metadiscourse — frame markers, endophoric markers,
-code glosses — and the interactional half of his taxonomy was already covered here: hedges by
+subject. This is Hyland's (2005) *interactive* metadiscourse (frame markers, endophoric markers,
+code glosses), and the interactional half of his taxonomy was already covered here: hedges by
 `weasel_attribution`, boosters by `significance_inflation`, attitude markers by
 `performative_candor`. Rules-only, excluded from the ML `FEATURE_ORDER`.
 
@@ -224,7 +224,7 @@ against 1.15 for `blog`. `formulaic_structure` also carries unrelated template r
 not move with them. No rules were migrated out of `formulaic.yaml`: that would break rule-id
 suppressions and `report/baseline.py` fingerprints in the wild, and the run detector reads a
 separate non-scoring marker lexicon that is a superset of both, so it sees the whole surface
-without needing them moved. Where the two would overlap the new rule is narrowed instead —
+without needing them moved. Where the two would overlap the new rule is narrowed instead:
 `META_RESTATEMENT_COLON` takes only the colon form `FORMULAIC_SIMPLY_PUT`'s comma gate misses.
 
 **Why it scores concentration and not only density.** Every other rule pack scores
@@ -245,7 +245,7 @@ prose-grading and frame-marker rules are deliberately not gated, since "the defe
 announces the writing whatever facts sit beside it.
 
 **Not weak, and what that costs.** `metadiscourse` is deliberately not a `WEAK_DIMENSION`: weak
-means damped to 0.3 when alone, which is the exact failure the dimension exists to fix — a
+means damped to 0.3 when alone, which is the exact failure the dimension exists to fix: a
 2,592-word post whose other dimensions were clean scored 7.0 with the flagged passage unflagged.
 Since `CORROBORATING_DIMENSIONS` is derived, that makes it a corroborator that can unlock the weak
 dimensions. Three things contain it: the core tier is high-precision only with every ESL-risky
@@ -273,7 +273,13 @@ did not disappear; the form changed. Treat the legacy closers as the weak half o
 and the prose-grading and frame-marker rules as the current half.
 
 **Known limitations.** The residual `simple_english` FPR of 0.05 is `FORMULAIC_SIMPLY_PUT`, a
-pre-existing rule, firing on "In other words, you need two coins before you get on" — a false
+pre-existing rule, firing on "In other words, you need two coins before you get on" at 66.0. That
+one row also moves the benchmark's headline TPR@1%FPR from 0.571 to 0.329 by raising the 1%-FPR
+operating point; with `metadiscourse` disabled the same set gives the same threshold and the same
+TPR, so it is a measurement these rows expose rather than a regression they cause. The recap term
+measures shared vocabulary, not shared claims, so a paraphrase and a half-new closer land close
+together. The 100-word density floor is a local fix for a defect every `severity_rate_score` pack
+shares. Continuing: — a false
 positive these rows made visible rather than one this dimension introduced. Separately, a
 `METADISCOURSE` marker and a `formulaic_structure` template can both fire on one sentence ("In
 summary," is a template *and* a frame marker). These are two measurements of one sentence rather

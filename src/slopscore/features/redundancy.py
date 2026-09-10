@@ -91,21 +91,25 @@ def _tfidf_cosines(sentences: list[str]) -> list[float]:
     return [float(matrix[i] @ matrix[i + 1]) for i in range(n - 1)]
 
 
-def pair_cosine(a: str, b: str) -> float:
-    """Cosine similarity between two spans of prose over content unigrams and bigrams.
+def content_containment(part: str, whole: str) -> float:
+    """Share of ``part``'s content unigrams and bigrams that also appear in ``whole``.
 
     Shared with ``features/metadiscourse.py``, which uses it to ask whether a closing section
-    restates the body. IDF over two documents is degenerate, so this is a plain TF cosine over
-    the same stopword-filtered features ``_tfidf_cosines`` builds. numpy-only, like the rest of
-    the scan path (scikit-learn is the ``[eval]`` extra).
+    restates the body. Containment rather than cosine because cosine is not stable in the length
+    the caller cares about: measured on a closing paragraph against the same body extended with
+    unrelated content, cosine fell 0.219 -> 0.157 -> 0.071 as the body grew, so a recap in a long
+    varied document would silently drop under any fixed threshold. Containment asks "what share
+    of this closer is old news?", which the body's length and subject spread do not move: the
+    same pair reads 0.259 at every one of those lengths, against 0.000 for a closer that adds a
+    new claim.
+
+    Known limit: it sees shared vocabulary, not shared claims, so a paraphrase and a
+    half-new closer land close together (0.259 vs 0.261 on the calibration pair).
     """
-    fa, fb = _content_features(_tokens(a)), _content_features(_tokens(b))
+    fa, fb = _content_features(_tokens(part)), _content_features(_tokens(whole))
     if not fa or not fb:
         return 0.0
-    dot = sum(v * fb[k] for k, v in fa.items() if k in fb)
-    na = math.sqrt(sum(v * v for v in fa.values()))
-    nb = math.sqrt(sum(v * v for v in fb.values()))
-    return float(dot / (na * nb)) if na and nb else 0.0
+    return sum(1 for term in fa if term in fb) / len(fa)
 
 
 def _lcs_length(a: list[str], b: list[str]) -> int:

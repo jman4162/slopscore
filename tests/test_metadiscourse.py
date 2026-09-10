@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import pytest
 
+from slopscore import scan_text
 from slopscore.config import Settings
 from slopscore.core import SlopScorer, build_document
 from slopscore.features.metadiscourse import MetadiscoursePack as Metadiscourse
 from slopscore.ingest import from_string
+from slopscore.models import Dimension
+from slopscore.scoring.weights import CORROBORATING_DIMENSIONS
 
 
 def _doc(text: str):
@@ -263,7 +266,7 @@ def test_terminal_recap_fires_when_the_closer_restates() -> None:
     result = Metadiscourse.extract(doc, "blog")
     recap = [e for e in result.spans if e.rule_id == "META_TERMINAL_RECAP"]
     assert len(recap) == 1
-    assert "content overlap" in recap[0].explanation
+    assert "already appear above" in recap[0].explanation
     assert result.score > 0.4
 
 
@@ -287,23 +290,27 @@ def test_terminal_recap_needs_a_body_to_restate() -> None:
     )
 
 
-def test_terminal_recap_is_length_invariant() -> None:
-    # One recap paragraph is one hit; a per-100-word rate would erase it in long-form, which is
-    # the same failure the run term exists to fix.
+_UNRELATED = (
+    "The parser wraps the tokenizer and exposes a stable API. Rainfall in Manaus averaged 2300 "
+    "millimetres in 1998. The kiln fired at 1280 degrees for nine hours. "
+) * 8
+
+
+def test_terminal_recap_survives_a_longer_and_more_varied_body() -> None:
+    # An earlier version of this test repeated the SAME body, which cannot move a similarity
+    # measure at all, and so passed vacuously while the underlying cosine fell 0.219 -> 0.071 on
+    # a body extended with unrelated content. Containment is what actually holds this property.
     closer = (
         "\n\nIn summary, Japan took 34 years to recover from its 1989 peak and Russia and "
         "China nationalized their exchanges in 1917 and 1949. The Dimson Marsh Staunton "
         "dataset covers 35 markets from 1900 through 2024."
     )
-    short, long = _doc(_BODY + closer), _doc(_BODY * 4 + closer)
-    assert long.word_count > 2000
-    short_recap = [
-        e for e in Metadiscourse.extract(short, "blog").spans if e.rule_id == "META_TERMINAL_RECAP"
-    ]
-    long_recap = [
-        e for e in Metadiscourse.extract(long, "blog").spans if e.rule_id == "META_TERMINAL_RECAP"
-    ]
-    assert short_recap and long_recap
+    short = _doc(_BODY + closer)
+    long = _doc(_BODY + _UNRELATED * 3 + closer)
+    assert long.word_count > 2 * short.word_count
+    for doc in (short, long):
+        spans = Metadiscourse.extract(doc, "blog").spans
+        assert any(e.rule_id == "META_TERMINAL_RECAP" for e in spans)
 
 
 def test_quoted_markers_are_not_the_author_s_voice() -> None:
@@ -325,3 +332,130 @@ def test_unquoted_markers_still_fire_alongside_a_quotation() -> None:
     )
     ids = _core_ids(text)
     assert {"META_PROSE_ATTRIBUTE_SUBJECT", "META_PROSE_CORRECTION"} <= ids
+
+
+# --- guards for the code-review findings --------------------------------------------------------
+
+
+def test_metadiscourse_does_not_unlock_the_weak_dimensions() -> None:
+    # The concentration term is length-invariant and clears the gate on its own. Left in the
+    # derived CORROBORATING_DIMENSIONS, three meta sentences took this document from 46.4 "mild"
+    # to 97.6 "severe" by counting lexical_markers, parallelism and copula_avoidance at full
+    # weight document-wide.
+    base = (
+        "The system is robust and the design is seamless. Teams leverage the layer to showcase "
+        "results. The module serves as a bridge and functions as a relay. It is not a toy, it "
+        "is a platform. The layer constitutes a boundary and represents a contract. "
+    ) * 14
+    run = (
+        "As noted above, the framing here is what actually matters most of all. To be clear, "
+        "the point is not really about any of that at all. In short: what this means is that "
+        "the phrasing is doing the work."
+    )
+    without = scan_text(base)
+    with_run = scan_text(base + run)
+    assert with_run.dimensions.metadiscourse > 0.5
+    # It still moves the score, by its own weight, but must not flip the label two steps.
+    assert with_run.score.slop_score > without.score.slop_score
+    assert with_run.score.slop_score - without.score.slop_score < 30
+    assert Dimension.metadiscourse not in CORROBORATING_DIMENSIONS
+
+
+def test_run_length_survives_an_abbreviation() -> None:
+    # A naive (?<=[.!?])\s+ resplit of the span text counts "e.g." as a sentence end, so the
+    # score disagreed with the count the evidence reports.
+    plain = (
+        "As noted above, the phrasing here is what actually matters most. To be clear, the "
+        "point here is not really about that at all. In short: what this means is that the "
+        "framing is doing the work."
+    )
+    with_abbrev = plain.replace("about that at all", "about that at all, e.g. the rest")
+    scores = []
+    for text in (plain, with_abbrev):
+        result = Metadiscourse.extract(_doc(text), "blog")
+        run = [e for e in result.spans if e.rule_id == "META_RUN_OF_META_SENTENCES"]
+        assert run and run[0].explanation.startswith("3 consecutive")
+        scores.append(result.score)
+    assert scores[0] == scores[1]
+
+
+def test_severity_override_reaches_the_concentration_term() -> None:
+    # CLAUDE.md: severity overrides apply before by_dim. For a rule whose score is not derived
+    # from SEVERITY_WEIGHT that has to be wired explicitly.
+    text = (
+        "Japan peaked at 38915 on the Nikkei in December 1989. Russia nationalized the exchange "
+        "in 1917. "
+        * 40
+        + "As noted above, the framing here is what actually matters most of all. To be clear, "
+        "the point is not really about any of that at all. In short: what this means is that "
+        "the phrasing is doing the work."
+    )
+    default = SlopScorer(settings=Settings()).scan_text(text)
+    lowered = SlopScorer(
+        settings=Settings(rule_severity={"META_RUN_OF_META_SENTENCES": "low"})
+    ).scan_text(text)
+    assert default.dimensions.metadiscourse == pytest.approx(0.55)
+    assert lowered.dimensions.metadiscourse < default.dimensions.metadiscourse
+
+
+def test_recap_span_is_not_also_charged_to_the_rate_term() -> None:
+    doc = _doc(
+        _BODY
+        + "\n\nIn summary, Japan took 34 years to recover from its 1989 peak, Russia and China "
+        "nationalized their exchanges in 1917 and 1949, and the Dimson Marsh Staunton dataset "
+        "covers 35 markets from 1900 through 2024."
+    )
+    spans = Metadiscourse.extract(doc, "blog").spans
+    recap = [e for e in spans if e.rule_id == "META_TERMINAL_RECAP"]
+    assert recap
+    # Dropping the recap span must not leave its severity behind in the rate term.
+    without = [e for e in spans if e.rule_id != "META_TERMINAL_RECAP"]
+    assert Metadiscourse.score_spans(doc, "blog", without) < Metadiscourse.score_spans(
+        doc, "blog", spans
+    )
+
+
+@pytest.mark.parametrize(
+    "marker_sentence",
+    [
+        "In plain English, the whole thing simply does not work at all.",
+        "There are three things to notice about the way this is written.",
+        "The TL;DR is that the argument does not really hold together here.",
+    ],
+)
+def test_markers_that_look_concrete_still_count_toward_a_run(marker_sentence: str) -> None:
+    # Each of these contains its own apparent evidence ("English" as a proper noun, "three" as a
+    # number, "TL"/"DR" as acronyms), so before the marker text was excised they could never
+    # form a run and their lexicon entries were dead code.
+    doc = _doc(marker_sentence + " " + marker_sentence)
+    assert any(
+        e.rule_id == "META_RUN_OF_META_SENTENCES" for e in Metadiscourse.extract(doc, "blog").spans
+    )
+
+
+def test_a_short_sentence_does_not_sever_a_run() -> None:
+    # A sentence too short to judge says nothing about the passage around it; treating it as
+    # concrete meant a denser passage of prose-about-the-prose scored lower than a sparser one.
+    doc = _doc(
+        "In this section we will discuss the whole argument at length. To be clear, it fails. "
+        "As noted above, the framing is what actually matters most here."
+    )
+    assert any(
+        e.rule_id == "META_RUN_OF_META_SENTENCES" for e in Metadiscourse.extract(doc, "blog").spans
+    )
+
+
+@pytest.mark.parametrize(
+    "closer",
+    [
+        "Overall performance across the markets improved after 1949 in every country measured.",
+        "Takeaways for the dataset were presented at the 2019 conference in Lisbon that autumn.",
+    ],
+)
+def test_bare_overall_is_not_an_announced_closer(closer: str) -> None:
+    # META_BROAD_OVERALL_CLOSER requires "Overall," and is broad-only because bare "Overall" is
+    # ordinary English. The default-scoring recap detector must not be a way around that.
+    doc = _doc(_BODY + "\n\n" + closer)
+    assert not any(
+        e.rule_id == "META_TERMINAL_RECAP" for e in Metadiscourse.extract(doc, "blog").spans
+    )

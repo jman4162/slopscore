@@ -8,7 +8,7 @@ and the tool are named `slopscore`.
 Metadiscourse. Schema 0.14.0 (new `metadiscourse` dimension).
 
 - **`metadiscourse`**: writing that refers to the text rather than to its subject. Hyland's
-  (2005) *interactive* metadiscourse — frame markers ("in this section we will discuss"),
+  (2005) *interactive* metadiscourse: frame markers ("in this section we will discuss"),
   endophoric markers ("as noted above"), code glosses ("put simply:"), and prose-grading ("the
   defensible version is"). The interactional half was already covered: hedges by
   `weasel_attribution`, boosters by `significance_inflation`, attitude markers by
@@ -34,18 +34,29 @@ Metadiscourse. Schema 0.14.0 (new `metadiscourse` dimension).
   opener: a closer restating the body reads 56% content overlap and is flagged; one that adds a
   new claim reads 0% and is quiet.
 - **`INSIGHT_LOAD_BEARING` matches the predicative form.** It matched only "load-bearing
-  <prose-noun>", so "This distinction is load-bearing" — the commoner form, and the one in this
-  repo's own CLAUDE.md — went unflagged. The engineering sense stays quiet.
+  <prose-noun>", so "This distinction is load-bearing" (the commoner form, and the one in this
+  repo's own CLAUDE.md) went unflagged. The engineering sense stays quiet.
 - **Eval.** Eight `label 0` rows added to `benchmark.jsonl` across `general`, `simple_english`,
   and `non_native`. Negatives only, on purpose: rows written to contain the constructions the
   rules were written to match would raise TPR without measuring anything. They found two real
-  defects, both fixed here — a single low-severity marker saturating the dimension in a
+  defects, both fixed here: a single low-severity marker saturating the dimension in a
   short document (the density denominator is now floored at 100 words), and code glosses firing
   over concrete facts. No `META_` rule fires on either fairness slice; `general` and
   `non_native` FPR stay 0.00.
 - **Known limitation, not fixed here.** The residual `simple_english` FPR of 0.05 is
-  `FORMULAIC_SIMPLY_PUT` firing on "In other words, you need two coins before you get on" — a
+  `FORMULAIC_SIMPLY_PUT` firing on "In other words, you need two coins before you get on", a
   pre-existing false positive in a shipped rule, newly visible because these rows exercise it.
+  It also moves the benchmark's headline `TPR@1%FPR` from 0.571 to 0.329 by raising the 1%-FPR
+  operating point. With `metadiscourse` disabled the same set gives the same threshold and the
+  same TPR, so this is a measurement the new rows expose rather than a regression they cause;
+  `eval/RESULTS.md` and the model card carry the same note. `longform` (0.133) and
+  `wiki_aicleanup` (0.111) are unchanged.
+- **`metadiscourse` corroborates nothing.** It is in neither `WEAK_DIMENSIONS` nor
+  `CORROBORATING_DIMENSIONS`. Weak means damped to 0.3 when alone, which is the failure it exists
+  to fix; but left in the derived corroborating set, its length-invariant concentration term
+  clears the gate by itself, and three meta sentences took an otherwise identical 600-word
+  document from 46.4 "mild" to 97.6 "severe" by counting every weak dimension at full weight.
+  `weights.py:NON_CORROBORATING_DIMENSIONS` is the new subtraction.
 
 ## 0.13.0
 
