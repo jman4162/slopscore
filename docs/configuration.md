@@ -48,6 +48,7 @@ that drove them. Summaries explain the score; they are not rule hits, so they ne
 
 `--broad` enables an opt-in tier of higher-false-positive rules (rationalist/essayist jargon in
 `insight_signaling`; bare quantifiers, hedges, and intensifiers in `weasel_attribution`; bare
-sincerity adverbs such as "genuinely" and "honestly" in `performative_candor`). It is off
+sincerity adverbs such as "genuinely" and "honestly" in `performative_candor`; bare code glosses
+such as "that is to say" and clause-initial "Overall," in `metadiscourse`). It is off
 by default because those bare words also appear in ordinary and non-native English; treat it as a
 self-editing highlighter, not an accusation.

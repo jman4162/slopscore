@@ -296,6 +296,10 @@ MetadiscoursePack = Metadiscourse(
     "metadiscourse",
     full_scale=4.0,
     broad_category="metadiscourse_broad",
+    # Quoted text is someone else's, or an example being discussed rather than used. Same reason
+    # the candor and attribution packs skip it: a character may say "To be clear," and a style
+    # guide may quote "As noted above" without either author being charged for it.
+    skip_quoted=True,
 )
 
 register(MetadiscoursePack)

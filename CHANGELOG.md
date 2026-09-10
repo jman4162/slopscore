@@ -3,6 +3,50 @@
 All notable changes to slopscore. The PyPI distribution is `slopscore-lint`; the import package
 and the tool are named `slopscore`.
 
+## 0.14.0
+
+Metadiscourse. Schema 0.14.0 (new `metadiscourse` dimension).
+
+- **`metadiscourse`**: writing that refers to the text rather than to its subject. Hyland's
+  (2005) *interactive* metadiscourse — frame markers ("in this section we will discuss"),
+  endophoric markers ("as noted above"), code glosses ("put simply:"), and prose-grading ("the
+  defensible version is"). The interactional half was already covered: hedges by
+  `weasel_attribution`, boosters by `significance_inflation`, attitude markers by
+  `performative_candor`. Ten core rules, three in an opt-in `--broad` tier. Weight 2.0,
+  `academic` and `technical` 0.5, `blog` 1.15, `social` 0.9. Excluded from the ML `FEATURE_ORDER`.
+- **Concentration, not just rate.** Every phrase pack scores hits per 100 words, which cannot see
+  this defect in long-form prose: the passage that prompted the dimension saturates
+  `formulaic_structure` at 1.0 at 123 words and scores 0.064 at 3,373. The dimension scores
+  `max(rate, concentration)`, where concentration is the longest run of consecutive
+  *evidence-free* metadiscourse sentences, mapped `{2: 0.35, 3: 0.55, 4: 0.75, 5+: 0.90}` and
+  independent of document length. A 3,307-word document with one buried three-sentence run reads
+  0.55, and `--by-paragraph` puts that paragraph at 62.5 against ~10 for every other one.
+- **The evidence gate.** A marker only counts when its sentence carries no name, number, date,
+  URL, or identifier. "In summary, Japan took 34 years to recover from 1989" is a real summary
+  and is exempt; "Precision matters here because the counter-argument will not survive sloppy
+  phrasing" is not. This is the fairness gate as much as the precision gate: ESL and
+  simple-English writers use restatement scaffolding over concrete facts, and those sentences
+  carry facts. `concrete_evidence_count()` gained an opt-in `spelled_numbers` flag for it, used
+  only here; `genericity` is calibrated against the digit-only count and is unchanged.
+- **`META_TERMINAL_RECAP`**: a closing section that both announces itself as a summary and
+  restates the body, implementing the report line the spec has listed since v0.1. The frame word
+  alone is not the defect. On a 600-word document with the same body and the same "In summary,"
+  opener: a closer restating the body reads 56% content overlap and is flagged; one that adds a
+  new claim reads 0% and is quiet.
+- **`INSIGHT_LOAD_BEARING` matches the predicative form.** It matched only "load-bearing
+  <prose-noun>", so "This distinction is load-bearing" — the commoner form, and the one in this
+  repo's own CLAUDE.md — went unflagged. The engineering sense stays quiet.
+- **Eval.** Eight `label 0` rows added to `benchmark.jsonl` across `general`, `simple_english`,
+  and `non_native`. Negatives only, on purpose: rows written to contain the constructions the
+  rules were written to match would raise TPR without measuring anything. They found two real
+  defects, both fixed here — a single low-severity marker saturating the dimension in a
+  short document (the density denominator is now floored at 100 words), and code glosses firing
+  over concrete facts. No `META_` rule fires on either fairness slice; `general` and
+  `non_native` FPR stay 0.00.
+- **Known limitation, not fixed here.** The residual `simple_english` FPR of 0.05 is
+  `FORMULAIC_SIMPLY_PUT` firing on "In other words, you need two coins before you get on" — a
+  pre-existing false positive in a shipped rule, newly visible because these rows exercise it.
+
 ## 0.13.0
 
 Detection coverage. Schema 0.13.0 (new `structure_tells` dimension).

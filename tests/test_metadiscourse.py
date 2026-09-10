@@ -304,3 +304,24 @@ def test_terminal_recap_is_length_invariant() -> None:
         e for e in Metadiscourse.extract(long, "blog").spans if e.rule_id == "META_TERMINAL_RECAP"
     ]
     assert short_recap and long_recap
+
+
+def test_quoted_markers_are_not_the_author_s_voice() -> None:
+    # A style guide discussing the construction, and a character using it, are both quoting.
+    # Without this the repo's own PROFILE_NOTES.md scored 0.22 for listing rule examples.
+    for text in (
+        'The academic profile softens signposting such as "As noted above" and "TL;DR".',
+        '"To be clear," she said, "I never agreed to any of that."',
+    ):
+        assert not any(r.startswith("META_") for r in _core_ids(text))
+
+
+def test_unquoted_markers_still_fire_alongside_a_quotation() -> None:
+    # The originating catch opens on a quoted claim; the metadiscourse is the prose around it.
+    text = (
+        '"Some stock markets have gone to zero" is a true but loose claim. Precision matters '
+        "here because the counter-argument will not survive sloppy phrasing. The defensible "
+        "version is the one that separates the cases."
+    )
+    ids = _core_ids(text)
+    assert {"META_PROSE_ATTRIBUTE_SUBJECT", "META_PROSE_CORRECTION"} <= ids

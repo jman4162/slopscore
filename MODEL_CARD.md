@@ -210,6 +210,76 @@ an opt-in self-editing highlighter, not an accusation. The broad tier also exclu
 is correct epistemics in calibrated writing; only the *hedge + vague adjective* construction is
 treated as a tell.
 
+v0.14 adds a **metadiscourse** dimension for writing that refers to the text rather than to its
+subject. This is Hyland's (2005) *interactive* metadiscourse — frame markers, endophoric markers,
+code glosses — and the interactional half of his taxonomy was already covered here: hedges by
+`weasel_attribution`, boosters by `significance_inflation`, attitude markers by
+`performative_candor`. Rules-only, excluded from the ML `FEATURE_ORDER`.
+
+It is a separate dimension rather than more `formulaic_structure` rules for the same reason
+`performative_candor` is separate from `insight_signaling`: the genre multipliers must invert
+harder than `formulaic_structure`'s 0.9-1.2 range can express. Academic and technical prose
+signposts by design ("In this section we describe...", "As noted above"), so both are set to 0.5
+against 1.15 for `blog`. `formulaic_structure` also carries unrelated template rules that should
+not move with them. No rules were migrated out of `formulaic.yaml`: that would break rule-id
+suppressions and `report/baseline.py` fingerprints in the wild, and the run detector reads a
+separate non-scoring marker lexicon that is a superset of both, so it sees the whole surface
+without needing them moved. Where the two would overlap the new rule is narrowed instead —
+`META_RESTATEMENT_COLON` takes only the colon form `FORMULAIC_SIMPLY_PUT`'s comma gate misses.
+
+**Why it scores concentration and not only density.** Every other rule pack scores
+severity-weighted hits per 100 words. That normalizer cannot see this defect in long-form prose,
+which is where it occurs. Measured: the passage that prompted the dimension saturates
+`formulaic_structure` at 1.0 at 123 words and scores 0.064 at 3,373 words, taking the document to
+9.6/low. That is the same effect this card already reports on the Wikipedia slice, where recall
+is 1% because "their tells are sparse and per-100-word rates dilute them". So the dimension scores
+`max(rate, concentration, recap)`, where the latter two are independent of document length.
+
+**The evidence gate is the fairness gate.** A marker only counts toward a run when its sentence
+carries no name, number, date, URL, or identifier. "In summary, Japan took 34 years to recover
+from 1989" is a real summary sentence; "Precision matters here because the counter-argument will
+not survive sloppy phrasing" is not. Restatement scaffolding over a concrete fact is a documented
+ESL and simple-English clarity strategy, and this is what keeps the dimension off it. The same
+predicate drops individual code-gloss and back-reference spans whose sentence carries a fact; the
+prose-grading and frame-marker rules are deliberately not gated, since "the defensible version is"
+announces the writing whatever facts sit beside it.
+
+**Not weak, and what that costs.** `metadiscourse` is deliberately not a `WEAK_DIMENSION`: weak
+means damped to 0.3 when alone, which is the exact failure the dimension exists to fix — a
+2,592-word post whose other dimensions were clean scored 7.0 with the flagged passage unflagged.
+Since `CORROBORATING_DIMENSIONS` is derived, that makes it a corroborator that can unlock the weak
+dimensions. Three things contain it: the core tier is high-precision only with every ESL-risky
+bare code gloss held in `--broad`, the dimension saturates at 4.0 rather than 3.0, and the density
+denominator is floored at 100 words. That floor was added because the eval negatives showed a
+single low-severity marker in a 17-word document saturating the dimension at 1.0 and taking two
+clean rows from 13.8 to 50.2; `per_hundred_words` amplifies a document that short by 5.9x. The
+other packs survive this by being weak-damped, which this one is not.
+
+**Fairness.** Bare code glosses ("that is to say", "meaning that", clause-initial "Overall,") are
+`--broad`-only, matching the decision made for bare quantifiers and bare sincerity adverbs above.
+WP:AISIGNS is explicit that transition words in isolation "[have] precedence in essay-like writing
+by humans and [are] accepted by many style guides, so this is not a strong tell". `benchmark.jsonl`
+carries eight `label 0` rows exercising this dimension across `general`, `simple_english`, and
+`non_native`; no positive rows were added, because rows written to contain the constructions the
+rules were written to match would raise TPR without measuring anything. No `META_` rule fires on
+either protected slice.
+
+**Vintage caveat.** WP:AISIGNS files its section-summary and didactic-disclaimer signs under
+*Historical indicators*, "much less frequent in newer models". That is true of the forms it lists,
+and slopscore's pre-0.14 coverage matched that vintage exactly: of 16 probe constructions, the
+four that matched a rule were all legacy closers ("in summary", "in other words", "the bottom line
+is", "it's worth noting") and all twelve misses were forms current models produce. The behaviour
+did not disappear; the form changed. Treat the legacy closers as the weak half of this dimension
+and the prose-grading and frame-marker rules as the current half.
+
+**Known limitations.** The residual `simple_english` FPR of 0.05 is `FORMULAIC_SIMPLY_PUT`, a
+pre-existing rule, firing on "In other words, you need two coins before you get on" — a false
+positive these rows made visible rather than one this dimension introduced. Separately, a
+`METADISCOURSE` marker and a `formulaic_structure` template can both fire on one sentence ("In
+summary," is a template *and* a frame marker). These are two measurements of one sentence rather
+than one charged twice, and the run detector avoids compounding it by emitting a single span for
+the whole run.
+
 v0.9 adds a **performative_candor** dimension for manufactured sincerity: a point framed as a
 difficult confession ("I have to be honest", "truth be told", "let me be candid"), a sincerity
 adjective bolted to an abstract noun ("honest framing", "honest limits" standing in for

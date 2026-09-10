@@ -75,7 +75,7 @@ Key invariants when extending:
   performative_candor (weak), superficial_analysis, weasel_attribution, parallelism,
   copula_avoidance, genericity, redundancy, cadence_sameness, formatting_tells (weak),
   structure_tells (weak, v0.13: Markdown block shape from `Document.blocks`),
-  prompt_residue, human_writing_signals (negative). `genericity`, `cadence_sameness`, `redundancy`,
+  prompt_residue, metadiscourse, human_writing_signals (negative). `genericity`, `cadence_sameness`, `redundancy`,
   and `human_writing_signals` are STATISTICAL (no spans, low weight, never corroborate).
   `insight_signaling` (v0.7) and `performative_candor` (v0.9) are rules-only — deliberately
   excluded from the ML `FEATURE_ORDER`, so they need no model retrain.
@@ -170,6 +170,27 @@ low (see the MODEL_CARD limitation). The comma requirement in `CANDOR_ADVERB_PAR
 keeps the ESL calques "Honestly speaking"/"Frankly speaking" quiet — do not relax it. Do not add
 "Sincerely,"/"Truly," to that rule: patterns compile under MULTILINE, so `^` matches every line
 start and they would fire on email sign-offs.
+
+Metadiscourse (v0.14): writing that refers to the text rather than to its subject — Hyland's
+(2005) *interactive* metadiscourse (frame markers, endophoric markers, code glosses), where the
+interactional half was already covered by `weasel_attribution`, `significance_inflation`, and
+`performative_candor`. Rules in `data/patterns/metadiscourse/` plus a `--broad` tier. Two things
+make it unlike the other packs. First, **it is not a `_PhrasePack`**: `features/metadiscourse.py`
+scores `max(rate, concentration, recap)`, because hits-per-100-words cannot see this defect in
+long-form prose (the originating passage reads 1.0 at 123 words and 0.064 at 3,373). The
+concentration term is the longest run of consecutive metadiscourse sentences that carry **no**
+concrete evidence, mapped `{2: 0.35, 3: 0.55, 4: 0.75, 5+: 0.90}` and length-invariant; the
+recap term flags a closing section that restates the body (cosine over `redundancy.pair_cosine`).
+Second, it is deliberately **not weak** — weak means damped x0.3 alone, which is the failure it
+exists to fix — so it becomes a corroborator by derivation. What contains it: a high-precision
+core tier, `full_scale=4.0`, and a **100-word floor on the density denominator** (without it one
+low-severity hit in a 17-word doc saturates the dimension). The **evidence gate** is the fairness
+gate: a marker over a concrete fact is exempt, because restatement scaffolding over facts is an
+ESL clarity strategy. `concrete_evidence_count()` in `specificity.py` is the shared predicate,
+with an opt-in `spelled_numbers` flag used only here (genericity is calibrated on digits only).
+No rules were migrated out of `formulaic.yaml` — that would break rule-id suppressions and
+baseline fingerprints; the run detector reads `data/lexicons/metadiscourse_markers.yaml`, a
+non-scoring superset, so it sees the whole surface without them moving.
 
 ## Project state
 
