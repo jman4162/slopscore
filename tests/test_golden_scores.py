@@ -81,3 +81,48 @@ def test_short_text_abstains_and_caps_the_label() -> None:
     report = scan_text("Let's delve into this transformative, robust, holistic tapestry.")
     assert report.score.abstained
     assert report.score.label.value in ("low", "mild")
+
+
+# --- long-form metadiscourse (v0.14) ----------------------------------------------------------
+#
+# The bands the benchmark cannot express: its rows are 13-40 words, and the defect these guard
+# is a run of meta sentences buried in a long, otherwise concrete document. Measured against
+# 0.13.0, the run below scored nothing at all and the document read 9.6/low.
+
+_FACTS = (
+    "The Dimson Marsh Staunton dataset covers 35 markets from 1900 through 2024. Japan peaked "
+    "at 38915 on the Nikkei in December 1989 and took 34 years to recover. Russia nationalized "
+    "the Saint Petersburg exchange in 1917 and China closed Shanghai in 1949. Pastor and "
+    "Stambaugh published their variance result in the Journal of Finance in 2012. The 1970s "
+    "produced 7.4 percent annual inflation in the United States. "
+)
+
+LONGFORM_BURIED_RUN = (
+    _FACTS
+    * 12
+    + "\n\nA stock market going to zero is a true but loose claim. Precision matters here "
+    "because the counter-argument will not survive sloppy phrasing. The defensible version "
+    "is the one that separates the cases.\n\n" + _FACTS * 12
+)
+
+LONGFORM_SIGNPOSTED_CLEAN = (
+    "In this section we describe the sampling frame. We drew 2,400 households from the 2019 "
+    "register. As noted above, the response rate was 61 percent in Ontario and 48 percent in "
+    "Quebec. In other words, roughly three in five contacted households returned the form. "
+) * 8
+
+
+def test_long_form_buried_run_is_caught() -> None:
+    report = scan_text(LONGFORM_BURIED_RUN)
+    assert len(LONGFORM_BURIED_RUN.split()) > 1000
+    # Length-invariant: the same run reads the same at 120 words and at 2,000.
+    assert report.dimensions.metadiscourse >= 0.5
+    assert any(e.rule_id == "META_RUN_OF_META_SENTENCES" for e in report.findings)
+
+
+def test_long_form_legitimate_signposting_stays_low() -> None:
+    # Signposting over concrete facts is how careful and ESL writers work. Every marker here
+    # sits in a sentence carrying a number, which is what the evidence gate turns on.
+    report = scan_text(LONGFORM_SIGNPOSTED_CLEAN)
+    assert report.dimensions.metadiscourse == 0.0
+    assert report.score.slop_score < 25

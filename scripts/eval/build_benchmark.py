@@ -493,6 +493,63 @@ NEW_ROWS: list[tuple[str, int, str, str]] = [
         "web_quality",
         "general",
     ),
+    # --- metadiscourse negatives (v0.14). ------------------------------------------------------
+    # The point of these rows is that they can only HURT. Restatement and signposting are how
+    # careful writers and ESL writers make a concrete point land, so the metadiscourse rules must
+    # stay silent on every one of them. Positive rows are deliberately NOT added alongside: rows
+    # written to contain the constructions the rules were written to match would raise TPR
+    # without measuring anything. The detection side is pinned by tests/test_metadiscourse.py
+    # and the golden bands instead.
+    (
+        "In summary, the Nikkei peaked at 38915 in December 1989 and did not regain that level until 2024.",
+        0,
+        "human_good",
+        "general",
+    ),
+    (
+        "As noted above, Russia nationalized the Saint Petersburg exchange in 1917 and China closed Shanghai in 1949.",
+        0,
+        "human_good",
+        "general",
+    ),
+    (
+        "To be clear, the foreign tax credit offsets the fund's passed-through foreign taxes, subject to the limitation.",
+        0,
+        "human_good",
+        "general",
+    ),
+    (
+        "In this section we describe the sampling frame. We drew 2,400 households from the 2019 register.",
+        0,
+        "human_good",
+        "general",
+    ),
+    # Restatement as a comprehension aid is a documented ESL and simple-English strategy. Each of
+    # these restates a FACT, which is what the evidence-free gate in the run detector turns on.
+    (
+        "The bus costs two euros. In other words, you need two coins before you get on.",
+        0,
+        "human_good",
+        "simple_english",
+    ),
+    (
+        "The shop shuts at six. Put simply: go before five if you want bread.",
+        0,
+        "human_good",
+        "simple_english",
+    ),
+    (
+        "To be clear, my visa expires on 30 June and I must leave the country before that date.",
+        0,
+        "human_good",
+        "non_native",
+    ),
+    (
+        "In short, I worked in Pune for four years and then my company sent me to Berlin in 2021.",
+        0,
+        "human_good",
+        "non_native",
+    ),
 ]
 
 

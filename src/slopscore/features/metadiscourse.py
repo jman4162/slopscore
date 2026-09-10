@@ -32,7 +32,12 @@ import yaml
 
 from slopscore.config import data_path
 from slopscore.document import Document
-from slopscore.features.base import register, severity_rate_score
+from slopscore.features.base import (
+    SEVERITY_WEIGHT,
+    per_hundred_words,
+    register,
+    saturating,
+)
 from slopscore.features.phrase_packs import PhrasePack
 from slopscore.features.redundancy import pair_cosine
 from slopscore.features.specificity import concrete_evidence_count
@@ -54,10 +59,37 @@ _MIN_RUN = 2
 # carries no evidence is not informative.
 _MIN_SENTENCE_WORDS = 6
 
+# Rules whose construction is legitimate when it restates a FACT. A code gloss over "the bus
+# costs two euros" is a comprehension aid, not prose about the prose, and it is how ESL and
+# simple-English writers make a concrete point land; a code gloss over nothing is the tell. Same
+# predicate the run detector uses, applied per span.
+#
+# Deliberately NOT gated: the prose-grading and frame-marker rules. "The defensible version is"
+# and "In this section we will discuss" announce the writing whatever facts sit beside them.
+_EVIDENCE_EXEMPT = frozenset(
+    {
+        "META_RESTATEMENT_COLON",
+        "META_PLAIN_ENGLISH",
+        "META_CLARIFY_FRAME",
+        "META_ENDOPHORIC_BACKREF",
+        "META_BROAD_CODE_GLOSS",
+        "META_BROAD_BARE_RESTATEMENT",
+    }
+)
+
 # Run length -> dimension score. Deliberately length-invariant: this is the whole point of the
 # term. Capped below 1.0 so a run alone never saturates the dimension.
 _RUN_SCORE: dict[int, float] = {2: 0.35, 3: 0.55, 4: 0.75}
 _RUN_SCORE_MAX = 0.90
+
+# Floor on the density denominator. per_hundred_words amplifies a 17-word document 5.9x, so a
+# single low-severity marker there saturates the dimension at 1.0 — measured on two clean
+# benchmark rows that went 13.8 -> 50.2 on one hit each. The other packs survive this because
+# they are weak-damped; this one deliberately is not, so it needs the floor instead. Smoothing a
+# rate estimated from a tiny sample toward zero is the same judgment abstention already encodes
+# about short input, applied to the score rather than only to the label. No effect above 100
+# words, which is where every real document lives.
+_MIN_RATE_WORDS = 100
 
 
 def _run_score(length: int) -> float:
@@ -79,7 +111,7 @@ def _is_empty_meta(doc: Document, sentence: TextSpan) -> bool:
         return False
     if doc.in_block_kind(sentence.start, _NOT_PROSE):
         return False
-    if concrete_evidence_count(text) > 0:
+    if concrete_evidence_count(text, spelled_numbers=True) > 0:
         return False
     return any(m.search(text) for m in _markers())
 
@@ -140,6 +172,30 @@ def _terminal_split(doc: Document) -> tuple[TextSpan, str] | None:
     return last, body
 
 
+def _sentence_ranges(doc: Document) -> list[tuple[int, int]]:
+    """Original-coordinate ranges of every non-empty sentence."""
+    return [doc.mapper.to_original(s.start, s.end) for s in doc.sentences if s.text.strip()]
+
+
+def _restates_a_fact(doc: Document, span: Evidence, ranges: list[tuple[int, int]]) -> bool:
+    """True when the sentence around a marker carries a concrete reference of its own.
+
+    The marker's own characters are cut out before counting, or a marker that looks concrete
+    would exempt itself: "In plain English" contains "English", which the proper-noun heuristic
+    reads as a name.
+    """
+    for start, end in ranges:
+        if not start <= span.start_char < end:
+            continue
+        rest = (
+            doc.original_text[start : span.start_char]
+            + " "
+            + doc.original_text[span.end_char : end]
+        )
+        return concrete_evidence_count(rest, spelled_numbers=True) > 0
+    return False
+
+
 def _count_sentences(text: str) -> int:
     """Recover a run's sentence count from the span text itself.
 
@@ -158,7 +214,10 @@ class Metadiscourse(PhrasePack):
     def score_spans(self, doc: Document, profile: str, spans: list[Evidence]) -> float:
         rule_spans = [s for s in spans if s.rule_id != RULE_META_RUN]
         run_spans = [s for s in spans if s.rule_id == RULE_META_RUN]
-        rate = severity_rate_score(doc, rule_spans, self._full_scale)
+        weighted = sum(SEVERITY_WEIGHT[s.severity] for s in rule_spans)
+        rate = saturating(
+            per_hundred_words(weighted, max(doc.word_count, _MIN_RATE_WORDS)), self._full_scale
+        )
         concentration = max((_run_score(_count_sentences(s.span)) for s in run_spans), default=0.0)
         recap = 0.0
         if any(s.rule_id == RULE_TERMINAL_RECAP for s in spans):
@@ -217,8 +276,14 @@ class Metadiscourse(PhrasePack):
 
     def extract(self, doc: Document, profile: str, broad: bool = False) -> FeatureResult:
         base = super().extract(doc, profile, broad=broad)
+        ranges = _sentence_ranges(doc)
+        kept = [
+            s
+            for s in base.spans
+            if s.rule_id not in _EVIDENCE_EXEMPT or not _restates_a_fact(doc, s, ranges)
+        ]
         extra = self._run_spans(doc) + self._recap_span(doc)
-        spans = sorted(base.spans + extra, key=lambda e: e.start_char)
+        spans = sorted(kept + extra, key=lambda e: e.start_char)
         return FeatureResult(
             dimension=self.dimension,
             score=self.score_spans(doc, profile, spans),
