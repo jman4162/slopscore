@@ -91,6 +91,23 @@ def _tfidf_cosines(sentences: list[str]) -> list[float]:
     return [float(matrix[i] @ matrix[i + 1]) for i in range(n - 1)]
 
 
+def pair_cosine(a: str, b: str) -> float:
+    """Cosine similarity between two spans of prose over content unigrams and bigrams.
+
+    Shared with ``features/metadiscourse.py``, which uses it to ask whether a closing section
+    restates the body. IDF over two documents is degenerate, so this is a plain TF cosine over
+    the same stopword-filtered features ``_tfidf_cosines`` builds. numpy-only, like the rest of
+    the scan path (scikit-learn is the ``[eval]`` extra).
+    """
+    fa, fb = _content_features(_tokens(a)), _content_features(_tokens(b))
+    if not fa or not fb:
+        return 0.0
+    dot = sum(v * fb[k] for k, v in fa.items() if k in fb)
+    na = math.sqrt(sum(v * v for v in fa.values()))
+    nb = math.sqrt(sum(v * v for v in fb.values()))
+    return float(dot / (na * nb)) if na and nb else 0.0
+
+
 def _lcs_length(a: list[str], b: list[str]) -> int:
     prev = [0] * (len(b) + 1)
     for x in a:

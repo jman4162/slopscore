@@ -236,3 +236,71 @@ def test_run_detection_skips_headings_and_list_items() -> None:
     assert not any(
         e.rule_id == "META_RUN_OF_META_SENTENCES" for e in Metadiscourse.extract(doc, "blog").spans
     )
+
+
+# --- terminal recap -------------------------------------------------------------------------
+#
+# The spec's own report mock-up lists "Conclusion: formulaic summary without new information".
+# The frame word alone must not convict: what distinguishes a recap is that it restates.
+
+_BODY = (
+    "Japan peaked at 38915 on the Nikkei in December 1989 and did not regain that level "
+    "until 2024. Russia nationalized the Saint Petersburg exchange in 1917 and China closed "
+    "Shanghai in 1949. The Dimson Marsh Staunton dataset covers 35 markets from 1900 through "
+    "2024. Pastor and Stambaugh reported higher long-horizon variance in the Journal of "
+    "Finance in 2012. The 1970s produced 7.4 percent annual inflation in the United States. "
+) * 8
+
+
+def test_terminal_recap_fires_when_the_closer_restates() -> None:
+    doc = _doc(
+        _BODY
+        + "\n\nIn summary, Japan took 34 years to recover from its 1989 peak, Russia and China "
+        "nationalized their exchanges in 1917 and 1949, and Pastor and Stambaugh reported "
+        "higher long-horizon variance. The Dimson Marsh Staunton dataset covers 35 markets "
+        "and the 1970s produced 7.4 percent inflation in the United States."
+    )
+    result = Metadiscourse.extract(doc, "blog")
+    recap = [e for e in result.spans if e.rule_id == "META_TERMINAL_RECAP"]
+    assert len(recap) == 1
+    assert "content overlap" in recap[0].explanation
+    assert result.score > 0.4
+
+
+def test_terminal_recap_quiet_when_the_closer_adds_something() -> None:
+    # Same frame word, new content. "In summary," is not itself the defect.
+    doc = _doc(
+        _BODY + "\n\nIn summary, my own allocation is 82 percent equities held through two funds, "
+        "rebalanced each January, and I expect to hold that through retirement in 2047 "
+        "regardless of what any of these datasets say next."
+    )
+    assert not any(
+        e.rule_id == "META_TERMINAL_RECAP" for e in Metadiscourse.extract(doc, "blog").spans
+    )
+
+
+def test_terminal_recap_needs_a_body_to_restate() -> None:
+    # A short note that opens with "In summary," has nothing to have restated.
+    doc = _doc("The fund returned 8 percent.\n\nIn summary, the fund returned 8 percent in 2024.")
+    assert not any(
+        e.rule_id == "META_TERMINAL_RECAP" for e in Metadiscourse.extract(doc, "blog").spans
+    )
+
+
+def test_terminal_recap_is_length_invariant() -> None:
+    # One recap paragraph is one hit; a per-100-word rate would erase it in long-form, which is
+    # the same failure the run term exists to fix.
+    closer = (
+        "\n\nIn summary, Japan took 34 years to recover from its 1989 peak and Russia and "
+        "China nationalized their exchanges in 1917 and 1949. The Dimson Marsh Staunton "
+        "dataset covers 35 markets from 1900 through 2024."
+    )
+    short, long = _doc(_BODY + closer), _doc(_BODY * 4 + closer)
+    assert long.word_count > 2000
+    short_recap = [
+        e for e in Metadiscourse.extract(short, "blog").spans if e.rule_id == "META_TERMINAL_RECAP"
+    ]
+    long_recap = [
+        e for e in Metadiscourse.extract(long, "blog").spans if e.rule_id == "META_TERMINAL_RECAP"
+    ]
+    assert short_recap and long_recap

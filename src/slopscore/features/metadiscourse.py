@@ -34,11 +34,13 @@ from slopscore.config import data_path
 from slopscore.document import Document
 from slopscore.features.base import register, severity_rate_score
 from slopscore.features.phrase_packs import PhrasePack
+from slopscore.features.redundancy import pair_cosine
 from slopscore.features.specificity import concrete_evidence_count
 from slopscore.models import Dimension, Evidence, EvidenceKind, FeatureResult, Severity
 from slopscore.spans import TextSpan
 
 RULE_META_RUN = "META_RUN_OF_META_SENTENCES"
+RULE_TERMINAL_RECAP = "META_TERMINAL_RECAP"
 
 # Headings and list items are not prose; a bulleted "Key takeaways:" label is structure_tells'
 # business, not a run of meta sentences. Same exclusion cadence.py uses.
@@ -100,6 +102,44 @@ def _runs(doc: Document) -> list[list[TextSpan]]:
     return sorted(runs, key=len, reverse=True)
 
 
+# A closing section has to be announced as one; a final paragraph that simply continues the
+# argument is not a recap however much vocabulary it shares with the body.
+_CLOSER = re.compile(
+    r"^\W{0,4}(?:\*\*)?(?:in summary|in conclusion|to sum up|to summari[sz]e|all in all|"
+    r"in a nutshell|overall|to recap|key takeaways?|takeaways?|the bottom line|conclusion)\b",
+    re.IGNORECASE,
+)
+
+# Below this the "body" is too short for shared vocabulary to mean anything.
+_MIN_BODY_WORDS = 150
+
+# Cosine over content unigrams and bigrams. A genuine restatement of the body lands near 0.75; a
+# closing paragraph that adds something new lands near 0.
+_RECAP_LO = 0.35
+_RECAP_HI = 0.75
+
+
+def _recap_score(cosine: float) -> float:
+    if cosine < _RECAP_LO:
+        return 0.0
+    ramp = min(1.0, (cosine - _RECAP_LO) / (_RECAP_HI - _RECAP_LO))
+    return 0.30 + 0.40 * ramp
+
+
+def _terminal_split(doc: Document) -> tuple[TextSpan, str] | None:
+    """The final paragraph and the body preceding it, when the final one announces a summary."""
+    paragraphs = [p for p in doc.paragraphs if p.text.strip()]
+    if len(paragraphs) < 2:
+        return None
+    last = paragraphs[-1]
+    if not _CLOSER.match(last.text.strip()):
+        return None
+    body = doc.cleaned_text[: last.start]
+    if len(body.split()) < _MIN_BODY_WORDS:
+        return None
+    return last, body
+
+
 def _count_sentences(text: str) -> int:
     """Recover a run's sentence count from the span text itself.
 
@@ -113,14 +153,48 @@ class Metadiscourse(PhrasePack):
     """Phrase pack plus a length-invariant concentration term."""
 
     def rule_ids(self) -> frozenset[str]:
-        return super().rule_ids() | {RULE_META_RUN}
+        return super().rule_ids() | {RULE_META_RUN, RULE_TERMINAL_RECAP}
 
     def score_spans(self, doc: Document, profile: str, spans: list[Evidence]) -> float:
         rule_spans = [s for s in spans if s.rule_id != RULE_META_RUN]
         run_spans = [s for s in spans if s.rule_id == RULE_META_RUN]
         rate = severity_rate_score(doc, rule_spans, self._full_scale)
         concentration = max((_run_score(_count_sentences(s.span)) for s in run_spans), default=0.0)
-        return max(rate, concentration)
+        recap = 0.0
+        if any(s.rule_id == RULE_TERMINAL_RECAP for s in spans):
+            split = _terminal_split(doc)
+            if split is not None:
+                last, body = split
+                recap = _recap_score(pair_cosine(last.text, body))
+        return max(rate, concentration, recap)
+
+    def _recap_span(self, doc: Document) -> list[Evidence]:
+        """A closing section that restates the body instead of adding to it.
+
+        The spec's own report mock-up lists "Conclusion: formulaic summary without new
+        information" as a finding. Length-invariant for the same reason the run term is: one
+        recap paragraph is one hit, and a per-100-word rate would erase it in long-form.
+        """
+        split = _terminal_split(doc)
+        if split is None:
+            return []
+        last, body = split
+        cosine = pair_cosine(last.text, body)
+        if _recap_score(cosine) == 0.0:
+            return []
+        return [
+            doc.evidence(
+                rule_id=RULE_TERMINAL_RECAP,
+                severity=Severity.medium,
+                clean_start=last.start,
+                clean_end=last.end,
+                explanation=(
+                    f"Closing section restates the body ({cosine:.0%} content overlap) "
+                    "rather than adding to it."
+                ),
+                kind=EvidenceKind.finding,
+            )
+        ]
 
     def _run_spans(self, doc: Document) -> list[Evidence]:
         spans: list[Evidence] = []
@@ -143,7 +217,8 @@ class Metadiscourse(PhrasePack):
 
     def extract(self, doc: Document, profile: str, broad: bool = False) -> FeatureResult:
         base = super().extract(doc, profile, broad=broad)
-        spans = sorted(base.spans + self._run_spans(doc), key=lambda e: e.start_char)
+        extra = self._run_spans(doc) + self._recap_span(doc)
+        spans = sorted(base.spans + extra, key=lambda e: e.start_char)
         return FeatureResult(
             dimension=self.dimension,
             score=self.score_spans(doc, profile, spans),
