@@ -113,8 +113,20 @@ PerformativeCandor = _PhrasePack(
     skip_quoted=True,
 )
 
+# Metadiscourse (v0.14): writing that refers to the text rather than the subject. The broad tier
+# is opt-in via ``--broad``. full_scale is 4.0 for the same reason performative_candor uses it:
+# frame markers have heavy legitimate-human overlap, and at 3.0 a single low-severity hit in a
+# 60-word doc reads 0.56, over the corroboration gate's ELEVATED threshold.
+Metadiscourse = _PhrasePack(
+    Dimension.metadiscourse,
+    "metadiscourse",
+    full_scale=4.0,
+    broad_category="metadiscourse_broad",
+)
+
 register(SignificanceInflation)
 register(WeaselAttribution)
 register(UnsupportedClaims)
 register(InsightSignaling)
 register(PerformativeCandor)
+register(Metadiscourse)

@@ -1,0 +1,28 @@
+# Opt-in `--broad` tier for metadiscourse, enabled by `--broad` / `[tool.slopscore] broad`.
+#
+# These are bare code glosses and closers. They are held out of the default tier for the same
+# reason attribution_broad holds back bare quantifiers: WP:AISIGNS states outright that
+# transition words in isolation "[have] precedence in essay-like writing by humans and [are]
+# accepted by many style guides, so this is not a strong tell", and restatement scaffolding
+# ("that is to say", "meaning that") is a documented ESL and simple-English clarity strategy.
+# Flagging them by default would over-flag exactly the population the tool exists to protect.
+
+rules:
+  - rule_id: META_BROAD_CODE_GLOSS
+    severity: low
+    pattern: "(?:^|(?<=[.!?]\\s))(?:that is to say|which is to say|i\\.e\\.),|\\bmeaning that\\b"
+    explanation: "'that is to say' — code gloss restating the writer's own clause."
+    source: "Hyland 2005 (code glosses)"
+
+  - rule_id: META_BROAD_BARE_RESTATEMENT
+    severity: low
+    # INSIGHT_IS_THE_POINT owns "the <noun> is the point"; this is the complementizer form.
+    pattern: "\\bwhat (?:this|that) means is\\b|\\bthe point (?:here )?is that\\b|\\bwhat I(?:'m| am) (?:saying|getting at) is\\b"
+    explanation: "'what this means is' — announces a restatement of the preceding sentence."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: META_BROAD_OVERALL_CLOSER
+    severity: low
+    pattern: "(?:^|(?<=[.!?]\\s))Overall,"
+    explanation: "'Overall,' closer (WP:AISIGNS words-to-watch; common in human writing too)."
+    source: "WP:AISIGNS (section summaries)"

@@ -42,6 +42,13 @@ DEFAULT_WEIGHTS: dict[Dimension, float] = {
     # spoken English in a way that "studies show" is not. Weak-alone, so a chatty-but-concrete
     # human post is damped rather than convicted on candor alone.
     Dimension.performative_candor: 1.8,
+    # Metadiscourse (v0.14): prose about the prose. Deliberately NOT in WEAK_DIMENSIONS —
+    # weak means damped x0.3 when alone, which is the exact failure this dimension exists to
+    # fix (a 2,592-word post whose other dimensions were clean scored 7.0 with the flagged
+    # passage unflagged). The consequence is that CORROBORATING_DIMENSIONS, being derived,
+    # picks it up, so it can unlock the weak dimensions: that is why the core rule tier is
+    # high-precision only and the broad tier holds every ESL-risky code gloss.
+    Dimension.metadiscourse: 2.0,
     # negative counterweight
     Dimension.human_writing_signals: -2.2,
 }

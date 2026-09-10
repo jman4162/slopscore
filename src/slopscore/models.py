@@ -10,7 +10,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-SCHEMA_VERSION = "0.13.0"
+SCHEMA_VERSION = "0.14.0"
 
 # Disclaimers every report carries. The middle line encodes the core conservatism principle
 # (corroborated by research: single tells are weak; ESL writers are over-flagged).
@@ -63,6 +63,11 @@ class Dimension(StrEnum):
     # Fake vulnerability, as distinct from insight_signaling's fake insight and
     # weasel_attribution's fake evidence. Also rules-only (excluded from FEATURE_ORDER).
     performative_candor = "performative_candor"
+    # v0.14: metadiscourse — writing that refers to the text rather than the subject
+    # (frame markers, endophoric markers, code glosses). Hyland's (2005) *interactive*
+    # metadiscourse; his interactional categories are covered by weasel_attribution,
+    # significance_inflation, and performative_candor. Also rules-only (out of FEATURE_ORDER).
+    metadiscourse = "metadiscourse"
     superficial_analysis = "superficial_analysis"
     weasel_attribution = "weasel_attribution"
     parallelism = "parallelism"
@@ -136,6 +141,7 @@ class Dimensions(BaseModel):
     significance_inflation: float = Field(default=0.0, ge=0.0, le=1.0)
     insight_signaling: float = Field(default=0.0, ge=0.0, le=1.0)
     performative_candor: float = Field(default=0.0, ge=0.0, le=1.0)
+    metadiscourse: float = Field(default=0.0, ge=0.0, le=1.0)
     superficial_analysis: float = Field(default=0.0, ge=0.0, le=1.0)
     weasel_attribution: float = Field(default=0.0, ge=0.0, le=1.0)
     parallelism: float = Field(default=0.0, ge=0.0, le=1.0)

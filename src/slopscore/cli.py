@@ -555,6 +555,12 @@ _DIMENSION_GUIDE: dict[str, str] = {
         "'truth be told', 'honest limits'). --broad adds bare sincerity adverbs (genuinely, "
         "honestly) at higher FPR."
     ),
+    "metadiscourse": (
+        "Writing about the writing: frame markers ('in this section we will'), endophoric "
+        "markers ('as noted above'), code glosses ('put simply:'), and prose-grading ('the "
+        "defensible version is'). Scores the worst run of consecutive evidence-free meta "
+        "sentences as well as their density. --broad adds bare code glosses at higher FPR."
+    ),
     "superficial_analysis": "Trailing '-ing' clauses that gesture at analysis without substance.",
     "weasel_attribution": "Vague sourcing ('experts say', 'studies show') with no specifics.",
     "parallelism": "Rule-of-three and negative-parallelism padding. Weak alone.",

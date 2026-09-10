@@ -1,0 +1,101 @@
+# Metadiscourse: writing that refers to the text itself rather than to its subject. Hyland's
+# (2005) *interactive* metadiscourse — frame markers ("in this section we will"), endophoric
+# markers ("as noted above"), and code glosses ("put simply:"). His interactional categories are
+# already covered elsewhere here: hedges by weasel_attribution, boosters by
+# significance_inflation, attitude markers by performative_candor. The interactive side had no
+# home, which is why a human reader caught three consecutive sentences of prose-about-the-prose
+# that scored 0 on every dimension.
+#
+# Boundary with formulaic_structure: that dimension owns *stock templates* (the phrasing is
+# itself a cliche). This one owns *reference to the text*, cliche or not. Rules that would
+# double-charge an existing formulaic/candor/insight rule are deliberately narrowed here; the
+# collisions avoided are noted per rule.
+#
+# The tell is concentration, not any single marker: one "as noted above" in a long essay is
+# ordinary writing. features/metadiscourse.py scores the worst RUN of consecutive
+# evidence-free meta sentences alongside the usual per-100-word rate.
+#
+# This is the CORE (conservative) tier, on by default. See ../metadiscourse_broad/ for the
+# opt-in `--broad` tier of code glosses that ESL and simple-English writers use for clarity.
+# Sources: WP:AISIGNS (frame markers, section summaries); Hyland 2005; user-reported 2026 catches.
+
+rules:
+  # --- prose-grading: the writer evaluates their own phrasing ---------------------------------
+  - rule_id: META_PROSE_CORRECTION
+    severity: medium
+    # The "virtuous corrector": announces that a better phrasing is coming instead of just using
+    # it. The sincerity adjectives (honest/candid/frank) are deliberately absent — they belong to
+    # CANDOR_HONEST_ABSTRACT_NOUN, and charging them twice would double-count one construction.
+    pattern: "\\bthe (?:defensible|accurate|correct|precise|rigorous|charitable|careful|exact|technically accurate) (?:version|phrasing|framing|statement|formulation|wording|claim) (?:is|reads|would be)\\b"
+    explanation: "'the defensible version is' — grades the phrasing instead of making the point."
+    source: "human-reader catch, Summitward stocks-are-always-risky (2026-09)"
+
+  - rule_id: META_PROSE_ATTRIBUTE_SUBJECT
+    severity: medium
+    # A property of the prose is the grammatical subject. Two gates: clause-anchored, and a
+    # negative lookahead for a prepositional object, so "the framing matters TO the plaintiff"
+    # and "the wording is important FOR the contract" (ordinary object-level uses) stay quiet
+    # while "Precision matters here" and "That distinction is important." fire.
+    pattern: "(?:^|(?<=[.!?]\\s))(?:Precision|Accuracy|Clarity|Word choice|The phrasing|The wording|The framing|The language|The distinction|That distinction|This distinction) (?:matters|is important|is what matters|is the point)\\b(?!\\s+(?:to|for|in|at|with|than)\\b)"
+    explanation: "'Precision matters here' — a sentence about the writing, not about the subject."
+    source: "human-reader catch, Summitward stocks-are-always-risky (2026-09)"
+
+  # --- frame markers: announcing what the text will do ------------------------------------------
+  - rule_id: META_SECTION_PLAN
+    severity: medium
+    # The "in this X, we will" arm excludes guide/article/post/blog: FORMULAIC_COMPREHENSIVE_GUIDE
+    # already matches "in this <guide|article|post|blog>" and would double-fire.
+    pattern: "\\b(?:in this (?:section|chapter|piece|essay|report|paper|walkthrough|tutorial)[,\\s]+(?:we|I)(?:'ll| will| shall| are going to)|this (?:section|chapter|post|article|guide|piece) (?:will|would) (?:discuss|speculate|cover|explore|examine|explain|address|outline)|the (?:purpose|aim|goal) of this (?:section|chapter|post|article|guide|piece|report) is to|by the end of this (?:section|chapter|post|article|guide|piece)|in the (?:section|sections|paragraphs) that follow)\\b"
+    explanation: "'In this section we will discuss' — describes the text instead of writing it."
+    source: "WP:AISIGNS (communication intended for the user)"
+
+  - rule_id: META_ENUMERATION_ANNOUNCE
+    severity: low
+    # "let's break this down" is deliberately absent: FORMULAIC_LETS_DELVE owns it.
+    pattern: "\\b(?:(?:two|three|four|several|a few) things (?:to (?:notice|note)|stand out|are worth (?:noting|noticing)|jump out)|there are (?:two|three|four) things (?:here|to notice|worth noting))\\b"
+    explanation: "'Two things to notice' — announces a count instead of making the observations."
+    source: "human-reader catch, Summitward stocks-are-always-risky (2026-09)"
+
+  # --- endophoric markers: pointing at other parts of the same text ------------------------------
+  - rule_id: META_ENDOPHORIC_BACKREF
+    severity: low
+    pattern: "\\b(?:as (?:mentioned|noted|discussed|stated|described|explained|shown|we saw|we discussed|I (?:said|mentioned|noted))) (?:above|earlier|previously|before|already)\\b|(?:^|(?<=[.!?]\\s))(?:to recap|as a reminder),"
+    explanation: "'As noted above' — points back at the text rather than restating the fact."
+    source: "Hyland 2005 (endophoric markers)"
+
+  - rule_id: META_TRANSITION_ESTABLISHED
+    severity: low
+    # "having said that" is absent: FORMULAIC_THAT_SAID owns it.
+    pattern: "(?:^|(?<=[.!?]\\s))(?:having (?:established|covered|seen|discussed|laid out)|now that (?:we(?:'ve| have)|you(?:'ve| have)) (?:established|covered|seen|discussed)|with (?:that|this) (?:established|covered|out of the way|in hand))\\b"
+    explanation: "'Having established that, we can turn to' — narrates the document's own progress."
+    source: "WP:AISIGNS (section summaries)"
+
+  - rule_id: META_TAKEAWAY
+    severity: low
+    pattern: "\\b(?:the )?key takeaways? (?:is|are|here is)\\b|(?:^|(?<=[.!?]\\s))(?:\\*\\*)?(?:key )?takeaways?(?:\\*\\*)?\\s*:|\\btl;?dr\\b"
+    explanation: "'The key takeaway is' / 'TL;DR' — labels the point instead of making it."
+    source: "WP:AISIGNS (overuse of boldface, key-takeaways fashion)"
+
+  # --- code glosses: restating the text in other words -------------------------------------------
+  - rule_id: META_RESTATEMENT_COLON
+    severity: low
+    # The colon twin of FORMULAIC_SIMPLY_PUT, which requires a trailing comma and so misses
+    # "Put simply:" entirely. "in plain English" is absent here — META_PLAIN_ENGLISH owns it.
+    pattern: "(?:^|(?<=[.!?]\\s))(?:in essence|simply put|put simply|in short|in other words|to put it (?:simply|another way))\\s*:"
+    explanation: "'Put simply:' restatement opener (the colon form)."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: META_PLAIN_ENGLISH
+    severity: low
+    pattern: "\\bin plain (?:English|terms|language)\\b|\\bin layman'?s terms\\b"
+    explanation: "'In plain English' — announces a translation of the writer's own sentence."
+    source: "AI-tell (2024-2026)"
+
+  - rule_id: META_CLARIFY_FRAME
+    severity: low
+    # "let me be clear" is absent: FORMULAIC_MAKE_NO_MISTAKE owns it. The trailing comma is
+    # required, the way CANDOR_ADVERB_PARENTHETICAL requires one, so "I want to be clear about
+    # the dates" stays quiet.
+    pattern: "(?:^|(?<=[.!?]\\s))(?:to be clear|to be precise|let me be precise|to put a finer point on it|for the avoidance of doubt),"
+    explanation: "'To be clear,' — announces clarity rather than supplying it."
+    source: "AI-tell (2024-2026)"
