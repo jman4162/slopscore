@@ -190,7 +190,7 @@ the package or are public.
 ## What this project is (and is not)
 
 `slopscore` is a transparent **AI-slop pattern detector** — not an AI-authorship detector.
-This distinction is load-bearing and shapes every API/report decision:
+This distinction shapes every API and report decision:
 
 - It outputs a 0–100 **SlopScore** measuring density of formulaic, generic, low-specificity,
   over-polished, LLM-associated writing patterns — plus per-dimension scores, a separate

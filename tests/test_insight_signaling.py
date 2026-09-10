@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from slopscore.config import Settings
 from slopscore.core import SlopScorer, build_document
 from slopscore.features.phrase_packs import InsightSignaling
@@ -31,6 +33,51 @@ def test_load_bearing_literal_is_not_flagged() -> None:
     doc = _doc("They removed a load-bearing wall during the 1962 remodel of the plant.")
     rule_ids = {e.rule_id for e in InsightSignaling.extract(doc, "blog").spans}
     assert "INSIGHT_LOAD_BEARING" not in rule_ids
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        # Predicative: the commonest form of the metaphor, and the one with no rule through
+        # v0.13 (INSIGHT_LOAD_BEARING matched only "load-bearing <noun>").
+        "This distinction is load-bearing.",
+        "That assumption is load bearing.",
+        "That single word is really load-bearing.",
+        "The framing is load-bearing here.",
+        "Those two premises are load-bearing.",
+        # The "doing the work" arm.
+        "The comma is doing the load-bearing work here.",
+    ],
+)
+def test_predicative_load_bearing_fires(text: str) -> None:
+    rule_ids = {e.rule_id for e in InsightSignaling.extract(_doc(text), "blog").spans}
+    assert "INSIGHT_LOAD_BEARING" in rule_ids
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "The load-bearing wall is on the north side.",
+        "Contractors inspect a load-bearing beam before signing off.",
+        "The column is load bearing.",
+        # "part" is in the attributive noun list but deliberately not the predicative one:
+        # this is ordinary engineering speech.
+        "That part is load-bearing and must not be removed.",
+    ],
+)
+def test_load_bearing_engineering_sense_stays_quiet(text: str) -> None:
+    rule_ids = {e.rule_id for e in InsightSignaling.extract(_doc(text), "blog").spans}
+    assert "INSIGHT_LOAD_BEARING" not in rule_ids
+
+
+def test_load_bearing_work_does_not_double_fire() -> None:
+    # "doing the load-bearing work" must not also trip INSIGHT_REAL_WORK, which requires
+    # real/heavy/actual. One construction, one span.
+    spans = InsightSignaling.extract(
+        _doc("The hedge is doing the load-bearing work."), "blog"
+    ).spans
+    assert len(spans) == 1
+    assert spans[0].rule_id == "INSIGHT_LOAD_BEARING"
 
 
 def test_structural_metaphor_fires() -> None:

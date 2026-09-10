@@ -13,9 +13,12 @@ rules:
   - rule_id: INSIGHT_LOAD_BEARING
     severity: medium
     # Gated to prose nouns so the literal engineering sense ("load-bearing wall/beam/column") is
-    # left alone.
-    pattern: "\\bload[-\\s]?bearing\\s+(?:word|phrase|term|assumption|premise|claim|sentence|clause|idea|concept|distinction|detail|fact|part)s?\\b"
-    explanation: "'load-bearing <word/assumption>' — insight-signaling metaphor applied to prose."
+    # left alone. Three arms: attributive ("a load-bearing assumption"), predicative ("this
+    # distinction is load-bearing" — the commonest form, and the one that had no rule through
+    # v0.13), and "doing the load-bearing work". The predicative arm drops "part" from the noun
+    # list because "that part is load-bearing" is ordinary engineering speech.
+    pattern: "\\b(?:load[-\\s]?bearing\\s+(?:word|phrase|term|assumption|premise|claim|sentence|clause|idea|concept|distinction|detail|fact|part|point|caveat|framing|qualifier|hedge|adverb|comma|adjective|footnote)s?\\b|(?:this|that|the|these|those|its|their|our|my|his|her)\\s+(?:\\w+\\s+){0,2}?(?:word|phrase|term|assumption|premise|claim|sentence|clause|idea|concept|distinction|detail|fact|point|caveat|framing|qualifier|hedge|adverb|comma|adjective|footnote)s?\\s+(?:is|are|was|were|remains?|seems?|feels?)\\s+(?:very |highly |really |quite |genuinely |extremely |entirely |especially )?load[-\\s]?bearing\\b|doing\\s+(?:the\\s+|a lot of the\\s+|most of the\\s+)?load[-\\s]?bearing\\s+work\\b)"
+    explanation: "'load-bearing' applied to prose — insight-signaling metaphor; say what the word or assumption does."
     source: "AI-tell (2024-2026)"
 
   - rule_id: INSIGHT_REAL_WORK
