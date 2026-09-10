@@ -17,16 +17,19 @@ from slopscore.models import Dimension, Evidence, FeatureResult
 
 # Phrase packs that carry an opt-in broad tier (populated in __init__). The scorer re-scores each
 # of these over core+broad rules when --broad is set.
-_BROAD_PACKS: list[_PhrasePack] = []
+_BROAD_PACKS: list[PhrasePack] = []
 
 
-def broad_packs() -> list[_PhrasePack]:
+def broad_packs() -> list[PhrasePack]:
     """Phrase packs that have a ``--broad`` tier, in registration order."""
     return list(_BROAD_PACKS)
 
 
-class _PhrasePack:
+class PhrasePack:
     """A dimension backed by a directory of YAML phrase rules.
+
+    Subclassed by ``features/metadiscourse.py``, which keeps this rule loading and the
+    ``--broad`` registration but adds a second, length-invariant term to the score.
 
     An optional ``broad_category`` holds an extra, opt-in tier of higher-false-positive rules that
     only score when ``extract(..., broad=True)`` is requested (the scorer sets this from the
@@ -79,21 +82,19 @@ class _PhrasePack:
         )
 
 
-SignificanceInflation = _PhrasePack(
-    Dimension.significance_inflation, "significance", full_scale=3.0
-)
-WeaselAttribution = _PhrasePack(
+SignificanceInflation = PhrasePack(Dimension.significance_inflation, "significance", full_scale=3.0)
+WeaselAttribution = PhrasePack(
     Dimension.weasel_attribution,
     "attribution",
     full_scale=3.0,
     broad_category="attribution_broad",
     skip_quoted=True,
 )
-UnsupportedClaims = _PhrasePack(
+UnsupportedClaims = PhrasePack(
     Dimension.unsupported_claims, "claims", full_scale=3.0, skip_quoted=True
 )
 # Insight-signaling / pseudo-profundity (v0.7). The broad tier is opt-in via ``--broad``.
-InsightSignaling = _PhrasePack(
+InsightSignaling = PhrasePack(
     Dimension.insight_signaling,
     "insight_signaling",
     full_scale=3.0,
@@ -105,7 +106,7 @@ InsightSignaling = _PhrasePack(
 # legitimate-human overlap of any dimension here, and at 3.0 a single low-severity hit in a
 # 60-word doc scores 0.56 — over the corroboration gate's ELEVATED threshold. At 4.0 it is 0.42,
 # under it, with no practical difference at realistic document lengths.
-PerformativeCandor = _PhrasePack(
+PerformativeCandor = PhrasePack(
     Dimension.performative_candor,
     "performative_candor",
     full_scale=4.0,
@@ -113,20 +114,8 @@ PerformativeCandor = _PhrasePack(
     skip_quoted=True,
 )
 
-# Metadiscourse (v0.14): writing that refers to the text rather than the subject. The broad tier
-# is opt-in via ``--broad``. full_scale is 4.0 for the same reason performative_candor uses it:
-# frame markers have heavy legitimate-human overlap, and at 3.0 a single low-severity hit in a
-# 60-word doc reads 0.56, over the corroboration gate's ELEVATED threshold.
-Metadiscourse = _PhrasePack(
-    Dimension.metadiscourse,
-    "metadiscourse",
-    full_scale=4.0,
-    broad_category="metadiscourse_broad",
-)
-
 register(SignificanceInflation)
 register(WeaselAttribution)
 register(UnsupportedClaims)
 register(InsightSignaling)
 register(PerformativeCandor)
-register(Metadiscourse)

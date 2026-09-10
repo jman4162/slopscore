@@ -1,0 +1,55 @@
+# Non-scoring marker list used ONLY to classify a sentence as metadiscourse for the run detector
+# in features/metadiscourse.py. These entries carry no rule id and emit no evidence of their own:
+# a sentence matching one here is a candidate, and only a RUN of consecutive such sentences that
+# also carry no concrete evidence produces a finding.
+#
+# This is deliberately a SUPERSET of data/patterns/metadiscourse/. It also lists markers whose
+# scoring rule lives in formulaic_structure ("in summary", "in other words", "it's worth noting",
+# "let's unpack"). That is what makes the no-migration decision safe: the run detector sees the
+# whole meta surface without moving any rule id out of formulaic.yaml and breaking suppressions
+# or report/baseline.py fingerprints.
+#
+# Order does not matter; each entry is a case-insensitive regex matched against one sentence.
+
+markers:
+  # frame markers: announcing what the text will do
+  - "\\bin this (?:section|chapter|post|article|guide|piece|essay|report|paper)\\b"
+  - "\\bthis (?:section|chapter|post|article|guide|piece) (?:will|would|is|covers|describes)\\b"
+  - "\\bthe (?:purpose|aim|goal|point) of this (?:section|chapter|post|article|guide|piece|report)\\b"
+  - "\\bby the end of this (?:section|chapter|post|article|guide|piece)\\b"
+  - "\\bin the (?:section|sections|paragraphs) that follow\\b"
+  - "\\blet(?:'s| us) (?:delve|dive|explore|dig|unpack|turn|begin|start|look)\\b"
+  - "\\b(?:two|three|four|several|a few) things (?:to (?:notice|note)|stand out|are worth)\\b"
+  - "\\bthere are (?:two|three|four) things\\b"
+
+  # endophoric markers: pointing at other parts of the same text
+  - "\\bas (?:mentioned|noted|discussed|stated|described|explained|shown|we saw|we discussed) (?:above|earlier|previously|before|already)\\b"
+  - "\\bas I (?:said|mentioned|noted) (?:above|earlier|previously|before)\\b"
+  - "(?:^|(?<=[.!?]\\s))(?:to recap|as a reminder),"
+  - "(?:^|(?<=[.!?]\\s))(?:having (?:established|covered|seen|discussed|laid out|said that)|now that we(?:'ve| have)|with (?:that|this) (?:established|out of the way))\\b"
+
+  # closers and summaries
+  - "\\bin conclusion\\b"
+  - "(?:^|(?<=[.!?]\\s))(?:to sum up|all in all|in summary|in a nutshell|at the end of the day|overall),"
+  - "\\b(?:the )?key takeaways? (?:is|are|here)\\b"
+  - "(?:^|(?<=[.!?]\\s))(?:\\*\\*)?(?:key )?takeaways?(?:\\*\\*)?\\s*:"
+  - "\\btl;?dr\\b"
+
+  # code glosses: restating the writer's own clause
+  - "(?:^|(?<=[.!?]\\s))(?:in essence|simply put|put simply|in short|in other words|to put it (?:simply|another way))\\s*[,:]"
+  - "\\bin plain (?:English|terms|language)\\b"
+  - "\\bin layman'?s terms\\b"
+  - "(?:^|(?<=[.!?]\\s))(?:that is to say|which is to say|i\\.e\\.),"
+  - "\\bwhat (?:this|that) means is\\b"
+
+  # emphasis and clarity scaffolds that announce rather than state
+  - "(?:^|(?<=[.!?]\\s))(?:to be clear|to be precise|let me be (?:clear|precise)|for the avoidance of doubt|to put a finer point on it),"
+  - "\\bit(?:'s| is) (?:also )?worth (?:noting|mentioning|pointing out)\\b"
+  - "\\bit should be noted\\b"
+  - "\\b(?:make no mistake|the bottom line is|the reality is)\\b"
+  - "(?:^|(?<=[.!?]\\s))(?:that (?:being )?said|with that (?:said|in mind)),"
+
+  # prose-grading: the writer evaluates their own phrasing
+  - "\\bthe (?:defensible|accurate|correct|precise|rigorous|honest|charitable|careful|exact) (?:version|phrasing|framing|statement|formulation|wording)\\b"
+  - "(?:^|(?<=[.!?]\\s))(?:Precision|Accuracy|Clarity|Word choice|The phrasing|The wording|The framing|The language|The distinction|That distinction|This distinction) (?:matters|is important|is what matters|is the point)\\b"
+  - "\\b(?:a true but loose|loose|sloppy|imprecise) (?:claim|phrasing|wording|framing)\\b"

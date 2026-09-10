@@ -42,7 +42,13 @@ _IDENTIFIER = re.compile(r"`[^`\n]+`|\b\w+_\w+\b|\b[a-z]+[A-Z]\w+\b|\b\w+\.\w+\(
 _TARGET_PER_SENTENCE = 0.75
 
 
-def _regex_evidence(text: str) -> int:
+def concrete_evidence_count(text: str) -> int:
+    """Count the concrete references in a span: numbers, URLs, proper nouns, acronyms, ids.
+
+    Shared with ``features/metadiscourse.py``, which uses it as a predicate (is this sentence
+    carrying any fact at all?) rather than as a score. Kept here because this is where the
+    regexes and the "no name, number, date, URL, or identifier" wording already live.
+    """
     return (
         len(_NUMBER.findall(text))
         + len(_URL.findall(text))
@@ -53,7 +59,7 @@ def _regex_evidence(text: str) -> int:
 
 
 def _per_sentence_regex(sentences: list[TextSpan]) -> list[int]:
-    return [_regex_evidence(s.text) for s in sentences]
+    return [concrete_evidence_count(s.text) for s in sentences]
 
 
 def _per_sentence_nlp(text: str, sentences: list[TextSpan]) -> list[int]:
@@ -77,7 +83,7 @@ class Specificity:
     def extract(self, doc: Document, profile: str) -> FeatureResult:
         sentences = [s for s in doc.sentences if s.text.strip()]
         if not sentences:
-            items = float(_regex_evidence(doc.cleaned_text))
+            items = float(concrete_evidence_count(doc.cleaned_text))
             genericity = 1.0 - saturating(items, _TARGET_PER_SENTENCE)
             return FeatureResult(dimension=self.dimension, score=genericity, spans=[])
         per_sentence = (

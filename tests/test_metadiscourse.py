@@ -6,7 +6,7 @@ import pytest
 
 from slopscore.config import Settings
 from slopscore.core import SlopScorer, build_document
-from slopscore.features.phrase_packs import Metadiscourse
+from slopscore.features.metadiscourse import MetadiscoursePack as Metadiscourse
 from slopscore.ingest import from_string
 
 
@@ -140,3 +140,99 @@ def test_disabled_dimension_suppresses_broad_rescore() -> None:
     )
     assert report.dimensions.metadiscourse == 0.0
     assert not any(e.rule_id.startswith("META_") for e in report.evidence)
+
+
+# --- the concentration term ---------------------------------------------------------------------
+#
+# The rate term alone cannot see this defect in long-form prose: the passage below saturates
+# formulaic_structure at 1.0 at 123 words and scores 0.064 at 3,373, because per_hundred_words
+# divides it away. These tests pin the length-invariant half.
+
+_CATCH = (
+    "A stock market going to zero is a true but loose claim. Precision matters here because "
+    "the counter-argument will not survive sloppy phrasing. The defensible version is the one "
+    "that separates the cases."
+)
+_CONCRETE = (
+    "The Dimson Marsh Staunton dataset covers 35 markets from 1900 through 2024. Japan peaked "
+    "at 38915 on the Nikkei in December 1989. Russia nationalized the Saint Petersburg exchange "
+    "in 1917. The 1970s produced 7.4 percent annual inflation in the United States. "
+)
+
+
+def _buried(copies: int = 25):
+    """The catch passage buried in `copies` blocks of concrete prose on either side."""
+    return _doc(_CONCRETE * copies + _CATCH + " " + _CONCRETE * copies)
+
+
+def test_run_of_meta_sentences_fires() -> None:
+    result = Metadiscourse.extract(_doc(_CATCH), "blog")
+    run = [e for e in result.spans if e.rule_id == "META_RUN_OF_META_SENTENCES"]
+    assert len(run) == 1
+    assert "3 consecutive sentences" in run[0].explanation
+    # At 33 words the per-100-word rate term saturates on its own, so the dimension reads 1.0
+    # here regardless of the run. The run's own contribution is isolated in the tests below,
+    # where the document is long enough for the rate term to have decayed to noise.
+    assert result.score == 1.0
+
+
+def test_run_score_is_length_invariant() -> None:
+    # The same three sentences buried in 100x the concrete prose must score the same. This is
+    # the whole reason the term exists; a per-100-word rate would drop it to noise.
+    small, large = _buried(25), _buried(50)
+    assert small.word_count > 1500 and large.word_count > 3000
+    small_score = Metadiscourse.extract(small, "blog").score
+    large_score = Metadiscourse.extract(large, "blog").score
+    # A run of three, scored the same at 1,700 words and at 3,400. The rate term alone would
+    # have halved between them.
+    assert small_score == pytest.approx(0.55)
+    assert large_score == pytest.approx(0.55)
+
+
+def test_isolated_meta_sentences_do_not_form_a_run() -> None:
+    # One signpost per paragraph is ordinary writing, not the defect. Only consecutive
+    # evidence-free meta sentences count.
+    doc = _doc(
+        "As noted above, the situation had not changed much at all by then. "
+        + _CONCRETE
+        + "To recap, the argument does not really depend on any of that. "
+        + _CONCRETE
+    )
+    assert not any(
+        e.rule_id == "META_RUN_OF_META_SENTENCES" for e in Metadiscourse.extract(doc, "blog").spans
+    )
+
+
+def test_meta_sentence_carrying_a_fact_is_exempt() -> None:
+    # The fairness gate: a summary sentence that actually summarizes something is not the
+    # defect, which is how ESL and simple-English writers use restatement scaffolding.
+    doc = _doc(
+        "In summary, Japan took 34 years to recover from its December 1989 peak. "
+        "In other words, the Nikkei did not regain 38915 until 2024. "
+        "As noted above, Russia and China went to zero in 1917 and 1949."
+    )
+    assert not any(
+        e.rule_id == "META_RUN_OF_META_SENTENCES" for e in Metadiscourse.extract(doc, "blog").spans
+    )
+
+
+def test_score_spans_is_pure_over_surviving_spans() -> None:
+    # The scorer drops suppressed spans and re-scores, so dropping the run span must drop the
+    # concentration term with it.
+    doc = _buried()
+    result = Metadiscourse.extract(doc, "blog")
+    assert Metadiscourse.score_spans(doc, "blog", result.spans) == result.score
+    without_run = [e for e in result.spans if e.rule_id != "META_RUN_OF_META_SENTENCES"]
+    assert Metadiscourse.score_spans(doc, "blog", without_run) < result.score
+
+
+def test_run_detection_skips_headings_and_list_items() -> None:
+    # A bulleted "Key takeaways:" label is structure_tells' business, not a run of prose.
+    doc = _doc(
+        "## In this section we will cover the argument\n\n"
+        "- To be clear, the point here is not really about that at all\n"
+        "- As noted above, the framing is what actually matters most here\n"
+    )
+    assert not any(
+        e.rule_id == "META_RUN_OF_META_SENTENCES" for e in Metadiscourse.extract(doc, "blog").spans
+    )

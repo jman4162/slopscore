@@ -6,6 +6,7 @@ from slopscore.features import (  # noqa: F401  (imported for registration side 
     formulaic_patterns,
     human_signals,
     lexical_markers,
+    metadiscourse,
     phrase_packs,
     prompt_residue,
     redundancy,
