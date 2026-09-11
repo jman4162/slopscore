@@ -1,0 +1,10 @@
+{
+  "by_paragraph_ranks_by_density": true,
+  "divergent_examples": {},
+  "divergent_rules": {},
+  "high_severity_runs_on_clean_rows": [],
+  "meta_hits": {
+    "META_ENDOPHORIC_BACKREF": 2
+  },
+  "n_documents": 193
+}
