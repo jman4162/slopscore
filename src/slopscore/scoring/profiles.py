@@ -49,6 +49,10 @@ PROFILES: dict[str, dict[Dimension, float]] = {
         # Manufactured sincerity is marketing's native failure mode ("real talk", "let's be real",
         # "cards on the table"), so this is boosted where insight_signaling is softened.
         Dimension.performative_candor: 1.2,
+        # "In this guide we will show you", "TL;DR:", "Key takeaways:" and "the bottom line is"
+        # are marketing's native register, so this is softened like the rest of the profile.
+        # Left absent it defaulted to 1.0, higher than every other slop dimension here.
+        Dimension.metadiscourse: 0.8,
     },
     "technical": {
         Dimension.structure_tells: 0.7,  # headings, bullets, and bold labels are documentation

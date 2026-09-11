@@ -70,7 +70,14 @@ def registry() -> list[Feature]:
 #
 # ``metadiscourse`` opts in because it is the one dimension that is neither weak-damped nor
 # corroborating, so a single low-severity marker saturating it in a 17-word document had nothing
-# else holding it back.
+# else holding it back: a clean benchmark row scored 50.2, and 20.2 with the floor.
+#
+# The trade-off is real and is not papered over: below 100 words that dimension scores on hit
+# COUNT rather than density, so it does not rank short paragraphs the way ``--by-paragraph``
+# wants. Removing the floor does not restore density there -- the rate saturates at 1.0 instead,
+# for one hit in eleven words as much as four in forty-four -- so the choice is between
+# count-based and pinned-at-maximum, and count-based is the one that does not convict clean
+# short text. ``tests/test_conservatism.py`` pins both halves of that comparison.
 MIN_RATE_WORDS = 100
 
 

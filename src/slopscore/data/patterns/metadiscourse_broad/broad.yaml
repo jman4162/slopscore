@@ -10,7 +10,7 @@
 rules:
   - rule_id: META_BROAD_CODE_GLOSS
     severity: low
-    pattern: "(?:^|(?<=[.!?]\\s))(?:that is to say|which is to say|i\\.e\\.),|\\bmeaning that\\b"
+    pattern: "(?:\\A|(?<=\\n\\n)|(?<=[.!?][\"')\\]]?\\s))(?:that is to say|which is to say|i\\.e\\.),|\\bmeaning that\\b"
     explanation: "'that is to say' — code gloss restating the writer's own clause."
     source: "Hyland 2005 (code glosses)"
 
@@ -23,6 +23,6 @@ rules:
 
   - rule_id: META_BROAD_OVERALL_CLOSER
     severity: low
-    pattern: "(?:^|(?<=[.!?]\\s))Overall,"
+    pattern: "(?:\\A|(?<=\\n\\n)|(?<=[.!?][\"')\\]]?\\s))Overall,"
     explanation: "'Overall,' closer (WP:AISIGNS words-to-watch; common in human writing too)."
     source: "WP:AISIGNS (section summaries)"

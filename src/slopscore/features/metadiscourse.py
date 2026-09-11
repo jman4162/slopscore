@@ -74,6 +74,13 @@ _MIN_SENTENCE_WORDS = 6
 # bridged two distant markers into a run the evidence then described as consecutive.
 _MAX_SKIPS_IN_RUN = 1
 
+# A run member has to be a finished clause. pysbd splits hard-wrapped prose on line breaks, so a
+# paragraph wrapped at 60 columns arrives as fragments ending in "and" -- and because the marker
+# lexicon is matched against each sentence in isolation, \A matches at the head of every one of
+# them. A wrapped paragraph containing no metadiscourse therefore produced a run of three. A
+# fragment is un-judgeable rather than meta, so it is skipped, exactly like a too-short sentence.
+_ENDS_CLAUSE = re.compile(r"""[.!?:;]["')\]]*\s*$""")
+
 # Rules whose construction is legitimate when it restates a FACT. A code gloss over "the bus
 # costs two euros" is a comprehension aid, not prose about the prose, and it is how ESL and
 # simple-English writers make a concrete point land; a code gloss over nothing is the tell.
@@ -154,6 +161,8 @@ def _classify(doc: Document, sentence: TextSpan) -> Kind:
     text = sentence.text.strip()
     if doc.in_block_kind(sentence.start, _NOT_PROSE):
         return "break"
+    if not _ENDS_CLAUSE.search(text):
+        return "skip"
     rest, marker_spans = _strip_markers(text)
     # The pack sets skip_quoted=True and the run term has to honor it. Test each marker's own
     # offsets, not the sentence's: pysbd keeps 'He said "In this section we will..."' as ONE
@@ -310,17 +319,27 @@ class Metadiscourse(PhrasePack):
 
         return min(1.0, max(rate, concentration))
 
-    def _run_spans(self, doc: Document) -> list[Evidence]:
-        """One span per run, anchored on the run's FIRST sentence.
+    def _run_spans(self, doc: Document, rule_spans: list[Evidence]) -> list[Evidence]:
+        """One span per scored run, anchored on the run's FIRST sentence.
 
         Not the whole run: report/html.py picks the longest span at each offset and skips the
         ones inside it, so a multi-sentence finding swallowed every phrase-level highlight in the
-        passage, from every dimension. A short anchor also keeps report/baseline.py fingerprints
-        (``sha256(file | rule_id | span text)``) stable when an unrelated word later in the
-        passage is edited, which ``--fail-on-new`` depends on.
+        passage. A short anchor also keeps report/baseline.py fingerprints (``sha256(file |
+        rule_id | span text)``) stable when an unrelated word later in the passage is edited,
+        which ``--fail-on-new`` depends on.
+
+        A run is only emitted when at least one metadiscourse rule of our own falls inside it --
+        the same gate ``score_spans`` applies. Emitting one the scorer then declines to charge
+        left a medium- or high-severity finding in the report with ``metadiscourse == 0.0``,
+        which still tripped ``--fail-on`` and exited CI non-zero. Evidence and points have to
+        appear and disappear together.
         """
         spans: list[Evidence] = []
         for run in _runs(doc):
+            start, _ = doc.mapper.to_original(run[0].start, run[0].end)
+            _, end = doc.mapper.to_original(run[-1].start, run[-1].end)
+            if not any(start <= r.start_char < end for r in rule_spans):
+                continue
             n = len(run)
             spans.append(
                 doc.evidence(
@@ -330,7 +349,8 @@ class Metadiscourse(PhrasePack):
                     clean_end=run[0].end,
                     explanation=(
                         f"Starts a run of {n} consecutive sentences about the writing rather "
-                        "than the subject, none carrying a name, number, date, URL, or identifier."
+                        "than the subject, none carrying a name, number, date, URL, or "
+                        "identifier of their own."
                     ),
                     kind=EvidenceKind.finding,
                 )
@@ -345,7 +365,7 @@ class Metadiscourse(PhrasePack):
             for s in base.spans
             if s.rule_id not in _EVIDENCE_EXEMPT or not _restates_a_fact(doc, s, ranges)
         ]
-        spans = sorted(kept + self._run_spans(doc), key=lambda e: e.start_char)
+        spans = sorted(kept + self._run_spans(doc, kept), key=lambda e: e.start_char)
         return FeatureResult(
             dimension=self.dimension,
             score=self.score_spans(doc, profile, spans),

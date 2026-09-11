@@ -14,6 +14,7 @@ afterwards too.
 
 from __future__ import annotations
 
+import textwrap
 from pathlib import Path
 
 import pytest
@@ -121,3 +122,27 @@ def test_signposts_in_separate_paragraphs_are_not_one_run(tmp_path: Path, suffix
     p.write_text(text, encoding="utf-8")
     report = SlopScorer().scan_file(p)
     assert not any(e.rule_id == "META_RUN_OF_META_SENTENCES" for e in report.findings)
+
+
+def test_hard_wrapping_does_not_create_a_metadiscourse_run(tmp_path: Path) -> None:
+    """Hard-wrapped prose must not manufacture a run.
+
+    ``_ruleset.py`` compiles every pattern with ``re.MULTILINE``, so ``^`` is a LINE anchor, and
+    the marker lexicon is matched against each sentence in isolation, where ``\\A`` is the head of
+    that sentence. pysbd also splits hard-wrapped text on line breaks. Together those made a
+    paragraph wrapped at 60 columns -- a code comment, a plain-text file, a commit message --
+    arrive as fragments each of which matched a clause-anchored marker, escalating text with no
+    metadiscourse in it to ``META_RUN_OF_META_SENTENCES``.
+    """
+    flat = (
+        "The team reviewed the two lists and the schedule, and precision matters more than "
+        "speed for this path, and to be clear, they said the deadline had not moved, and "
+        "overall, the next item was deferred to the spring."
+    )
+    scorer = SlopScorer()
+    for i, variant in enumerate((flat, "\n".join(textwrap.wrap(flat, 60)))):
+        p = tmp_path / f"wrap{i}.txt"
+        p.write_text(variant, encoding="utf-8")
+        findings = scorer.scan_file(p).findings
+        assert not any(e.rule_id == "META_RUN_OF_META_SENTENCES" for e in findings)
+        assert not any(e.rule_id.startswith("META_") for e in findings)

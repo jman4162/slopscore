@@ -60,6 +60,12 @@ Metadiscourse. Schema 0.14.0 (new `metadiscourse` dimension).
   operating point; with `metadiscourse` disabled the same set gives the same threshold and the
   same TPR. Fixing it needs its own calibration pass, not a floor bolted on at release time.
   `longform` (0.133) and `wiki_aicleanup` (0.111) are unchanged.
+- **`insight_signaling` now skips quoted text.** `InsightSignaling` was the one quote-sensitive
+  pack without `skip_quoted=True`, so a style guide, critique, or prompt log that *quotes* an
+  insight-signaling phrase was charged for writing it; this repo's own README flagged on the
+  sentence documenting `INSIGHT_LOAD_BEARING`. Scores and `INSIGHT_*` findings on corpora
+  containing quoted examples will drop relative to 0.13.0, and a `--baseline-file` built on
+  0.13.0 will report those findings as resolved.
 - **`metadiscourse` corroborates nothing.** It is in neither `WEAK_DIMENSIONS` nor
   `CORROBORATING_DIMENSIONS`. Weak means damped to 0.3 when alone, which is the failure it exists
   to fix; but left in the derived corroborating set, its length-invariant concentration term

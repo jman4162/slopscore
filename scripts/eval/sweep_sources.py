@@ -17,7 +17,9 @@ Run: python scripts/eval/sweep_sources.py
 from __future__ import annotations
 
 import json
+import shutil
 import tempfile
+import textwrap
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -87,6 +89,7 @@ def sweep(scorer: SlopScorer, documents: list[tuple[str, str, int]]) -> dict[str
                 ):
                     high_runs.append(name)
 
+    shutil.rmtree(tmp, ignore_errors=True)
     return {
         "n_documents": len(documents),
         "divergent_rules": dict(divergent),
@@ -130,12 +133,81 @@ def collect(root: Path) -> list[tuple[str, str, int]]:
     return docs
 
 
+def sweep_wrapping(scorer: SlopScorer, documents: list[tuple[str, str, int]]) -> dict[str, Any]:
+    """The same text, hard-wrapped and not, through the SAME ingester.
+
+    This is the comparison that catches the MULTILINE class, and comparing .txt against .md does
+    not: wrapping a Markdown document at 60 columns breaks its syntax, so the two ingesters
+    legitimately see different prose and the cross-ingester diff is full of expected noise.
+    Holding the ingester fixed and varying only line breaks isolates the defect -- rules whose
+    `^` anchor made them fire mid-sentence on wrapped prose, which let a wrapped paragraph
+    containing no metadiscourse escalate to a full run finding.
+    """
+    tmp = Path(tempfile.mkdtemp(prefix="slopscore-wrap-"))
+    divergent: Counter[str] = Counter()
+    examples: dict[str, str] = {}
+    flat_runs = wrapped_runs = 0
+    for name, text, _label in documents:
+        flat = " ".join(text.split())
+        for i, variant in enumerate((flat, "\n".join(textwrap.wrap(flat, 60)))):
+            p = tmp / f"w{i}.txt"
+            p.write_text(variant, encoding="utf-8")
+            findings = scorer.scan_file(p).findings
+            runs = sum(1 for e in findings if e.rule_id == "META_RUN_OF_META_SENTENCES")
+            if i == 0:
+                a = {e.rule_id for e in findings}
+                flat_runs += runs
+            else:
+                b = {e.rule_id for e in findings}
+                wrapped_runs += runs
+        for rule in a ^ b:
+            divergent[rule] += 1
+            examples.setdefault(rule, name)
+    shutil.rmtree(tmp, ignore_errors=True)
+    # RECORDED, NOT ASSERTED. Wrap-sensitivity turns out to be a repo-wide property: 28 rules
+    # across 8 dimensions change behavior when the same prose is hard-wrapped, because pysbd
+    # re-segments on line breaks. That predates v0.14 and is not this release's to fix, so the
+    # set is written down to be diffed rather than gated on. What IS asserted is the metadiscourse
+    # run count, which was the v0.14 defect: a wrapped paragraph with no metadiscourse in it
+    # escalated to a run of three.
+    return {
+        "wrap_divergent_rules": dict(divergent),
+        "wrap_divergent_examples": examples,
+        "meta_runs_flat": flat_runs,
+        "meta_runs_wrapped": wrapped_runs,
+    }
+
+
+def sweep_code(scorer: SlopScorer, root: Path) -> dict[str, Any]:
+    """The code ingester against the text ingester on the same source files.
+
+    ``.py`` prose is docstrings and comments only; scanned as ``.txt`` the whole file is prose.
+    Rules that fire on one and not the other are expected here -- the point is to record WHICH,
+    so a change in that set is visible.
+    """
+    tmp = Path(tempfile.mkdtemp(prefix="slopscore-code-"))
+    divergent: Counter[str] = Counter()
+    files = sorted((root / "src" / "slopscore").rglob("*.py"))
+    for i, f in enumerate(files):
+        source = f.read_text(encoding="utf-8")
+        as_code = scorer.scan_file(f)
+        txt_path = tmp / f"f{i}.txt"
+        txt_path.write_text(source, encoding="utf-8")
+        as_text = scorer.scan_file(txt_path)
+        for rule in {e.rule_id for e in as_code.findings} ^ {e.rule_id for e in as_text.findings}:
+            divergent[rule] += 1
+    shutil.rmtree(tmp, ignore_errors=True)
+    return {"n_files": len(files), "code_vs_text_divergence": dict(divergent)}
+
+
 def main() -> None:
     root = Path(__file__).resolve().parents[2]
     scorer = SlopScorer()
     documents = collect(root)
     result = sweep(scorer, documents)
     result["by_paragraph_ranks_by_density"] = by_paragraph_ranks_by_density(scorer)
+    result.update(sweep_wrapping(scorer, documents))
+    result["code_ingester"] = sweep_code(scorer, root)
 
     out = root / "eval" / "results" / "source_sweep.json"
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -146,6 +218,16 @@ def main() -> None:
     print(f"  high-severity runs on clean : {result['high_severity_runs_on_clean_rows'] or 'none'}")
     print(f"  META_ hits                  : {result['meta_hits'] or 'none'}")
     print(f"  --by-paragraph by density   : {result['by_paragraph_ranks_by_density']}")
+    print(
+        f"  META runs flat / wrapped    : {result['meta_runs_flat']} / {result['meta_runs_wrapped']}  (asserted equal)"
+    )
+    print(
+        f"  rules differing by wrapping : {len(result['wrap_divergent_rules'])} rules (recorded, repo-wide, not gated)"
+    )
+    code = result["code_ingester"]
+    print(
+        f"  code vs text on {code['n_files']:3d} .py files : {code['code_vs_text_divergence'] or 'none'}"
+    )
     print(f"wrote {out}")
 
 
