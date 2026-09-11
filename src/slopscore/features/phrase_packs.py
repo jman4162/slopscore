@@ -99,6 +99,9 @@ InsightSignaling = PhrasePack(
     "insight_signaling",
     full_scale=3.0,
     broad_category="insight_signaling_broad",
+    # A quoted phrase is an example being discussed, not one being used: without this the repo's
+    # own README flagged on the sentence documenting INSIGHT_LOAD_BEARING.
+    skip_quoted=True,
 )
 
 # Performative candor / manufactured sincerity (v0.9). The broad tier is opt-in via ``--broad``.

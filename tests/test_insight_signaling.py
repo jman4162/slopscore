@@ -63,6 +63,11 @@ def test_predicative_load_bearing_fires(text: str) -> None:
         "The framing is load-bearing in this wall assembly.",
         "We checked whether that detail is load-bearing before demolition.",
         "The point is load bearing on the south elevation.",
+        # All three arms share one prose-noun list now; an ungated "doing load-bearing work"
+        # arm and construction terms in the attributive list fired on literal site prose.
+        "We replaced the load-bearing framing on the second floor.",
+        "The contractor marked every load-bearing point on the plan.",
+        "The crew is doing load-bearing work on the second floor.",
         "Contractors inspect a load-bearing beam before signing off.",
         "The column is load bearing.",
         # "part" is in the attributive noun list but deliberately not the predicative one:

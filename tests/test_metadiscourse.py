@@ -473,3 +473,71 @@ def test_skipped_sentences_cannot_bridge_a_run_without_limit() -> None:
     assert not any(
         e.rule_id == "META_RUN_OF_META_SENTENCES" for e in Metadiscourse.extract(doc, "blog").spans
     )
+
+
+def test_paragraph_breaks_end_a_run_on_plain_text() -> None:
+    # Document.in_block_kind returns False whenever doc.blocks is empty, which is every
+    # non-Markdown source: plain text, stdin, extracted code comments, web articles. The
+    # heading/list guard was therefore a no-op on all of them, and three signposts in three
+    # separate paragraphs read as one "run of 3 consecutive sentences".
+    doc = _doc(
+        "In this section we will describe the approach we have taken.\n\n"
+        "As noted above, the framing here is what actually matters most of all.\n\n"
+        "To be clear, the point is not really about any of that at all.\n"
+    )
+    assert doc.blocks == []
+    assert len(doc.paragraphs) == 3
+    assert not any(
+        e.rule_id == "META_RUN_OF_META_SENTENCES" for e in Metadiscourse.extract(doc, "blog").spans
+    )
+
+
+def test_a_run_of_borrowed_markers_alone_does_not_score() -> None:
+    # The marker lexicon is a superset of this dimension's rules, so a run can be built entirely
+    # from phrases whose scoring rule lives in formulaic_structure. Charging for those billed one
+    # set of phrases to two weighted dimensions at once.
+    doc = _doc(
+        "In summary, the whole argument does not really hold together at all. It is worth noting "
+        "that the point here is not about any of that. In other words, the thing being described "
+        "is not what was claimed."
+    )
+    result = Metadiscourse.extract(doc, "blog")
+    assert not any(
+        e.rule_id.startswith("META_") and e.rule_id != "META_RUN_OF_META_SENTENCES"
+        for e in result.spans
+    )
+    assert result.score == 0.0
+
+
+def test_a_quoted_marker_is_judged_as_if_absent() -> None:
+    # The contract is that a quoted marker is not the author's voice, so the sentence should
+    # classify exactly as the same sentence without it: short and factless skips, anything
+    # longer breaks. It used to hard-break either way, so a short quotation dropped into a
+    # genuine run severed it and denser prose-about-the-prose scored lower.
+    from slopscore.core import build_document
+    from slopscore.features.metadiscourse import _classify
+    from slopscore.ingest import from_string
+
+    for quoted, plain in (
+        ('He said "to be clear."', "He said nothing."),
+        (
+            'He said "to be clear," and then he left the room.',
+            "He said nothing and then he left the room.",
+        ),
+    ):
+        qd, pd = build_document(from_string(quoted)), build_document(from_string(plain))
+        assert _classify(qd, qd.sentences[0]) == _classify(pd, pd.sentences[0])
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Precision matters in practice.",
+        "That distinction is important in this debate.",
+        "The phrasing matters at scale.",
+    ],
+)
+def test_prose_attribute_subject_survives_in_at_with(text: str) -> None:
+    # The lookahead blocked in/at/with, which follow the metadiscourse use at least as often as
+    # the object-level one it targets.
+    assert "META_PROSE_ATTRIBUTE_SUBJECT" in _core_ids(text)

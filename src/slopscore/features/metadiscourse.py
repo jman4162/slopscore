@@ -25,7 +25,9 @@ the score is not ``severity_rate_score`` alone. It subclasses ``PhrasePack`` so 
 
 from __future__ import annotations
 
+from bisect import bisect_right
 from functools import lru_cache
+from typing import Literal
 
 import regex as re
 import yaml
@@ -35,14 +37,15 @@ from slopscore.document import Document
 from slopscore.features.base import (
     MIN_RATE_WORDS,
     SEVERITY_WEIGHT,
-    per_hundred_words,
     register,
-    saturating,
+    severity_rate_score,
 )
 from slopscore.features.phrase_packs import PhrasePack
 from slopscore.features.specificity import concrete_evidence_count
 from slopscore.models import Dimension, Evidence, EvidenceKind, FeatureResult, Severity
 from slopscore.spans import TextSpan
+
+Kind = Literal["meta", "skip", "break"]
 
 RULE_META_RUN = "META_RUN_OF_META_SENTENCES"
 
@@ -51,6 +54,11 @@ RULE_META_RUN = "META_RUN_OF_META_SENTENCES"
 # signposts, not one four-sentence run, and treating the headings between them as transparent
 # produced a single high-severity finding on ordinary IMRaD and reference-doc structure -- and a
 # span whose text visibly contained the numbers its own explanation said were absent.
+#
+# This guard alone is NOT enough: Document.in_block_kind returns False whenever doc.blocks is
+# empty, which is every non-Markdown source -- plain text, stdin, extracted code comments, web
+# articles. A paragraph break is the structural boundary that exists for all of them, so _runs
+# also ends a run whenever the paragraph index changes.
 _NOT_PROSE = frozenset({"heading", "list_item"})
 
 # Runs shorter than this are ordinary signposting. A run of 2 is already unusual in edited prose;
@@ -119,17 +127,21 @@ def _strip_markers(text: str) -> tuple[str, list[tuple[int, int]]]:
     evidence), and substituting ", " without collapsing left two spaces and hid it just the same.
     """
     spans: list[tuple[int, int]] = []
+    matched: list[re.Pattern[str]] = []
     for pattern in _markers():
-        spans.extend((m.start(), m.end()) for m in pattern.finditer(text))
+        hits = [(m.start(), m.end()) for m in pattern.finditer(text)]
+        if hits:
+            spans.extend(hits)
+            matched.append(pattern)
     if not spans:
         return text, []
     stripped = text
-    for pattern in _markers():
+    for pattern in matched:
         stripped = pattern.sub(", ", stripped)
     return re.sub(r"\s+", " ", stripped).strip(), spans
 
 
-def _classify(doc: Document, sentence: TextSpan) -> str:
+def _classify(doc: Document, sentence: TextSpan) -> Kind:
     """``"meta"``, ``"skip"``, or ``"break"`` for one sentence.
 
     ``"skip"`` neither extends nor breaks a run: a sentence too short to judge says nothing about
@@ -151,13 +163,15 @@ def _classify(doc: Document, sentence: TextSpan) -> str:
         (a, b) for a, b in marker_spans if not inside_quotes(doc.quoted, offset + a, offset + b)
     ]
     if not unquoted:
-        return "break" if marker_spans else _no_marker(text)
+        # Judge it as if the marker were not there: a short quotation dropped into a genuine run
+        # should not sever it, which is what "skip" exists to prevent.
+        return _no_marker(text)
     if len(text.split()) < _MIN_SENTENCE_WORDS:
         return "skip"
     return "break" if concrete_evidence_count(rest, spelled_numbers=True) > 0 else "meta"
 
 
-def _no_marker(text: str) -> str:
+def _no_marker(text: str) -> Kind:
     """A sentence with no marker: short and factless says nothing, anything else interrupts."""
     if len(text.split()) < _MIN_SENTENCE_WORDS:
         return "skip" if concrete_evidence_count(text, spelled_numbers=True) == 0 else "break"
@@ -173,11 +187,17 @@ def _runs(doc: Document) -> list[list[TextSpan]]:
     """
     cached = doc.__dict__.get("_metadiscourse_runs")
     if cached is not None:
-        return list(cached)
+        return [list(r) for r in cached]
+
+    para_starts = [p.start for p in doc.paragraphs]
+
+    def paragraph_of(sentence: TextSpan) -> int:
+        return bisect_right(para_starts, sentence.start) - 1 if para_starts else 0
 
     runs: list[list[TextSpan]] = []
     current: list[TextSpan] = []
     skips = 0
+    para = -1
     for s in doc.sentences:
         if not s.text.strip():
             continue
@@ -191,7 +211,16 @@ def _runs(doc: Document) -> list[list[TextSpan]]:
                 current, skips = [], 0
             continue
         if kind == "meta":
+            here = paragraph_of(s)
+            if current and here != para:
+                # A paragraph break is a structural boundary on every source type, Markdown or
+                # not. Without this, three signposts in three separate paragraphs of plain text
+                # read as one "run of 3 consecutive sentences".
+                if len(current) >= _MIN_RUN:
+                    runs.append(current)
+                current, skips = [], 0
             current.append(s)
+            para = here
             continue
         if len(current) >= _MIN_RUN:
             runs.append(current)
@@ -201,7 +230,7 @@ def _runs(doc: Document) -> list[list[TextSpan]]:
     runs.sort(key=len, reverse=True)
 
     doc.__dict__["_metadiscourse_runs"] = runs
-    return list(runs)
+    return [list(r) for r in runs]
 
 
 def _sentence_ranges(doc: Document) -> list[tuple[int, int]]:
@@ -236,7 +265,7 @@ def _severity_factor(span: Evidence, natural: Severity) -> float:
     else, against the scorer contract that overrides apply before ``by_dim``. Raising a severity
     scales up as well as down; the dimension score is clamped to [0, 1] by the caller.
     """
-    return SEVERITY_WEIGHT[span.severity] / SEVERITY_WEIGHT[natural]
+    return float(SEVERITY_WEIGHT[span.severity] / SEVERITY_WEIGHT[natural])
 
 
 class Metadiscourse(PhrasePack):
@@ -248,24 +277,32 @@ class Metadiscourse(PhrasePack):
     def score_spans(self, doc: Document, profile: str, spans: list[Evidence]) -> float:
         # The concentration term has its own span and must not also be charged to the rate term.
         rule_spans = [s for s in spans if s.rule_id != RULE_META_RUN]
-        weighted = sum(SEVERITY_WEIGHT[s.severity] for s in rule_spans)
-        rate = saturating(
-            per_hundred_words(weighted, doc.word_count, MIN_RATE_WORDS), self._full_scale
-        )
+        rate = severity_rate_score(doc, rule_spans, self._full_scale, MIN_RATE_WORDS)
 
-        # The run span anchors on its first sentence, so the length is recovered from the
-        # document rather than from the span text. score_spans must stay a pure function of the
-        # surviving spans, which this is: same doc, same spans, same answer.
         # Explicit max(), not a dict comprehension: _runs is sorted longest-first, so on any key
         # collision the comprehension's last write would keep the SHORTEST run.
-        lengths: dict[int, int] = {}
+        extents: dict[int, tuple[int, int, int]] = {}
         for run in _runs(doc):
-            key = doc.mapper.to_original(run[0].start, run[0].end)[0]
-            lengths[key] = max(lengths.get(key, 0), len(run))
+            start, _ = doc.mapper.to_original(run[0].start, run[0].end)
+            _, end = doc.mapper.to_original(run[-1].start, run[-1].end)
+            best = extents.get(start)
+            if best is None or len(run) > best[0]:
+                extents[start] = (len(run), start, end)
+
         concentration = 0.0
         for s in (s for s in spans if s.rule_id == RULE_META_RUN):
-            n = lengths.get(s.start_char)
-            if n is None:
+            extent = extents.get(s.start_char)
+            if extent is None:
+                continue
+            n, run_start, run_end = extent
+            # The marker lexicon is a superset of this dimension's rules, so a run can be built
+            # entirely from phrases whose scoring rule lives in formulaic_structure. Charging for
+            # those would bill one set of phrases to two weighted dimensions, which the pack
+            # design explicitly disclaims. Require at least one metadiscourse rule of our own
+            # inside the run; the lexicon still supplies the shape, just not the licence to score.
+            if not any(
+                r.rule_id != RULE_META_RUN and run_start <= r.start_char < run_end for r in spans
+            ):
                 continue
             concentration = max(
                 concentration, _run_score(n) * _severity_factor(s, _natural_severity(n))

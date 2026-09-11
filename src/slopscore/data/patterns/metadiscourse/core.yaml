@@ -34,9 +34,11 @@ rules:
     severity: medium
     # A property of the prose is the grammatical subject. Two gates: clause-anchored, and a
     # negative lookahead for a prepositional object, so "the framing matters TO the plaintiff"
-    # and "the wording is important FOR the contract" (ordinary object-level uses) stay quiet
-    # while "Precision matters here" and "That distinction is important." fire.
-    pattern: "(?:^|(?<=[.!?]\\s))(?:Precision|Accuracy|Clarity|Word choice|The phrasing|The wording|The framing|The language|The distinction|That distinction|This distinction) (?:matters|is important|is what matters|is the point)\\b(?!\\s+(?:to|for|in|at|with|than)\\b)"
+    # and "the wording is important FOR the contract" (ordinary object-level uses) stay quiet.
+    # Only to/for/than: in/at/with follow the metadiscourse use at least as often as the
+    # object-level one, and blocking them silenced "Precision matters in practice", "That
+    # distinction is important in this debate", "The phrasing matters at scale".
+    pattern: "(?:^|(?<=[.!?]\\s))(?:Precision|Accuracy|Clarity|Word choice|The phrasing|The wording|The framing|The language|The distinction|That distinction|This distinction) (?:matters|is important|is what matters|is the point)\\b(?!\\s+(?:to|for|than)\\b)"
     explanation: "'Precision matters here' — a sentence about the writing, not about the subject."
     source: "human-reader catch, Summitward stocks-are-always-risky (2026-09)"
 
