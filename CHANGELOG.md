@@ -45,19 +45,21 @@ Metadiscourse. Schema 0.14.0 (new `metadiscourse` dimension).
   short document (the density denominator is now floored at 100 words), and code glosses firing
   over concrete facts. No `META_` rule fires on either fairness slice; `general` and
   `non_native` FPR stay 0.00.
-- **Density floor.** `per_hundred_words` amplifies a 16-word document 6.25x, so one
-  low-severity hit saturated a dimension at 1.0: a clean `simple_english` benchmark row ("The bus
-  costs two euros. In other words, you need two coins before you get on.") scored 66.0 on a single
-  `FORMULAIC_SIMPLY_PUT` hit. The denominator is now floored at 100 words for every rate-based
-  dimension, which is the same judgment abstention already encodes about short input applied to
-  the score rather than only to the label. Benchmark `TPR@1%FPR` 0.329 to 0.371, `simple_english`
-  subgroup FPR 0.053 to 0.000, `longform` unchanged (every row is 300+ words), every golden band
-  and fixture unchanged. **This lowers scores on documents under 100 words for every dimension.**
-- **Old known limitation, now fixed.** The residual `simple_english` FPR of 0.05 was
-  `FORMULAIC_SIMPLY_PUT` firing on "In other words, you need two coins before you get on", a
-  pre-existing false positive in a shipped rule, made visible because these rows exercise it. The
-  density floor above fixes the cause rather than documenting it. `longform` (0.133) and
-  `wiki_aicleanup` (0.111) are unchanged.
+- **Density floor, opt-in.** `per_hundred_words` amplifies a 16-word document 6.25x, so one
+  low-severity hit saturates a dimension at 1.0. `metadiscourse` opts into a 100-word floor
+  because it is the one dimension that is neither weak-damped nor corroborating. Applying the
+  floor to every dimension was tried and reverted: it *raised* scores on short text carrying human
+  signal (a saturated slop dimension cannot fall further while the negative `human_writing_signals`
+  counterweight is shrunk: 75.4 to 80.0 on a 36-word paragraph) and it inverted `--by-paragraph`
+  ranking, which tracks density rather than hit count (a 57-word mild paragraph outranked a
+  16-word dense one). Both are worse than the false positive it fixed.
+- **Known limitation, not fixed.** The residual `simple_english` FPR of 0.05 is
+  `FORMULAIC_SIMPLY_PUT` firing on "In other words, you need two coins before you get on" at 66.0,
+  a pre-existing false positive in a shipped rule, made visible because these rows exercise it. It
+  is also what takes the benchmark's headline `TPR@1%FPR` to 0.329, by raising the 1%-FPR
+  operating point; with `metadiscourse` disabled the same set gives the same threshold and the
+  same TPR. Fixing it needs its own calibration pass, not a floor bolted on at release time.
+  `longform` (0.133) and `wiki_aicleanup` (0.111) are unchanged.
 - **`metadiscourse` corroborates nothing.** It is in neither `WEAK_DIMENSIONS` nor
   `CORROBORATING_DIMENSIONS`. Weak means damped to 0.3 when alone, which is the failure it exists
   to fix; but left in the derived corroborating set, its length-invariant concentration term

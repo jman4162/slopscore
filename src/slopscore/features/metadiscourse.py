@@ -33,6 +33,7 @@ import yaml
 from slopscore.config import data_path
 from slopscore.document import Document
 from slopscore.features.base import (
+    MIN_RATE_WORDS,
     SEVERITY_WEIGHT,
     per_hundred_words,
     register,
@@ -59,6 +60,11 @@ _MIN_RUN = 2
 # Below this length a "sentence" is a fragment ("In summary." / "To be clear.") and saying it
 # carries no evidence is not informative.
 _MIN_SENTENCE_WORDS = 6
+
+# How many un-judgeable sentences may sit inside a run before it stops being "consecutive".
+# Unbounded, any stretch of short factless prose (dialogue, verse, clipped narration) silently
+# bridged two distant markers into a run the evidence then described as consecutive.
+_MAX_SKIPS_IN_RUN = 1
 
 # Rules whose construction is legitimate when it restates a FACT. A code gloss over "the bus
 # costs two euros" is a comprehension aid, not prose about the prose, and it is how ESL and
@@ -97,8 +103,8 @@ def _markers() -> list[re.Pattern[str]]:
     return [re.compile(m, re.IGNORECASE | re.MULTILINE) for m in raw.get("markers", [])]
 
 
-def _strip_markers(text: str) -> tuple[str, bool]:
-    """``text`` with every marker's characters removed, and whether any matched.
+def _strip_markers(text: str) -> tuple[str, list[tuple[int, int]]]:
+    """``text`` with every marker's characters removed, plus where each marker matched.
 
     All of them, not just the first: a sentence stacking several markers ("As noted above, in
     plain English, three things stand out") kept the others' text behind and was scored concrete,
@@ -106,14 +112,21 @@ def _strip_markers(text: str) -> tuple[str, bool]:
     excision matters because markers can look concrete on their own -- "In plain English" contains
     "English", which the proper-noun heuristic reads as a name, and "three things" contains a
     number.
+
+    Each marker becomes ", " and the result is whitespace-collapsed, because ``_PROPER`` matches
+    on ``(?<=[a-z,;:]\\s)`` -- exactly one space. Substituting a bare space hid a name that
+    followed a comma-terminated marker ("In short, Tokyo remains the largest market" counted zero
+    evidence), and substituting ", " without collapsing left two spaces and hid it just the same.
     """
-    matched = False
+    spans: list[tuple[int, int]] = []
     for pattern in _markers():
-        stripped = pattern.sub(" ", text)
-        if stripped != text:
-            matched = True
-            text = stripped
-    return text, matched
+        spans.extend((m.start(), m.end()) for m in pattern.finditer(text))
+    if not spans:
+        return text, []
+    stripped = text
+    for pattern in _markers():
+        stripped = pattern.sub(", ", stripped)
+    return re.sub(r"\s+", " ", stripped).strip(), spans
 
 
 def _classify(doc: Document, sentence: TextSpan) -> str:
@@ -124,17 +137,31 @@ def _classify(doc: Document, sentence: TextSpan) -> str:
     a run, so a denser passage of prose-about-the-prose could score lower than a sparser one.
     Everything else -- a sentence carrying a fact, or any non-prose block -- is a ``"break"``.
     """
+    from slopscore.normalize.quotes import inside_quotes
+
     text = sentence.text.strip()
     if doc.in_block_kind(sentence.start, _NOT_PROSE):
         return "break"
-    rest, matched = _strip_markers(text)
-    if not matched:
-        if len(text.split()) < _MIN_SENTENCE_WORDS:
-            return "skip" if concrete_evidence_count(text, spelled_numbers=True) == 0 else "break"
-        return "break"
+    rest, marker_spans = _strip_markers(text)
+    # The pack sets skip_quoted=True and the run term has to honor it. Test each marker's own
+    # offsets, not the sentence's: pysbd keeps 'He said "In this section we will..."' as ONE
+    # sentence, which contains the quotation rather than sitting inside it.
+    offset = sentence.start + (len(sentence.text) - len(sentence.text.lstrip()))
+    unquoted = [
+        (a, b) for a, b in marker_spans if not inside_quotes(doc.quoted, offset + a, offset + b)
+    ]
+    if not unquoted:
+        return "break" if marker_spans else _no_marker(text)
     if len(text.split()) < _MIN_SENTENCE_WORDS:
         return "skip"
     return "break" if concrete_evidence_count(rest, spelled_numbers=True) > 0 else "meta"
+
+
+def _no_marker(text: str) -> str:
+    """A sentence with no marker: short and factless says nothing, anything else interrupts."""
+    if len(text.split()) < _MIN_SENTENCE_WORDS:
+        return "skip" if concrete_evidence_count(text, spelled_numbers=True) == 0 else "break"
+    return "break"
 
 
 def _runs(doc: Document) -> list[list[TextSpan]]:
@@ -142,39 +169,39 @@ def _runs(doc: Document) -> list[list[TextSpan]]:
 
     Cached on the document: ``extract`` and ``score_spans`` both need it, ``score_spans`` runs
     again whenever the scorer filters a span, and classification is ~30 regexes plus an evidence
-    count per sentence. The cache is best-effort so that making ``Document`` slotted or frozen
-    later degrades to recomputation rather than raising at scan time.
+    count per sentence. A copy is returned so a caller cannot corrupt the cache.
     """
-    try:
-        cached = doc.__dict__.get("_metadiscourse_runs")
-        if cached is not None:
-            return cached  # type: ignore[no-any-return]
-    except AttributeError:  # pragma: no cover - only if Document gains __slots__
-        pass
+    cached = doc.__dict__.get("_metadiscourse_runs")
+    if cached is not None:
+        return list(cached)
 
     runs: list[list[TextSpan]] = []
     current: list[TextSpan] = []
+    skips = 0
     for s in doc.sentences:
         if not s.text.strip():
             continue
         kind = _classify(doc, s)
         if kind == "skip":
+            # Tolerated inside a run, but only so many: past the budget the run is not
+            # "consecutive" in any sense the explanation could honestly claim.
+            if current and (skips := skips + 1) > _MAX_SKIPS_IN_RUN:
+                if len(current) >= _MIN_RUN:
+                    runs.append(current)
+                current, skips = [], 0
             continue
         if kind == "meta":
             current.append(s)
             continue
         if len(current) >= _MIN_RUN:
             runs.append(current)
-        current = []
+        current, skips = [], 0
     if len(current) >= _MIN_RUN:
         runs.append(current)
     runs.sort(key=len, reverse=True)
 
-    try:
-        doc.__dict__["_metadiscourse_runs"] = runs
-    except AttributeError:  # pragma: no cover - only if Document gains __slots__
-        pass
-    return runs
+    doc.__dict__["_metadiscourse_runs"] = runs
+    return list(runs)
 
 
 def _sentence_ranges(doc: Document) -> list[tuple[int, int]]:
@@ -222,14 +249,19 @@ class Metadiscourse(PhrasePack):
         # The concentration term has its own span and must not also be charged to the rate term.
         rule_spans = [s for s in spans if s.rule_id != RULE_META_RUN]
         weighted = sum(SEVERITY_WEIGHT[s.severity] for s in rule_spans)
-        rate = saturating(per_hundred_words(weighted, doc.word_count), self._full_scale)
+        rate = saturating(
+            per_hundred_words(weighted, doc.word_count, MIN_RATE_WORDS), self._full_scale
+        )
 
         # The run span anchors on its first sentence, so the length is recovered from the
         # document rather than from the span text. score_spans must stay a pure function of the
         # surviving spans, which this is: same doc, same spans, same answer.
-        lengths = {
-            doc.mapper.to_original(run[0].start, run[0].end)[0]: len(run) for run in _runs(doc)
-        }
+        # Explicit max(), not a dict comprehension: _runs is sorted longest-first, so on any key
+        # collision the comprehension's last write would keep the SHORTEST run.
+        lengths: dict[int, int] = {}
+        for run in _runs(doc):
+            key = doc.mapper.to_original(run[0].start, run[0].end)[0]
+            lengths[key] = max(lengths.get(key, 0), len(run))
         concentration = 0.0
         for s in (s for s in spans if s.rule_id == RULE_META_RUN):
             n = lengths.get(s.start_char)

@@ -180,7 +180,7 @@ make it unlike the other packs.
 
 - **It subclasses `PhrasePack` rather than instantiating one** (`features/metadiscourse.py`),
   because hits-per-100-words cannot see this defect in long-form prose: the originating passage
-  reads 1.0 at 123 words and 0.064 at 3,373. It scores `max(rate, concentration, recap)`. The
+  reads 1.0 at 123 words and 0.064 at 3,373. It scores `max(rate, concentration)`. The
   concentration term is the longest run of consecutive sentences that carry a marker and **no**
   concrete evidence, mapped `{2: 0.35, 3: 0.55, 4: 0.75, 5+: 0.90}` and length-invariant. Its
   `Evidence` must be excluded from the rate term (no double-charging), must honor `rule_severity`

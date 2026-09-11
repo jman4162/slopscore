@@ -432,3 +432,44 @@ def test_severity_override_scales_the_run_both_ways() -> None:
         .dimensions.metadiscourse
     )
     assert lower < base < higher
+
+
+def test_a_name_after_a_comma_terminated_marker_still_counts_as_evidence() -> None:
+    # _PROPER matches on (?<=[a-z,;:]\s) -- exactly one space. Replacing "In short," with a bare
+    # space (or with ", " and no whitespace collapse) hid the name that followed, so the sentence
+    # read evidence-free and a run fired whose explanation said "none carrying a name" while its
+    # own span said "Tokyo".
+    doc = _doc(
+        "In short, Tokyo remains the largest market. To be clear, Sony still dominates the "
+        "sector. In other words, Honda has recovered from the slump."
+    )
+    result = Metadiscourse.extract(doc, "blog")
+    assert not any(e.rule_id == "META_RUN_OF_META_SENTENCES" for e in result.spans)
+    assert result.score == 0.0
+
+
+def test_the_run_term_honors_skip_quoted() -> None:
+    # The pack sets skip_quoted=True; the run term bypassed it, so a critique quoting three
+    # assistant sentences was charged for writing them. The marker's own offsets are tested,
+    # not the sentence's: pysbd keeps 'He said "In this section we will..."' as one sentence,
+    # which contains the quotation rather than sitting inside it.
+    doc = _doc(
+        'He kept saying things like "In this section we will explore the housing question in '
+        'detail." Then "As noted above, the framing matters here quite a lot." Then "To be '
+        'clear, that distinction is important and worth stating." I stopped reading.'
+    )
+    result = Metadiscourse.extract(doc, "blog")
+    assert not any(e.rule_id == "META_RUN_OF_META_SENTENCES" for e in result.spans)
+    assert result.score == 0.0
+
+
+def test_skipped_sentences_cannot_bridge_a_run_without_limit() -> None:
+    # "skip" is tolerated inside a run so a short factless sentence does not sever it, but past
+    # the budget the run is not "consecutive" in any sense its explanation could claim.
+    doc = _doc(
+        "In this section we will explore the topic in some detail. Rates fell. Prices rose. "
+        "Output grew. As noted above, the framing matters here quite a lot."
+    )
+    assert not any(
+        e.rule_id == "META_RUN_OF_META_SENTENCES" for e in Metadiscourse.extract(doc, "blog").spans
+    )

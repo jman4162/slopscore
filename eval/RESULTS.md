@@ -17,18 +17,19 @@ Reproduce with `python scripts/eval/report.py` (writes `eval/results.json`). Two
 ## Headline numbers (rule scorer, the shipped default)
 
 **v0.14 note on the benchmark row.** The set gained eight `label 0` rows exercising
-metadiscourse. They were written to be hard, and one exposed a pre-existing false positive that
-had never been measured because no row exercised it: `FORMULAIC_SIMPLY_PUT` scoring "In other
-words, you need two coins before you get on" at 66.0. On the 149-row set that row alone took
-TPR@1%FPR to 0.329 and `simple_english` FPR to 0.05, by raising the 1%-FPR operating point.
-v0.14 fixes the cause -- a floor on the density denominator, since `per_hundred_words` amplifies
-a 16-word document 6.25x -- which returns that row to 26.9, `simple_english` FPR to 0.00, and
-TPR@1%FPR to 0.371. The v0.13 figure of 0.571 was measured on a set that did not contain the row;
-it is not a regression from it.
+metadiscourse. They were written to be hard, and one of them exposed a pre-existing false positive
+that had never been measured because no row exercised it: `FORMULAIC_SIMPLY_PUT` scoring "In other
+words, you need two coins before you get on" at 66.0, because one low-severity hit saturates a
+16-word document. On the 149-row set that row alone takes TPR@1%FPR from 0.571 to 0.329 and
+`simple_english` FPR to 0.05, by raising the 1%-FPR operating point. With `metadiscourse` disabled
+the same set gives the same threshold and the same TPR, so this is a measurement the new rows
+expose, not a regression they cause. The v0.13 figure of 0.571 was measured on a set that did not
+contain the row. Fixing it by flooring the density denominator globally was tried for this release
+and reverted, for the reasons in `MODEL_CARD.md`.
 
 | Set | n | AUROC | PR-AUC | TPR@1%FPR | ECE |
 |---|---|---|---|---|---|
-| benchmark (in-sample, overt slop, 13-40 words) | 149 | 0.831 | 0.824 | 0.371 | 0.253 |
+| benchmark (in-sample, overt slop, 13-40 words) | 149 | 0.857 | 0.863 | 0.329 | 0.213 |
 | longform (committed, 300+ words, eval-only) | 180 | 0.705 | 0.593 | 0.133 | 0.251 |
 | wiki_aicleanup, full articles (held-out) | 180 | 0.746 | 0.770 | 0.111 | 0.415 |
 | wiki_aicleanup, lead sections only (v0.10 slice) | 40 | 0.647 | 0.627 | 0.000 | 0.463 |

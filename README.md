@@ -248,11 +248,12 @@ for f in Path("posts").glob("*.md"):
 
 v0.14: `metadiscourse` for writing that refers to the text rather than to its subject: frame
 markers ("in this section we will discuss"), endophoric markers ("as noted above"), code glosses
-("put simply:"), and prose-grading ("the defensible version is"). It scores concentration as well
-as density. It scores the longest run of consecutive metadiscourse sentences that carry no name,
-number, date, or identifier, so a run of three reads the same in a 120-word passage and a
-3,000-word essay, where a per-100-word rate would have divided it away. A marker over a concrete fact is
-exempt, which is both the precision gate and the fairness gate. The same release floors the density denominator at 100 words for every rate-based dimension: `per_hundred_words` amplifies a 16-word document 6.25x, so one low-severity hit used to saturate a dimension outright.
+("put simply:"), and prose-grading ("the defensible version is"). It scores the longest run of
+consecutive metadiscourse sentences that carry no name, number, date, or identifier, so a run of
+three reads the same in a 120-word passage and a 3,000-word essay, where a per-100-word rate
+would have divided it away. A marker over a concrete fact is exempt, which is both the precision
+gate and the fairness gate. Also fixes `load-bearing` in predicative position ("this distinction
+is load-bearing"), which had no rule.
 
 v0.13: detection coverage. A `structure_tells` dimension scores the chatbot Markdown shape
 (emoji headings, `**Label:** text` bullet runs, heading-level jumps, rules between every section,

@@ -43,7 +43,7 @@ def test_load_bearing_literal_is_not_flagged() -> None:
         "This distinction is load-bearing.",
         "That assumption is load bearing.",
         "That single word is really load-bearing.",
-        "The framing is load-bearing here.",
+        "That caveat is load-bearing.",
         "Those two premises are load-bearing.",
         # The "doing the work" arm.
         "The comma is doing the load-bearing work here.",
@@ -58,6 +58,11 @@ def test_predicative_load_bearing_fires(text: str) -> None:
     "text",
     [
         "The load-bearing wall is on the north side.",
+        # Nouns with a literal construction sense are excluded from the predicative arm: in
+        # carpentry the framing IS the load-bearing structure.
+        "The framing is load-bearing in this wall assembly.",
+        "We checked whether that detail is load-bearing before demolition.",
+        "The point is load bearing on the south elevation.",
         "Contractors inspect a load-bearing beam before signing off.",
         "The column is load bearing.",
         # "part" is in the attributive noun list but deliberately not the predicative one:

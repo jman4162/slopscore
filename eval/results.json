@@ -10,24 +10,24 @@
       "metrics": {
         "n": 149,
         "n_positive": 70,
-        "auroc": 0.8313,
-        "pr_auc": 0.8235,
-        "tpr_at_1fpr": 0.3714,
-        "tpr_at_5fpr": 0.4,
-        "ece": 0.2531,
-        "brier": 0.2518
+        "auroc": 0.8574,
+        "pr_auc": 0.8632,
+        "tpr_at_1fpr": 0.3286,
+        "tpr_at_5fpr": 0.5714,
+        "ece": 0.213,
+        "brier": 0.2271
       },
       "selective": {
         "coverage": 0.0,
         "accuracy_covered": 0.0,
-        "accuracy_all": 0.6644295302013423
+        "accuracy_all": 0.6912751677852349
       },
       "fairness": {
         "general": {
           "group": "general",
           "n": 111,
           "fpr": 0.0,
-          "fnr": 0.7058823529411765,
+          "fnr": 0.6323529411764706,
           "abstention_rate": 1.0
         },
         "non_native": {
@@ -40,7 +40,7 @@
         "simple_english": {
           "group": "simple_english",
           "n": 19,
-          "fpr": 0.0,
+          "fpr": 0.05263157894736842,
           "fnr": 0.0,
           "abstention_rate": 1.0
         }
@@ -52,24 +52,24 @@
       "metrics": {
         "n": 149,
         "n_positive": 70,
-        "auroc": 0.8989,
-        "pr_auc": 0.9107,
-        "tpr_at_1fpr": 0.5714,
-        "tpr_at_5fpr": 0.6143,
-        "ece": 0.0527,
-        "brier": 0.1285
+        "auroc": 0.908,
+        "pr_auc": 0.9177,
+        "tpr_at_1fpr": 0.5857,
+        "tpr_at_5fpr": 0.6286,
+        "ece": 0.0659,
+        "brier": 0.1188
       },
       "selective": {
         "coverage": 0.0,
         "accuracy_covered": 0.0,
-        "accuracy_all": 0.7785234899328859
+        "accuracy_all": 0.785234899328859
       },
       "fairness": {
         "general": {
           "group": "general",
           "n": 111,
           "fpr": 0.06976744186046512,
-          "fnr": 0.20588235294117646,
+          "fnr": 0.19117647058823528,
           "abstention_rate": 1.0
         },
         "non_native": {
@@ -192,8 +192,8 @@
       "metrics": {
         "n": 180,
         "n_positive": 90,
-        "auroc": 0.7473,
-        "pr_auc": 0.7704,
+        "auroc": 0.7461,
+        "pr_auc": 0.7697,
         "tpr_at_1fpr": 0.1111,
         "tpr_at_5fpr": 0.3222,
         "ece": 0.4151,
@@ -220,11 +220,11 @@
       "metrics": {
         "n": 180,
         "n_positive": 90,
-        "auroc": 0.8402,
-        "pr_auc": 0.8632,
+        "auroc": 0.8454,
+        "pr_auc": 0.8658,
         "tpr_at_1fpr": 0.2556,
         "tpr_at_5fpr": 0.4667,
-        "ece": 0.3777,
+        "ece": 0.3782,
         "brier": 0.3581
       },
       "selective": {

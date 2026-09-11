@@ -85,24 +85,27 @@ def test_non_english_label_withheld() -> None:
         assert report.score.label != Label.severe
 
 
-def test_one_marker_in_a_short_document_does_not_convict() -> None:
-    # per_hundred_words amplifies a 16-word document 6.25x, so one low-severity hit used to
-    # saturate formulaic_structure at 1.0 and score the document 66.0. This row is a clean
-    # simple_english benchmark row: a restatement gloss over a concrete fact, which is a
-    # comprehension aid rather than slop.
-    report = scan_text(
-        "The bus costs two euros. In other words, you need two coins before you get on."
-    )
-    assert report.score.slop_score < 50
-    assert report.dimensions.formulaic_structure < 1.0
-    # The finding is still reported; only the composite score is no longer convicted on it.
-    assert any(e.rule_id == "FORMULAIC_SIMPLY_PUT" for e in report.findings)
-
-
-def test_the_density_floor_is_inert_on_real_length_documents() -> None:
-    # The floor must smooth a tiny sample, not soften genuine slop. This is 136 words, well
-    # above MIN_RATE_WORDS, and must be unaffected.
+def test_the_density_floor_is_opt_in() -> None:
+    # Applied globally the floor raised scores on short text carrying human signal (a saturated
+    # slop dimension cannot fall further while the negative human counterweight is shrunk) and
+    # inverted --by-paragraph ranking, which tracks density. It is opt-in per call site;
+    # metadiscourse is the only dimension that takes it.
     from slopscore.features.base import MIN_RATE_WORDS, per_hundred_words
 
-    assert per_hundred_words(3.0, MIN_RATE_WORDS * 5) == 3.0 * 100.0 / (MIN_RATE_WORDS * 5)
-    assert per_hundred_words(3.0, 10) == 3.0 * 100.0 / MIN_RATE_WORDS
+    assert per_hundred_words(3.0, 10) == 30.0
+    assert per_hundred_words(3.0, 10, MIN_RATE_WORDS) == 3.0
+    assert per_hundred_words(3.0, 500, MIN_RATE_WORDS) == 0.6
+
+
+def test_by_paragraph_ranking_tracks_density_not_length() -> None:
+    # --by-paragraph exists to rank paragraphs; a short dense one must outrank a long mild one.
+    short_dense = (
+        "It's worth noting that the committee met in Leeds on 14 March 2021 to review tenders."
+    )
+    long_mild = (
+        "It's worth noting that the committee met in Leeds on 14 March 2021 to review tenders. "
+        "Costs rose 12 percent since the previous quarter, largely because of steel prices. "
+        "Members asked the contractor for a revised schedule before the next session begins. "
+        "The minutes record four abstentions and no dissent at all on the final vote taken. "
+    )
+    assert scan_text(short_dense).score.slop_score > scan_text(long_mild).score.slop_score

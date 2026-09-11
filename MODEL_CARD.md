@@ -118,7 +118,7 @@ human-signal counterweight. Current numbers (`eval/RESULTS.md`):
 
 | set | n | AUROC | PR-AUC | TPR@1%FPR |
 |---|---:|---:|---:|---:|
-| benchmark (13-40 words, in-sample) | 149 | 0.83 | 0.82 | 0.37 |
+| benchmark (13-40 words, in-sample) | 149 | 0.86 | 0.86 | 0.33 |
 | long-form (300+ words, committed, eval-only) | 180 | 0.71 | 0.59 | 0.13 |
 | Wikipedia AI-Cleanup, full articles (held-out) | 180 | 0.75 | 0.77 | 0.11 |
 
@@ -155,12 +155,12 @@ Per-subgroup false-positive rate on the benchmark, which keeps the rule scorer t
 | subgroup | n | rules FPR | ml FPR |
 |---|---|---|---|
 | general | 111 | 0.00 | 0.07 |
-| simple_english | 19 | 0.00 | 0.63 |
+| simple_english | 19 | 0.05 | 0.63 |
 | non_native | 19 | 0.00 | 0.24 |
 
 (Current numbers; the v0.5 release reported 100 / 14 / 14 rows and 0.71 / 0.33. A 0.00 rate on
-19 rows has a 95% upper bound near 0.18. v0.14 added eight rows and a density floor that returned
-`simple_english` to 0.00 after one of those rows exposed a pre-existing false positive at 0.05.)
+19 rows has a 95% upper bound near 0.18. v0.14 added eight rows, one of which exposed a
+pre-existing `FORMULAIC_SIMPLY_PUT` false positive that puts `simple_english` at 0.05.)
 
 The learned model, retrained on the benchmark (`slopscore-v0.5.json`), edges the rule scorer on raw
 metrics but over-flags simple and non-native English. The replace-if-wins gate therefore keeps the
@@ -234,7 +234,7 @@ which is where it occurs. Measured: the passage that prompted the dimension satu
 `formulaic_structure` at 1.0 at 123 words and scores 0.064 at 3,373 words, taking the document to
 9.6/low. That is the same effect this card already reports on the Wikipedia slice, where recall
 is 1% because "their tells are sparse and per-100-word rates dilute them". So the dimension scores
-`max(rate, concentration, recap)`, where the latter two are independent of document length.
+`max(rate, concentration)`, where the concentration term is independent of document length.
 
 **The evidence gate is the fairness gate.** A marker only counts toward a run when its sentence
 carries no name, number, date, URL, or identifier. "In summary, Japan took 34 years to recover
@@ -297,19 +297,23 @@ corpus of current-model long-form prose, which the v0.13 notes already named as 
 for this kind of work.
 
 **Known limitations.** The residual `simple_english` FPR of 0.05 is `FORMULAIC_SIMPLY_PUT`, a
-pre-existing rule, was fixed in this release rather than documented: it scored "In other words,
-you need two coins before you get on" at 66.0 because `per_hundred_words` amplifies a 16-word
-document 6.25x. The denominator is now floored at 100 words for every rate-based dimension, which
-returns that row to 26.9 and the slice to 0.00. A
-terminal-recap term for formulaic conclusions was built and dropped: it changed nothing on any
-eval set, and similarity over shared vocabulary could not separate a restatement from a closer
-that merely shares the body's subject (generic new advice 0.385 against a close paraphrase
-0.333). Continuing: — a false
-positive these rows made visible rather than one this dimension introduced. Separately, a
-`METADISCOURSE` marker and a `formulaic_structure` template can both fire on one sentence ("In
-summary," is a template *and* a frame marker). These are two measurements of one sentence rather
-than one charged twice, and the run detector avoids compounding it by emitting a single span for
-the whole run.
+pre-existing rule, scoring "In other words, you need two coins before you get on" at 66.0. One
+low-severity hit saturates a 16-word document because `per_hundred_words` amplifies it 6.25x.
+Flooring that denominator globally was tried for this release and reverted: it raised scores on
+short text carrying human signal, because a saturated slop dimension cannot fall further while
+the negative `human_writing_signals` counterweight is shrunk, and it inverted `--by-paragraph`
+ranking, which tracks density rather than hit count. The floor is opt-in and `metadiscourse` is
+the only dimension that takes it. The false positive is a measurement these rows expose rather
+than one this dimension introduced, and fixing it properly needs its own calibration pass.
+
+A terminal-recap term for formulaic conclusions was also built and dropped: it changed nothing on
+any eval set, and similarity over shared vocabulary could not separate a restatement from a closer
+that merely shares the body's subject (generic new advice 0.385 against a close paraphrase 0.333).
+
+Separately, a metadiscourse marker and a `formulaic_structure` template can both fire on one
+sentence ("In summary," is a template *and* a frame marker). These are two measurements of one
+sentence rather than one charged twice, and the run detector limits the compounding by emitting a
+single span anchored on the run's first sentence rather than one per sentence.
 
 v0.9 adds a **performative_candor** dimension for manufactured sincerity: a point framed as a
 difficult confession ("I have to be honest", "truth be told", "let me be candid"), a sincerity

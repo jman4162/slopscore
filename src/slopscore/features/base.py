@@ -56,26 +56,32 @@ def registry() -> list[Feature]:
     return list(_REGISTRY)
 
 
-# A density estimated from a very short sample is mostly noise: per_hundred_words amplifies a
-# 16-word document 6.25x, so a single low-severity hit used to saturate a dimension at 1.0 and
-# score it 66. Flooring the denominator is standard smoothing, and it is the same judgment
-# abstention already encodes about short input, applied to the score rather than only to the
-# label. No effect at or above 100 words, which is where every real document lives.
+# Optional floor on the density denominator, opt in per call site via ``min_words``.
 #
-# Measured across all rate-based dimensions when this landed: benchmark TPR@1%FPR 0.329 -> 0.371,
-# simple_english subgroup FPR 0.053 -> 0.000, longform unchanged (every row is 300+ words), and
-# every golden band and fixture unchanged.
+# It is NOT applied by default, and that is a measured decision rather than caution. Floored
+# globally it did two things its own rationale did not predict. It raised scores on short text
+# carrying human signal, because a saturated slop dimension cannot be lowered any further while
+# ``human_writing_signals`` -- a negative weight -- is shrunk, removing the counterweight: a
+# 36-word slop paragraph with a date and a price went 75.4 up to 80.0. And it inverted
+# ``--by-paragraph``: under a floor a paragraph's score tracks its absolute hit COUNT rather than
+# its density, so a 57-word mild paragraph outranked a 16-word dense one (12.6 against 10.1,
+# where unfloored the order is the right way round at 16.4 against 20.6). Ranking paragraphs is
+# the entire purpose of that flag.
+#
+# ``metadiscourse`` opts in because it is the one dimension that is neither weak-damped nor
+# corroborating, so a single low-severity marker saturating it in a 17-word document had nothing
+# else holding it back.
 MIN_RATE_WORDS = 100
 
 
-def per_hundred_words(count: float, word_count: int) -> float:
+def per_hundred_words(count: float, word_count: int, min_words: int = 0) -> float:
     """Normalize a raw (possibly weighted) count to a rate per 100 words.
 
-    The denominator is floored at :data:`MIN_RATE_WORDS`; see the note above.
+    ``min_words`` floors the denominator; see the note above for why it is off by default.
     """
     if word_count <= 0:
         return 0.0
-    return 100.0 * count / max(word_count, MIN_RATE_WORDS)
+    return 100.0 * count / max(word_count, min_words)
 
 
 def saturating(rate: float, full_scale: float) -> float:
@@ -93,7 +99,9 @@ SEVERITY_WEIGHT: dict[Severity, float] = {
 }
 
 
-def severity_rate_score(doc: Document, spans: list[Evidence], full_scale: float) -> float:
+def severity_rate_score(
+    doc: Document, spans: list[Evidence], full_scale: float, min_words: int = 0
+) -> float:
     """The shared rule-pack scoring rule: severity-weighted hits per 100 words, saturating."""
     weighted = sum(SEVERITY_WEIGHT[s.severity] for s in spans)
-    return saturating(per_hundred_words(weighted, doc.word_count), full_scale)
+    return saturating(per_hundred_words(weighted, doc.word_count, min_words), full_scale)
