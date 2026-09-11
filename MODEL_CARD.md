@@ -118,7 +118,7 @@ human-signal counterweight. Current numbers (`eval/RESULTS.md`):
 
 | set | n | AUROC | PR-AUC | TPR@1%FPR |
 |---|---:|---:|---:|---:|
-| benchmark (13-40 words, in-sample) | 149 | 0.86 | 0.86 | 0.33 |
+| benchmark (13-40 words, in-sample) | 149 | 0.83 | 0.82 | 0.37 |
 | long-form (300+ words, committed, eval-only) | 180 | 0.71 | 0.59 | 0.13 |
 | Wikipedia AI-Cleanup, full articles (held-out) | 180 | 0.75 | 0.77 | 0.11 |
 
@@ -154,12 +154,13 @@ Per-subgroup false-positive rate on the benchmark, which keeps the rule scorer t
 
 | subgroup | n | rules FPR | ml FPR |
 |---|---|---|---|
-| general | 107 | 0.00 | 0.05 |
-| simple_english | 17 | 0.00 | 0.59 |
-| non_native | 17 | 0.00 | 0.27 |
+| general | 111 | 0.00 | 0.07 |
+| simple_english | 19 | 0.00 | 0.63 |
+| non_native | 19 | 0.00 | 0.24 |
 
 (Current numbers; the v0.5 release reported 100 / 14 / 14 rows and 0.71 / 0.33. A 0.00 rate on
-17 rows has a 95% upper bound near 0.20.)
+19 rows has a 95% upper bound near 0.18. v0.14 added eight rows and a density floor that returned
+`simple_english` to 0.00 after one of those rows exposed a pre-existing false positive at 0.05.)
 
 The learned model, retrained on the benchmark (`slopscore-v0.5.json`), edges the rule scorer on raw
 metrics but over-flags simple and non-native English. The replace-if-wins gate therefore keeps the
@@ -244,16 +245,17 @@ predicate drops individual code-gloss and back-reference spans whose sentence ca
 prose-grading and frame-marker rules are deliberately not gated, since "the defensible version is"
 announces the writing whatever facts sit beside it.
 
-**Not weak, and what that costs.** `metadiscourse` is deliberately not a `WEAK_DIMENSION`: weak
+**Neither weak nor corroborating.** `metadiscourse` is deliberately not a `WEAK_DIMENSION`: weak
 means damped to 0.3 when alone, which is the exact failure the dimension exists to fix: a
 2,592-word post whose other dimensions were clean scored 7.0 with the flagged passage unflagged.
-Since `CORROBORATING_DIMENSIONS` is derived, that makes it a corroborator that can unlock the weak
-dimensions. Three things contain it: the core tier is high-precision only with every ESL-risky
-bare code gloss held in `--broad`, the dimension saturates at 4.0 rather than 3.0, and the density
-denominator is floored at 100 words. That floor was added because the eval negatives showed a
-single low-severity marker in a 17-word document saturating the dimension at 1.0 and taking two
-clean rows from 13.8 to 50.2; `per_hundred_words` amplifies a document that short by 5.9x. The
-other packs survive this by being weak-damped, which this one is not.
+It is equally deliberately not a corroborator. `CORROBORATING_DIMENSIONS` is derived by
+subtraction, so it picked the dimension up for free, and the length-invariant concentration term
+clears the gate's ramp on its own: three metadiscourse sentences took an otherwise identical
+600-word document from 46.4 "mild" to 97.6 "severe" by counting every weak dimension at full
+weight. `weights.py:NON_CORROBORATING_DIMENSIONS` subtracts it again, so it carries full weight
+for itself and casts no vote on anything else. The remaining containments are the high-precision
+core tier, with every ESL-risky bare code gloss held in `--broad`, and a `full_scale` of 4.0
+rather than 3.0.
 
 **Fairness.** Bare code glosses ("that is to say", "meaning that", clause-initial "Overall,") are
 `--broad`-only, matching the decision made for bare quantifiers and bare sincerity adverbs above.
@@ -272,12 +274,33 @@ is", "it's worth noting") and all twelve misses were forms current models produc
 did not disappear; the form changed. Treat the legacy closers as the weak half of this dimension
 and the prose-grading and frame-marker rules as the current half.
 
+**What it actually fires on.** Measured across 258 real documents at release:
+
+| corpus | n | any `META_` rule | runs detected |
+|---|---:|---:|---:|
+| human long-form (FineWeb-Edu, Wikipedia 2023) | 120 | 1 (1%) | **0** |
+| long-form flagged as AI-generated | 60 | 0 (0%) | **0** |
+| assistant-written plans, 300+ words | 78 | 2 (3%), both `META_PROSE_CORRECTION` | **0** |
+
+Two things follow, and both belong on the record. The rules are precise: three hits in 258
+documents, and the two in assistant-written plans are the same virtuous-corrector construction a
+human reader reported, which is the case the dimension was built for. But **the concentration
+term has never fired outside that originating passage and the fixtures written for it.** It is
+the mechanism this dimension is organised around, and its real-world behaviour is unmeasured
+rather than validated. Zero fires also means zero measured false positives, which is why it ships
+on by default, but do not read the design rationale above as evidence that it works at scale.
+
+We cannot tell from the data in this repository whether runs of evidence-free metadiscourse are
+genuinely rare in these corpora or whether the run detector is too narrow to catch them. The
+corpora available are pre-2022 web text, Wikipedia, and a small set of assistant plans; none is a
+corpus of current-model long-form prose, which the v0.13 notes already named as the prerequisite
+for this kind of work.
+
 **Known limitations.** The residual `simple_english` FPR of 0.05 is `FORMULAIC_SIMPLY_PUT`, a
-pre-existing rule, firing on "In other words, you need two coins before you get on" at 66.0. That
-one row also moves the benchmark's headline TPR@1%FPR from 0.571 to 0.329 by raising the 1%-FPR
-operating point; with `metadiscourse` disabled the same set gives the same threshold and the same
-TPR, so it is a measurement these rows expose rather than a regression they cause. The 100-word
-density floor is a local fix for a defect every `severity_rate_score` pack shares. A
+pre-existing rule, was fixed in this release rather than documented: it scored "In other words,
+you need two coins before you get on" at 66.0 because `per_hundred_words` amplifies a 16-word
+document 6.25x. The denominator is now floored at 100 words for every rate-based dimension, which
+returns that row to 26.9 and the slice to 0.00. A
 terminal-recap term for formulaic conclusions was built and dropped: it changed nothing on any
 eval set, and similarity over shared vocabulary could not separate a restatement from a closer
 that merely shares the body's subject (generic new advice 0.385 against a close paraphrase

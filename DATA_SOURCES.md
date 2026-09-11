@@ -6,13 +6,13 @@ model is trained only on permissive / CC-BY / CC-BY-SA data, so its weights stay
 
 ## Committed corpora
 
-- `eval/datasets/seed.jsonl` (54 rows): the original hand-authored seed (`scripts/eval/build_seed.py`).
+- `eval/datasets/seed.jsonl` (64 rows): the original hand-authored seed (`scripts/eval/build_seed.py`).
 - `eval/datasets/longform.jsonl` (180 rows, 300+ words, eval-only, not shipped in the wheel): 60
   FineWeb-Edu pages from Common Crawl dumps dated 2021 or earlier (ODC-BY, `url` per row), 60
   random Wikipedia articles from the 2023-11 snapshot (CC-BY-SA-4.0, `title`/`url` per row), and
   60 full Wikipedia articles from the AI-Cleanup category (CC-BY-SA-4.0, `title`/`url` per row).
   Subjective positives, so never used for training.
-- `eval/datasets/benchmark.jsonl` (141 rows): the v0.5 benchmark (`scripts/eval/build_benchmark.py`),
+- `eval/datasets/benchmark.jsonl` (149 rows): the v0.5 benchmark (`scripts/eval/build_benchmark.py`),
   the seed plus a taxonomy-graded expansion. Labels follow `eval/RUBRIC.md` (Shaib et al.,
   "Measuring AI Slop", arXiv:2509.19163). All rows are original and hand-authored, so this set is
   committed and train-eligible. The shipped learned model is trained on it.

@@ -69,6 +69,8 @@ slopscore-lint = "slopscore.cli:app"
 
 [project.urls]
 Homepage = "https://github.com/jman4162/slopscore"
+Documentation = "https://jman4162.github.io/slopscore/"
+Changelog = "https://github.com/jman4162/slopscore/blob/main/CHANGELOG.md"
 Issues = "https://github.com/jman4162/slopscore/issues"
 
 [dependency-groups]
