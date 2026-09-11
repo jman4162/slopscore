@@ -182,13 +182,14 @@ make it unlike the other packs.
   because hits-per-100-words cannot see this defect in long-form prose: the originating passage
   reads 1.0 at 123 words and 0.064 at 3,373. It scores `max(rate, concentration, recap)`. The
   concentration term is the longest run of consecutive sentences that carry a marker and **no**
-  concrete evidence, mapped `{2: 0.35, 3: 0.55, 4: 0.75, 5+: 0.90}` and length-invariant. The
-  recap term flags a closing section that restates the body, measured with
-  `redundancy.content_containment` — containment, not cosine, because cosine falls as the body
-  grows in vocabulary (0.219 to 0.071 on the same pair) and the recap would silently die in long
-  documents. Both terms carry their own `Evidence`, must be excluded from the rate term to avoid
-  double-charging, and must honor `rule_severity` overrides (`_severity_factor`); run length is
-  recovered by re-classifying `doc.sentences` inside the span, never by re-splitting span text.
+  concrete evidence, mapped `{2: 0.35, 3: 0.55, 4: 0.75, 5+: 0.90}` and length-invariant. Its
+  `Evidence` must be excluded from the rate term (no double-charging), must honor `rule_severity`
+  overrides (`_severity_factor`), and **anchors on the run's first sentence only** — a
+  multi-sentence finding span makes `report/html.py` swallow every phrase highlight inside it and
+  makes `report/baseline.py` fingerprints change on unrelated edits. Run length is therefore
+  recovered by re-deriving runs from the document, never from the span text. Non-prose blocks
+  (`heading`, `list_item`) **break** a run; only a too-short factless sentence is neutral.
+  A terminal-recap term was built and dropped: see CHANGELOG 0.14.0.
 - **It is in neither `WEAK_DIMENSIONS` nor `CORROBORATING_DIMENSIONS`.** Weak means damped x0.3
   alone, which is the failure it exists to fix. But left in the derived corroborating set, a
   length-invariant 0.55 clears the gate on its own: three meta sentences took an otherwise

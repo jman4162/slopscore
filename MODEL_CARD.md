@@ -276,10 +276,12 @@ and the prose-grading and frame-marker rules as the current half.
 pre-existing rule, firing on "In other words, you need two coins before you get on" at 66.0. That
 one row also moves the benchmark's headline TPR@1%FPR from 0.571 to 0.329 by raising the 1%-FPR
 operating point; with `metadiscourse` disabled the same set gives the same threshold and the same
-TPR, so it is a measurement these rows expose rather than a regression they cause. The recap term
-measures shared vocabulary, not shared claims, so a paraphrase and a half-new closer land close
-together. The 100-word density floor is a local fix for a defect every `severity_rate_score` pack
-shares. Continuing: — a false
+TPR, so it is a measurement these rows expose rather than a regression they cause. The 100-word
+density floor is a local fix for a defect every `severity_rate_score` pack shares. A
+terminal-recap term for formulaic conclusions was built and dropped: it changed nothing on any
+eval set, and similarity over shared vocabulary could not separate a restatement from a closer
+that merely shares the body's subject (generic new advice 0.385 against a close paraphrase
+0.333). Continuing: — a false
 positive these rows made visible rather than one this dimension introduced. Separately, a
 `METADISCOURSE` marker and a `formulaic_structure` template can both fire on one sentence ("In
 summary," is a template *and* a frame marker). These are two measurements of one sentence rather

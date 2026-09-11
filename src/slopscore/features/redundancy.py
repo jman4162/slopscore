@@ -91,27 +91,6 @@ def _tfidf_cosines(sentences: list[str]) -> list[float]:
     return [float(matrix[i] @ matrix[i + 1]) for i in range(n - 1)]
 
 
-def content_containment(part: str, whole: str) -> float:
-    """Share of ``part``'s content unigrams and bigrams that also appear in ``whole``.
-
-    Shared with ``features/metadiscourse.py``, which uses it to ask whether a closing section
-    restates the body. Containment rather than cosine because cosine is not stable in the length
-    the caller cares about: measured on a closing paragraph against the same body extended with
-    unrelated content, cosine fell 0.219 -> 0.157 -> 0.071 as the body grew, so a recap in a long
-    varied document would silently drop under any fixed threshold. Containment asks "what share
-    of this closer is old news?", which the body's length and subject spread do not move: the
-    same pair reads 0.259 at every one of those lengths, against 0.000 for a closer that adds a
-    new claim.
-
-    Known limit: it sees shared vocabulary, not shared claims, so a paraphrase and a
-    half-new closer land close together (0.259 vs 0.261 on the calibration pair).
-    """
-    fa, fb = _content_features(_tokens(part)), _content_features(_tokens(whole))
-    if not fa or not fb:
-        return 0.0
-    return sum(1 for term in fa if term in fb) / len(fa)
-
-
 def _lcs_length(a: list[str], b: list[str]) -> int:
     prev = [0] * (len(b) + 1)
     for x in a:

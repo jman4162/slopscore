@@ -2,8 +2,8 @@
 
 Two measurements, combined with ``max``:
 
-* **rate** — the shared severity-weighted hits-per-100-words used by every phrase pack.
-* **concentration** — the longest run of consecutive *evidence-free* metadiscourse sentences,
+* **rate** -- the shared severity-weighted hits-per-100-words used by every phrase pack.
+* **concentration** -- the longest run of consecutive *evidence-free* metadiscourse sentences,
   scored independently of document length.
 
 The concentration term exists because the rate term alone cannot see this defect in long-form
@@ -13,10 +13,10 @@ prose. The passage that prompted the dimension saturates ``formulaic_structure``
 slice ("their tells are sparse and per-100-word rates dilute them").
 
 The distinction the concentration term draws is the honest one: a lone "as noted above" in a long
-essay is ordinary writing, while three sentences in a row that talk about the writing and carry no
-fact are the defect, at any length. Requiring the run's sentences to be evidence-free is also the
-fairness gate — "In summary, Japan took 34 years to recover from 1989" is a real summary sentence
-and is exempt, which is how ESL and simple-English writers use restatement scaffolding.
+essay is ordinary writing, while several sentences in a row that talk about the writing and carry
+no fact are the defect, at any length. Requiring the run's sentences to be evidence-free is also
+the fairness gate -- "In summary, Japan took 34 years to recover from 1989" is a real summary
+sentence and is exempt, which is how ESL and simple-English writers use restatement scaffolding.
 
 Hand-written rather than a plain phrase pack for the same reason ``formulaic_patterns.py`` is:
 the score is not ``severity_rate_score`` alone. It subclasses ``PhrasePack`` so rule loading,
@@ -39,16 +39,17 @@ from slopscore.features.base import (
     saturating,
 )
 from slopscore.features.phrase_packs import PhrasePack
-from slopscore.features.redundancy import content_containment
 from slopscore.features.specificity import concrete_evidence_count
 from slopscore.models import Dimension, Evidence, EvidenceKind, FeatureResult, Severity
 from slopscore.spans import TextSpan
 
 RULE_META_RUN = "META_RUN_OF_META_SENTENCES"
-RULE_TERMINAL_RECAP = "META_TERMINAL_RECAP"
 
-# Headings and list items are not prose; a bulleted "Key takeaways:" label is structure_tells'
-# business, not a run of meta sentences. Same exclusion cadence.py uses.
+# Headings and list items end a run rather than being passed over. They are structural
+# boundaries: four sections each opening "In this section we will describe..." are four
+# signposts, not one four-sentence run, and treating the headings between them as transparent
+# produced a single high-severity finding on ordinary IMRaD and reference-doc structure -- and a
+# span whose text visibly contained the numbers its own explanation said were absent.
 _NOT_PROSE = frozenset({"heading", "list_item"})
 
 # Runs shorter than this are ordinary signposting. A run of 2 is already unusual in edited prose;
@@ -61,8 +62,7 @@ _MIN_SENTENCE_WORDS = 6
 
 # Rules whose construction is legitimate when it restates a FACT. A code gloss over "the bus
 # costs two euros" is a comprehension aid, not prose about the prose, and it is how ESL and
-# simple-English writers make a concrete point land; a code gloss over nothing is the tell. Same
-# predicate the run detector uses, applied per span.
+# simple-English writers make a concrete point land; a code gloss over nothing is the tell.
 #
 # Deliberately NOT gated: the prose-grading and frame-marker rules. "The defensible version is"
 # and "In this section we will discuss" announce the writing whatever facts sit beside them.
@@ -106,41 +106,66 @@ def _markers() -> list[re.Pattern[str]]:
     """The non-scoring marker superset used to classify a sentence as metadiscourse."""
     with data_path("lexicons", "metadiscourse_markers.yaml").open(encoding="utf-8") as fh:
         raw = yaml.safe_load(fh)
-    # Same module and flags _ruleset.py compiles the YAML rules with, so a marker copied
-    # from patterns/*.yaml behaves identically here.
+    # Same module and flags _ruleset.py compiles the YAML rules with, so a marker copied from
+    # patterns/*.yaml behaves identically here.
     return [re.compile(m, re.IGNORECASE | re.MULTILINE) for m in raw.get("markers", [])]
 
 
-def _classify(doc: Document, sentence: TextSpan) -> str:
-    """``"meta"``, ``"concrete"``, or ``"skip"`` for one sentence.
+def _strip_markers(text: str) -> tuple[str, bool]:
+    """``text`` with every marker's characters removed, and whether any matched.
 
-    ``"skip"`` neither extends nor breaks a run. A sentence too short to judge, or one that is
-    not prose at all, says nothing about whether the passage around it is about the writing;
-    treating it as concrete used to sever a run, so a denser passage of prose-about-the-prose
-    could score lower than a sparser one.
+    All of them, not just the first: a sentence stacking several markers ("As noted above, in
+    plain English, three things stand out") kept the others' text behind and was scored concrete,
+    so the densest metadiscourse sentence in a passage was the one that broke the run. The
+    excision matters because markers can look concrete on their own -- "In plain English" contains
+    "English", which the proper-noun heuristic reads as a name, and "three things" contains a
+    number.
+    """
+    matched = False
+    for pattern in _markers():
+        stripped = pattern.sub(" ", text)
+        if stripped != text:
+            matched = True
+            text = stripped
+    return text, matched
+
+
+def _classify(doc: Document, sentence: TextSpan) -> str:
+    """``"meta"``, ``"skip"``, or ``"break"`` for one sentence.
+
+    ``"skip"`` neither extends nor breaks a run: a sentence too short to judge says nothing about
+    whether the passage around it is about the writing, and treating it as concrete used to sever
+    a run, so a denser passage of prose-about-the-prose could score lower than a sparser one.
+    Everything else -- a sentence carrying a fact, or any non-prose block -- is a ``"break"``.
     """
     text = sentence.text.strip()
     if doc.in_block_kind(sentence.start, _NOT_PROSE):
-        return "skip"
-    match = next((m for pat in _markers() if (m := pat.search(text))), None)
-    if match is None:
-        # Short and factless says nothing either way; short with a fact is a real interruption.
+        return "break"
+    rest, matched = _strip_markers(text)
+    if not matched:
         if len(text.split()) < _MIN_SENTENCE_WORDS:
-            return (
-                "skip" if concrete_evidence_count(text, spelled_numbers=True) == 0 else "concrete"
-            )
-        return "concrete"
+            return "skip" if concrete_evidence_count(text, spelled_numbers=True) == 0 else "break"
+        return "break"
     if len(text.split()) < _MIN_SENTENCE_WORDS:
         return "skip"
-    # Cut the marker's own characters out before counting, or a marker that looks concrete
-    # exempts itself: "In plain English" contains "English", which reads as a proper noun, and
-    # "three things to notice" contains "three".
-    rest = text[: match.start()] + " " + text[match.end() :]
-    return "concrete" if concrete_evidence_count(rest, spelled_numbers=True) > 0 else "meta"
+    return "break" if concrete_evidence_count(rest, spelled_numbers=True) > 0 else "meta"
 
 
 def _runs(doc: Document) -> list[list[TextSpan]]:
-    """Maximal runs of consecutive evidence-free metadiscourse sentences, longest first."""
+    """Maximal runs of consecutive evidence-free metadiscourse sentences, longest first.
+
+    Cached on the document: ``extract`` and ``score_spans`` both need it, ``score_spans`` runs
+    again whenever the scorer filters a span, and classification is ~30 regexes plus an evidence
+    count per sentence. The cache is best-effort so that making ``Document`` slotted or frozen
+    later degrades to recomputation rather than raising at scan time.
+    """
+    try:
+        cached = doc.__dict__.get("_metadiscourse_runs")
+        if cached is not None:
+            return cached  # type: ignore[no-any-return]
+    except AttributeError:  # pragma: no cover - only if Document gains __slots__
+        pass
+
     runs: list[list[TextSpan]] = []
     current: list[TextSpan] = []
     for s in doc.sentences:
@@ -157,66 +182,13 @@ def _runs(doc: Document) -> list[list[TextSpan]]:
         current = []
     if len(current) >= _MIN_RUN:
         runs.append(current)
-    return sorted(runs, key=len, reverse=True)
+    runs.sort(key=len, reverse=True)
 
-
-# A closing section has to be announced as one; a final paragraph that simply continues the
-# argument is not a recap however much vocabulary it shares with the body.
-# "Overall" and "Takeaways" need the punctuation gate that META_BROAD_OVERALL_CLOSER requires
-# and for the same reason: bare "Overall performance improved 12%" is ordinary English, and the
-# broad tier holds the comma-less form back on purpose. The recap detector scores by default, so
-# it must not be a way around that.
-_CLOSER = re.compile(
-    r"^\W{0,4}(?:\*\*)?(?:(?:in summary|in conclusion|to sum up|to summari[sz]e|all in all|"
-    r"in a nutshell|to recap|the bottom line)\b"
-    r"|(?:overall|takeaways?|key takeaways?|conclusion)\s*(?:[,:]|\*\*\s*[,:]?))",
-    re.IGNORECASE,
-)
-
-# Below this the "body" is too short for shared vocabulary to mean anything.
-_MIN_BODY_WORDS = 150
-
-# Share of the closing paragraph's content terms that already appear in the body. Calibrated
-# against a body of dated facts: a verbatim restatement reads 0.88, a close paraphrase 0.26, and
-# a closer that makes a new claim 0.00. Both bounds sit inside that gap.
-_RECAP_LO = 0.20
-_RECAP_HI = 0.70
-
-
-def _recap_score(cosine: float) -> float:
-    if cosine < _RECAP_LO:
-        return 0.0
-    ramp = min(1.0, (cosine - _RECAP_LO) / (_RECAP_HI - _RECAP_LO))
-    return 0.30 + 0.40 * ramp
-
-
-def _recap_state(doc: Document) -> tuple[TextSpan | None, float]:
-    """The closing paragraph and the share of it that already appears in the body.
-
-    ``extract`` and ``score_spans`` both need it, and the measure tokenizes the whole body,
-    so without the cache a document with a closing summary paid for it twice (four times under
-    ``--broad``, where the scorer re-scores the pack).
-    """
-    cached = doc.__dict__.get("_metadiscourse_recap")
-    if cached is None:
-        split = _terminal_split(doc)
-        cached = (split[0], content_containment(split[0].text, split[1])) if split else (None, 0.0)
-        doc.__dict__["_metadiscourse_recap"] = cached
-    return cached
-
-
-def _terminal_split(doc: Document) -> tuple[TextSpan, str] | None:
-    """The final paragraph and the body preceding it, when the final one announces a summary."""
-    paragraphs = [p for p in doc.paragraphs if p.text.strip()]
-    if len(paragraphs) < 2:
-        return None
-    last = paragraphs[-1]
-    if not _CLOSER.match(last.text.strip()):
-        return None
-    body = doc.cleaned_text[: last.start]
-    if len(body.split()) < _MIN_BODY_WORDS:
-        return None
-    return last, body
+    try:
+        doc.__dict__["_metadiscourse_runs"] = runs
+    except AttributeError:  # pragma: no cover - only if Document gains __slots__
+        pass
+    return runs
 
 
 def _sentence_ranges(doc: Document) -> list[tuple[int, int]]:
@@ -227,36 +199,16 @@ def _sentence_ranges(doc: Document) -> list[tuple[int, int]]:
 def _restates_a_fact(doc: Document, span: Evidence, ranges: list[tuple[int, int]]) -> bool:
     """True when the sentence around a marker carries a concrete reference of its own.
 
-    The marker's own characters are cut out before counting, or a marker that looks concrete
-    would exempt itself: "In plain English" contains "English", which the proper-noun heuristic
-    reads as a name.
+    Every marker's characters are cut out before counting, or a marker that looks concrete would
+    exempt itself.
     """
     for start, end in ranges:
         if not start <= span.start_char < end:
             continue
-        rest = (
-            doc.original_text[start : span.start_char]
-            + " "
-            + doc.original_text[span.end_char : end]
-        )
+        sentence = doc.original_text[start:end]
+        rest, _ = _strip_markers(sentence)
         return concrete_evidence_count(rest, spelled_numbers=True) > 0
     return False
-
-
-def _count_sentences(doc: Document, span: Evidence) -> int:
-    """A run's sentence count, recovered from the document's own segmentation.
-
-    ``score_spans`` must be a pure function of the surviving spans — the scorer re-scores after
-    suppression and severity overrides — so the length cannot be cached on the feature. Counting
-    pysbd's sentences inside the span rather than re-splitting the span text keeps the number
-    identical to the one ``_runs`` used: a naive ``(?<=[.!?])\\s+`` resplit counts "e.g." and
-    "U.S." as sentence ends, so the score disagreed with the count the evidence reports.
-    """
-    counted = 0
-    for sentence, (start, _) in zip(doc.sentences, _sentence_ranges(doc), strict=True):
-        if span.start_char <= start < span.end_char and _classify(doc, sentence) == "meta":
-            counted += 1
-    return counted
 
 
 def _natural_severity(run_length: int) -> Severity:
@@ -264,82 +216,68 @@ def _natural_severity(run_length: int) -> Severity:
 
 
 def _severity_factor(span: Evidence, natural: Severity) -> float:
-    """How far a `rule_severity` override moved this span from the severity it would have had.
+    """How far a ``rule_severity`` override moved this span from the severity it would have had.
 
-    Without this the length-invariant terms ignore severity overrides entirely, so
-    ``--rule-severity META_RUN_OF_META_SENTENCES=low`` changed the report label and nothing else,
-    against the scorer contract that overrides apply before ``by_dim``.
+    Without this the concentration term ignores severity overrides entirely, so
+    ``rule_severity={"META_RUN_OF_META_SENTENCES": "low"}`` changed the report label and nothing
+    else, against the scorer contract that overrides apply before ``by_dim``. Raising a severity
+    scales up as well as down; the dimension score is clamped to [0, 1] by the caller.
     """
-    return min(1.0, SEVERITY_WEIGHT[span.severity] / SEVERITY_WEIGHT[natural])
+    return SEVERITY_WEIGHT[span.severity] / SEVERITY_WEIGHT[natural]
 
 
 class Metadiscourse(PhrasePack):
     """Phrase pack plus a length-invariant concentration term."""
 
     def rule_ids(self) -> frozenset[str]:
-        return super().rule_ids() | {RULE_META_RUN, RULE_TERMINAL_RECAP}
+        return super().rule_ids() | {RULE_META_RUN}
 
     def score_spans(self, doc: Document, profile: str, spans: list[Evidence]) -> float:
-        # The two length-invariant terms have their own spans and must not also be charged to
-        # the rate term, or one recap paragraph is counted twice.
-        own = {RULE_META_RUN, RULE_TERMINAL_RECAP}
-        rule_spans = [s for s in spans if s.rule_id not in own]
+        # The concentration term has its own span and must not also be charged to the rate term.
+        rule_spans = [s for s in spans if s.rule_id != RULE_META_RUN]
         weighted = sum(SEVERITY_WEIGHT[s.severity] for s in rule_spans)
         rate = saturating(
             per_hundred_words(weighted, max(doc.word_count, _MIN_RATE_WORDS)), self._full_scale
         )
 
+        # The run span anchors on its first sentence, so the length is recovered from the
+        # document rather than from the span text. score_spans must stay a pure function of the
+        # surviving spans, which this is: same doc, same spans, same answer.
+        lengths = {
+            doc.mapper.to_original(run[0].start, run[0].end)[0]: len(run) for run in _runs(doc)
+        }
         concentration = 0.0
         for s in (s for s in spans if s.rule_id == RULE_META_RUN):
-            n = _count_sentences(doc, s)
+            n = lengths.get(s.start_char)
+            if n is None:
+                continue
             concentration = max(
                 concentration, _run_score(n) * _severity_factor(s, _natural_severity(n))
             )
 
-        recap = 0.0
-        for s in (s for s in spans if s.rule_id == RULE_TERMINAL_RECAP):
-            _, overlap = _recap_state(doc)
-            recap = max(recap, _recap_score(overlap) * _severity_factor(s, Severity.medium))
-
-        return max(rate, concentration, recap)
-
-    def _recap_span(self, doc: Document) -> list[Evidence]:
-        """A closing section that restates the body instead of adding to it.
-
-        The spec's own report mock-up lists "Conclusion: formulaic summary without new
-        information" as a finding. Length-invariant for the same reason the run term is: one
-        recap paragraph is one hit, and a per-100-word rate would erase it in long-form.
-        """
-        last, overlap = _recap_state(doc)
-        if last is None or _recap_score(overlap) == 0.0:
-            return []
-        return [
-            doc.evidence(
-                rule_id=RULE_TERMINAL_RECAP,
-                severity=Severity.medium,
-                clean_start=last.start,
-                clean_end=last.end,
-                explanation=(
-                    f"Closing section restates the body ({overlap:.0%} of its content terms "
-                    "already appear above) rather than adding to it."
-                ),
-                kind=EvidenceKind.finding,
-            )
-        ]
+        return min(1.0, max(rate, concentration))
 
     def _run_spans(self, doc: Document) -> list[Evidence]:
+        """One span per run, anchored on the run's FIRST sentence.
+
+        Not the whole run: report/html.py picks the longest span at each offset and skips the
+        ones inside it, so a multi-sentence finding swallowed every phrase-level highlight in the
+        passage, from every dimension. A short anchor also keeps report/baseline.py fingerprints
+        (``sha256(file | rule_id | span text)``) stable when an unrelated word later in the
+        passage is edited, which ``--fail-on-new`` depends on.
+        """
         spans: list[Evidence] = []
         for run in _runs(doc):
             n = len(run)
             spans.append(
                 doc.evidence(
                     rule_id=RULE_META_RUN,
-                    severity=Severity.high if n >= 4 else Severity.medium,
+                    severity=_natural_severity(n),
                     clean_start=run[0].start,
-                    clean_end=run[-1].end,
+                    clean_end=run[0].end,
                     explanation=(
-                        f"{n} consecutive sentences about the writing rather than the subject, "
-                        "none carrying a name, number, date, URL, or identifier."
+                        f"Starts a run of {n} consecutive sentences about the writing rather "
+                        "than the subject, none carrying a name, number, date, URL, or identifier."
                     ),
                     kind=EvidenceKind.finding,
                 )
@@ -354,8 +292,7 @@ class Metadiscourse(PhrasePack):
             for s in base.spans
             if s.rule_id not in _EVIDENCE_EXEMPT or not _restates_a_fact(doc, s, ranges)
         ]
-        extra = self._run_spans(doc) + self._recap_span(doc)
-        spans = sorted(kept + extra, key=lambda e: e.start_char)
+        spans = sorted(kept + self._run_spans(doc), key=lambda e: e.start_char)
         return FeatureResult(
             dimension=self.dimension,
             score=self.score_spans(doc, profile, spans),

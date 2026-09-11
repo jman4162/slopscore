@@ -28,11 +28,13 @@ Metadiscourse. Schema 0.14.0 (new `metadiscourse` dimension).
   simple-English writers use restatement scaffolding over concrete facts, and those sentences
   carry facts. `concrete_evidence_count()` gained an opt-in `spelled_numbers` flag for it, used
   only here; `genericity` is calibrated against the digit-only count and is unchanged.
-- **`META_TERMINAL_RECAP`**: a closing section that both announces itself as a summary and
-  restates the body, implementing the report line the spec has listed since v0.1. The frame word
-  alone is not the defect. On a 600-word document with the same body and the same "In summary,"
-  opener: a closer restating the body reads 56% content overlap and is flagged; one that adds a
-  new claim reads 0% and is quiet.
+- **A terminal-recap rule was built and then dropped.** It flagged a closing section that both
+  announced itself as a summary and restated the body, implementing a report line the spec has
+  listed since v0.1. It produced no change on any of the three eval sets, and review found it
+  could not do the job: shared vocabulary is not shared claims, and against a body of dated
+  market facts a closer offering generic new advice scored 0.385 while a close paraphrase scored
+  0.333. It also charged most for exactly the fact-restating sentences the dimension's own
+  fairness gate exempts. Not shipped.
 - **`INSIGHT_LOAD_BEARING` matches the predicative form.** It matched only "load-bearing
   <prose-noun>", so "This distinction is load-bearing" (the commoner form, and the one in this
   repo's own CLAUDE.md) went unflagged. The engineering sense stays quiet.
