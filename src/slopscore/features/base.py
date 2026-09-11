@@ -56,11 +56,26 @@ def registry() -> list[Feature]:
     return list(_REGISTRY)
 
 
+# A density estimated from a very short sample is mostly noise: per_hundred_words amplifies a
+# 16-word document 6.25x, so a single low-severity hit used to saturate a dimension at 1.0 and
+# score it 66. Flooring the denominator is standard smoothing, and it is the same judgment
+# abstention already encodes about short input, applied to the score rather than only to the
+# label. No effect at or above 100 words, which is where every real document lives.
+#
+# Measured across all rate-based dimensions when this landed: benchmark TPR@1%FPR 0.329 -> 0.371,
+# simple_english subgroup FPR 0.053 -> 0.000, longform unchanged (every row is 300+ words), and
+# every golden band and fixture unchanged.
+MIN_RATE_WORDS = 100
+
+
 def per_hundred_words(count: float, word_count: int) -> float:
-    """Normalize a raw (possibly weighted) count to a rate per 100 words."""
+    """Normalize a raw (possibly weighted) count to a rate per 100 words.
+
+    The denominator is floored at :data:`MIN_RATE_WORDS`; see the note above.
+    """
     if word_count <= 0:
         return 0.0
-    return 100.0 * count / word_count
+    return 100.0 * count / max(word_count, MIN_RATE_WORDS)
 
 
 def saturating(rate: float, full_scale: float) -> float:

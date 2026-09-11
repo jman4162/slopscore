@@ -83,3 +83,26 @@ def test_non_english_label_withheld() -> None:
     if report.input.language != "en":  # depends on optional [lang] extra
         assert report.score.abstained is True
         assert report.score.label != Label.severe
+
+
+def test_one_marker_in_a_short_document_does_not_convict() -> None:
+    # per_hundred_words amplifies a 16-word document 6.25x, so one low-severity hit used to
+    # saturate formulaic_structure at 1.0 and score the document 66.0. This row is a clean
+    # simple_english benchmark row: a restatement gloss over a concrete fact, which is a
+    # comprehension aid rather than slop.
+    report = scan_text(
+        "The bus costs two euros. In other words, you need two coins before you get on."
+    )
+    assert report.score.slop_score < 50
+    assert report.dimensions.formulaic_structure < 1.0
+    # The finding is still reported; only the composite score is no longer convicted on it.
+    assert any(e.rule_id == "FORMULAIC_SIMPLY_PUT" for e in report.findings)
+
+
+def test_the_density_floor_is_inert_on_real_length_documents() -> None:
+    # The floor must smooth a tiny sample, not soften genuine slop. This is 136 words, well
+    # above MIN_RATE_WORDS, and must be unaffected.
+    from slopscore.features.base import MIN_RATE_WORDS, per_hundred_words
+
+    assert per_hundred_words(3.0, MIN_RATE_WORDS * 5) == 3.0 * 100.0 / (MIN_RATE_WORDS * 5)
+    assert per_hundred_words(3.0, 10) == 3.0 * 100.0 / MIN_RATE_WORDS

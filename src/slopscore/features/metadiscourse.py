@@ -82,20 +82,6 @@ _EVIDENCE_EXEMPT = frozenset(
 _RUN_SCORE: dict[int, float] = {2: 0.35, 3: 0.55, 4: 0.75}
 _RUN_SCORE_MAX = 0.90
 
-# Floor on the density denominator. per_hundred_words amplifies a 17-word document 5.9x, so a
-# single low-severity marker there saturates the dimension at 1.0: measured on two clean
-# benchmark rows that went 13.8 -> 50.2 on one hit each. Smoothing a rate estimated from a tiny
-# sample is the same judgment abstention already encodes about short input, applied to the score
-# rather than only to the label. No effect above 100 words.
-#
-# This is a local fix for a shared defect, and it is worth being honest about which. Every pack
-# using severity_rate_score has it: significance_inflation, formulaic_structure,
-# weasel_attribution, unsupported_claims and insight_signaling are all non-weak with no floor,
-# and one medium hit in a 17-word document saturates each of them too. The right fix is a
-# minimum-denominator argument on severity_rate_score itself, which moves every dimension's
-# scores and needs its own calibration pass; it is not done here.
-_MIN_RATE_WORDS = 100
-
 
 def _run_score(length: int) -> float:
     return _RUN_SCORE.get(length, _RUN_SCORE_MAX if length >= 5 else 0.0)
@@ -236,9 +222,7 @@ class Metadiscourse(PhrasePack):
         # The concentration term has its own span and must not also be charged to the rate term.
         rule_spans = [s for s in spans if s.rule_id != RULE_META_RUN]
         weighted = sum(SEVERITY_WEIGHT[s.severity] for s in rule_spans)
-        rate = saturating(
-            per_hundred_words(weighted, max(doc.word_count, _MIN_RATE_WORDS)), self._full_scale
-        )
+        rate = saturating(per_hundred_words(weighted, doc.word_count), self._full_scale)
 
         # The run span anchors on its first sentence, so the length is recovered from the
         # document rather than from the span text. score_spans must stay a pure function of the
