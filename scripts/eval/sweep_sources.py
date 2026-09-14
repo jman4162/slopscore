@@ -35,7 +35,7 @@ from slopscore.features.metadiscourse import RULE_META_RUN
 from slopscore.features.structure import StructureTells
 from slopscore.ingest import RawSource
 from slopscore.ingest.markdown import ingest_markdown
-from slopscore.ingest.text import looks_like_markdown, strip_fenced_code
+from slopscore.ingest.text import ingest_text, looks_like_markdown, strip_fenced_code
 from slopscore.models import Report, Severity, SourceType
 from slopscore.scoring.scorer import score_document
 
@@ -50,17 +50,19 @@ _PARAGRAPH_BREAK = re.compile(r"\n[ \t]*\n")
 
 
 def scan_plain(scorer: SlopScorer, text: str) -> Report:
-    """The text ingester with its Markdown sniffing bypassed.
+    """The text ingester, with Markdown sniffing bypassed only where it would fire.
 
     ``ingest_text`` routes anything that looks like Markdown (two or more heading, list, bold or
     fence lines) through ``ingest_markdown``, so ``scan_file("x.txt")`` on such a document is
     the Markdown path under another name. An earlier version of this sweep compared the two
-    suffixes and had 38 of 193 documents comparing a report with itself. For text that does not
-    look like Markdown this is exactly what ``ingest_text`` returns, and
-    ``tests/test_source_consistency.py`` asserts that the real dispatch takes the text path for
-    the rows it compares.
+    suffixes and had 38 of 193 documents comparing a report with itself. Text that does not look
+    like Markdown goes through ``ingest_text`` itself, so a change to that path is exercised here
+    rather than shadowed by a copy; only sniffed documents get a hand-built text source.
     """
-    raw = RawSource(text=strip_fenced_code(text), source_type=SourceType.text, source="doc.txt")
+    if looks_like_markdown(text):
+        raw = RawSource(text=strip_fenced_code(text), source_type=SourceType.text, source="doc.txt")
+    else:
+        raw = ingest_text(text, source="doc.txt")
     return score_document(build_document(raw), scorer.settings)
 
 
@@ -70,6 +72,30 @@ def scan_markdown(scorer: SlopScorer, text: str) -> Report:
 
 def _rule_ids(report: Report) -> set[str]:
     return {e.rule_id for e in report.findings}
+
+
+def ingester_divergence(text_report: Report, markdown_report: Report) -> set[str]:
+    """Rules whose findings differ between the text and Markdown paths in a way that is a defect.
+
+    Every rule must agree, with two exceptions that are correct by design. STRUCTURE_DEPENDENT
+    rules read Markdown block structure the text path does not have. And the metadiscourse
+    dimension judges a paragraph that contains a line break conservatively (no run, evidence over
+    the whole paragraph), while the Markdown ingester joins soft line breaks into one line. So on
+    the text path a ``META_`` finding may be missing, but it may never be extra, and that is
+    compared as a multiset.
+    """
+    text_counts = Counter(e.rule_id for e in text_report.findings)
+    markdown_counts = Counter(e.rule_id for e in markdown_report.findings)
+    out: set[str] = set()
+    for rule in set(text_counts) | set(markdown_counts):
+        if rule in STRUCTURE_DEPENDENT:
+            continue
+        if rule.startswith("META_"):
+            if text_counts[rule] > markdown_counts[rule]:
+                out.add(rule)
+        elif (text_counts[rule] > 0) != (markdown_counts[rule] > 0):
+            out.add(rule)
+    return out
 
 
 def sweep(scorer: SlopScorer, documents: list[tuple[str, str, int]]) -> dict[str, Any]:
@@ -94,7 +120,7 @@ def sweep(scorer: SlopScorer, documents: list[tuple[str, str, int]]) -> dict[str
             reports = [scan_plain(scorer, text), scan_markdown(scorer, text)]
             assert reports[0].input.source_type is SourceType.text
             assert reports[1].input.source_type is SourceType.markdown
-            for rule in (_rule_ids(reports[0]) ^ _rule_ids(reports[1])) - STRUCTURE_DEPENDENT:
+            for rule in ingester_divergence(reports[0], reports[1]):
                 divergent[rule] += 1
                 examples.setdefault(rule, name)
 
@@ -167,48 +193,66 @@ def wrap_variants(text: str, width: int = 60) -> tuple[str, str]:
     return flat, wrapped
 
 
+_WRAP_AFTER = re.compile(r"""(?<=[)\]"':;]) """)
+
+
+def punctuation_wrap(flat: str) -> str:
+    """Break the line after every closing bracket, quote, colon, and semicolon a space follows.
+
+    The adversarial wrap. ``textwrap`` breaks wherever the column falls, so it rarely lands on the
+    characters that matter: review round 9 found that wrapping after ``)``, a closing quote, or a
+    colon created metadiscourse runs, and no width-based wrap of the corpus had exercised it.
+    """
+    return "\n\n".join(_WRAP_AFTER.sub("\n", p) for p in flat.split("\n\n"))
+
+
 def sweep_wrapping(scorer: SlopScorer, documents: list[tuple[str, str, int]]) -> dict[str, Any]:
     """The same text, hard-wrapped and not, through the SAME ingester.
 
     This is the comparison that catches the MULTILINE class, and comparing .txt against .md does
     not: wrapping a Markdown document breaks its syntax, so the two ingesters legitimately see
     different prose and the cross-ingester diff is full of expected noise. Holding the ingester
-    fixed (the text path, sniffing bypassed) and varying only line breaks isolates the defect.
+    fixed and varying only line breaks isolates the defect.
 
-    Asserted: wrapping never ADDS a metadiscourse run to a document. That was the v0.14 defect: a
-    wrapped paragraph with no metadiscourse in it escalated to a run. Wrapping may remove a run,
-    since a wrap fragment and its completion break one; that false negative is accepted.
+    Asserted: for every document and both wrap variants (60 columns, and a line break after every
+    bracket, quote, colon, and semicolon), no metadiscourse finding appears more often wrapped
+    than flat, and the metadiscourse score does not rise. The feature guarantees this by
+    construction (a line-structured paragraph forms no run and is judged as a whole), and this is
+    the check that the construction holds on real text. Wrapping may REMOVE findings; that false
+    negative is accepted.
 
-    Recorded, not asserted: the other rules that differ. Most of that set is whole-text patterns
-    with a literal space ("studies show") that cannot match across a line break, plus pysbd
-    re-segmenting at line breaks for the sentence-level features. It predates v0.14 and is not
-    this release's to fix, so it is written down to be diffed rather than gated on.
+    Recorded, not asserted: the other rules that differ at 60 columns. Most of that set is
+    whole-text patterns with a literal space ("studies show") that cannot match across a line
+    break, plus pysbd re-segmenting at line breaks for the sentence-level features. It predates
+    v0.14 and is written down to be diffed rather than gated on.
     """
     divergent: Counter[str] = Counter()
     examples: dict[str, str] = {}
     flat_runs = wrapped_runs = 0
-    run_mismatch: list[str] = []
+    added: list[str] = []
     for name, text, _label in documents:
         if looks_like_markdown(text):
             continue
         flat, wrapped = wrap_variants(text)
         a = scan_plain(scorer, flat)
-        b = scan_plain(scorer, wrapped)
-        fa = sum(1 for e in a.findings if e.rule_id == RULE_META_RUN)
-        fb = sum(1 for e in b.findings if e.rule_id == RULE_META_RUN)
-        flat_runs += fa
-        wrapped_runs += fb
-        if fb > fa:
-            run_mismatch.append(name)
-        for rule in _rule_ids(a) ^ _rule_ids(b):
-            divergent[rule] += 1
-            examples.setdefault(rule, name)
+        meta_a = Counter(e.rule_id for e in a.findings if e.rule_id.startswith("META_"))
+        for variant_name, variant in (("60col", wrapped), ("punct", punctuation_wrap(flat))):
+            b = scan_plain(scorer, variant)
+            meta_b = Counter(e.rule_id for e in b.findings if e.rule_id.startswith("META_"))
+            if (meta_b - meta_a) or b.dimensions.metadiscourse > a.dimensions.metadiscourse:
+                added.append(f"{name}:{variant_name}")
+            if variant_name == "60col":
+                flat_runs += meta_a[RULE_META_RUN]
+                wrapped_runs += meta_b[RULE_META_RUN]
+                for rule in _rule_ids(a) ^ _rule_ids(b):
+                    divergent[rule] += 1
+                    examples.setdefault(rule, name)
     return {
         "wrap_divergent_rules": dict(divergent),
         "wrap_divergent_examples": examples,
         "meta_runs_flat": flat_runs,
         "meta_runs_wrapped": wrapped_runs,
-        "meta_runs_added_by_wrapping": run_mismatch,
+        "meta_findings_added_by_wrapping": added,
     }
 
 
@@ -253,9 +297,9 @@ def main() -> int:
         )
     if not result["by_paragraph_ranks_by_density"]:
         failures.append("--by-paragraph ranks by length, not density")
-    if result["meta_runs_added_by_wrapping"]:
+    if result["meta_findings_added_by_wrapping"]:
         failures.append(
-            f"wrapping added a metadiscourse run: {result['meta_runs_added_by_wrapping']}"
+            f"wrapping added a metadiscourse finding or raised the score: {result['meta_findings_added_by_wrapping']}"
         )
 
     print(
@@ -271,7 +315,7 @@ def main() -> int:
     print(f"  --by-paragraph by density   : {result['by_paragraph_ranks_by_density']}  (asserted)")
     print(
         f"  META runs flat / wrapped    : {result['meta_runs_flat']} / {result['meta_runs_wrapped']}"
-        f"  (asserted: wrapping adds none; added: {result['meta_runs_added_by_wrapping'] or 'none'})"
+        f"  (asserted: wrapping adds no finding; added: {result['meta_findings_added_by_wrapping'] or 'none'})"
     )
     print(
         f"  rules differing by wrapping : {len(result['wrap_divergent_rules'])} rules "

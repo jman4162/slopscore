@@ -187,18 +187,19 @@ make it unlike the other packs.
   overrides (`_severity_factor`), and **anchors on the run's first sentence only** — a
   multi-sentence finding span makes `report/html.py` swallow every phrase highlight inside it and
   makes `report/baseline.py` fingerprints change on unrelated edits. Run length is therefore
-  recovered by re-deriving runs from the document, never from the span text. **Hard-wrapped prose
-  is judged conservatively, not invariantly.** pysbd ends a sentence at every line break; a
-  sentence ending in a letter, digit, comma, or dash (a wrap fragment or an unpunctuated heading
-  line), and the line that completes it, **break** a run. Wrapping can hide a run but never create
-  one. Do not try to make wrapped text score the same as flat: skipping fragments, re-joining
-  them, and flattening the text into a copy each produced a new false positive in review.
-  Non-prose blocks (`heading`, `list_item`) and any sentence carrying a fact also break a run; a
-  short factless sentence is neutral. HTML comment text is removed before evidence is counted,
-  because a rule id inside a suppression comment reads as an identifier. Clause-initial rules and
-  markers write `{CLAUSE_START}`, expanded by `_ruleset.py:compile_rule_pattern`, which every YAML
-  loader must use. The six clause-initial rules that predate v0.14 keep their own anchors on
-  purpose; see the comment on `CLAUSE_START`.
+  recovered by re-deriving runs from the document, never from the span text. **Line-structured paragraphs
+  never form a run.** A paragraph containing a line break or an HTML comment contributes no
+  sentence to a run, and a marker in it is judged against the evidence in the whole paragraph.
+  That guarantees by construction that turning a space inside a paragraph into a line break never
+  adds a metadiscourse finding or raises the score; `scripts/eval/sweep_sources.py` and
+  `tests/test_source_consistency.py` check it on the corpus. Do not replace this with per-fragment
+  handling: review rounds 5 to 9 tried skipping, re-joining, flattening, and fragment detection,
+  and each let wrapping create a finding. Non-prose blocks (`heading`, `list_item`) and any
+  sentence carrying a fact also break a run; a short factless sentence is neutral. Markers inside
+  an HTML comment are not charged. Clause-initial rules and markers write `{CLAUSE_START}`,
+  expanded by `_ruleset.py:compile_rule_pattern`, which every YAML loader must use. The six
+  clause-initial rules that predate v0.14 keep their own anchors on purpose; see the comment on
+  `CLAUSE_START`.
   The run's `Evidence` is licensed by a `META_` rule inside it, and `prune_spans`
   (`base.py:SpanPruned`) re-applies that licence after the scorer's `disabled_rules` and
   suppression filtering, so a disabled rule takes its run with it. A terminal-recap term was

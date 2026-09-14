@@ -26,7 +26,6 @@ the score is not ``severity_rate_score`` alone. It subclasses ``PhrasePack`` so 
 from __future__ import annotations
 
 from bisect import bisect_right
-from collections.abc import Callable
 from functools import lru_cache
 from typing import Literal
 
@@ -76,28 +75,23 @@ _MIN_SENTENCE_WORDS = 6
 # bridged two distant markers into a run the evidence then described as consecutive.
 _MAX_SKIPS_IN_RUN = 1
 
-# Hard-wrapped prose is judged CONSERVATIVELY, not invariantly. pysbd ends a sentence at every
-# line break, so a paragraph wrapped at 60 columns (a code comment, a commit message, a plain-text
-# file) arrives as fragments such as "We reviewed the budget with the team and". A sentence that
-# ends in a letter, digit, comma, or dash is such a fragment, or an unpunctuated heading line.
-# It BREAKS a run, and so does the sentence that completes it on the next line of the same
-# paragraph. Neither is judged as metadiscourse, and neither is passed over.
+# LINE-STRUCTURED PARAGRAPHS NEVER FORM A RUN. A paragraph whose text contains a line break (a
+# hard-wrapped plain-text file, a code comment, a web article extracted with single newlines
+# between blocks) or an HTML comment contributes no sentence to a run, and a marker in it is
+# judged against the evidence in the whole paragraph rather than in its own sentence.
 #
-# The consequence, accepted on purpose: wrapping can hide a run, and it can never create one.
-# Review rounds 5 to 8 of v0.14 tried to make wrapped text score the same as flat. Skipping the
-# fragments bridged runs across fact-bearing lines. Re-joining them joined whole sentences whose
-# ending a regex did not know. Flattening the text into a second copy turned comment lines into
-# paragraph breaks, left quotation ranges stale, and ran pysbd ten times slower on long lines.
-# Every one of those was a false positive or a user-visible cost. A missed run on wrapped text
-# is a false negative, and this tool prefers false negatives to accusations.
-_WRAP_FRAGMENT = re.compile(r"[\p{L}\p{N},\-\u2013\u2014]\s*\Z")
-
-# Text inside an HTML comment is a control line (``suppress.py`` reads
-# ``<!-- slopscore-disable-next-line RULE -->``), not prose, and the rule id inside it reads as a
-# concrete identifier. Left in, suppressing an unrelated rule exempted the marker beside the
-# comment. It is removed before evidence is counted. pysbd sometimes splits a comment into "<!"
-# and "-- ... -->", so both halves are matched as well as the whole.
-_COMMENT_TEXT = re.compile(r"<!--.*?-->|<!--.*\Z|\A\s*--.*?-->|<!\s*\Z", re.DOTALL)
+# That gives one guarantee by construction: turning a space inside a paragraph into a line break
+# never adds a metadiscourse finding and never raises the score. Rule matches cannot grow, because
+# {CLAUSE_START} refuses a line break after a bare word and a literal space in a pattern cannot
+# match a newline. Exemptions cannot shrink, because the paragraph contains every character of the
+# sentence. Runs cannot appear, because the paragraph contributes none.
+#
+# The cost is false negatives, accepted on purpose. v0.14 review rounds 5 to 9 each tried to judge
+# line fragments one at a time (skipping them, re-joining them, flattening the text into a copy,
+# breaking on a fragment and its completion), and each attempt let wrapping create a finding at a
+# character the tests had not put at a line end.
+_HTML_COMMENT = re.compile(r"<!--[\s\S]*?-->")
+_WHITESPACE = re.compile(r"\s+")
 
 # Rules whose construction is legitimate when it restates a FACT. A code gloss over "the bus
 # costs two euros" is a comprehension aid, not prose about the prose, and it is how ESL and
@@ -138,12 +132,57 @@ def _markers() -> list[re.Pattern[str]]:
     return [compile_rule_pattern(m) for m in raw.get("markers", [])]
 
 
-def _without_comments(text: str) -> str:
-    return str(_COMMENT_TEXT.sub(" ", text))
+class _Layout:
+    """Paragraph and sentence geometry for one document, computed once and cached on it."""
+
+    __slots__ = (
+        "para_clean_starts",
+        "para_orig",
+        "para_orig_starts",
+        "sent_orig",
+        "sent_starts",
+        "structured",
+    )
+
+    def __init__(self, doc: Document) -> None:
+        self.para_clean_starts = [p.start for p in doc.paragraphs]
+        self.para_orig = [doc.mapper.to_original(p.start, p.end) for p in doc.paragraphs]
+        self.para_orig_starts = [start for start, _ in self.para_orig]
+        self.structured = ["\n" in p.text.strip() or "<!--" in p.text for p in doc.paragraphs]
+        self.sent_orig = [
+            doc.mapper.to_original(s.start, s.end) for s in doc.sentences if s.text.strip()
+        ]
+        self.sent_starts = [start for start, _ in self.sent_orig]
+
+    def paragraph_of(self, clean_start: int) -> int:
+        return bisect_right(self.para_clean_starts, clean_start) - 1
+
+    def is_structured(self, clean_start: int) -> bool:
+        i = self.paragraph_of(clean_start)
+        return 0 <= i < len(self.structured) and self.structured[i]
+
+    def evidence_range(self, orig_start: int) -> tuple[int, int, bool] | None:
+        """The ``(start, end, whole_paragraph)`` span a marker at ``orig_start`` is judged by."""
+        i = bisect_right(self.para_orig_starts, orig_start) - 1
+        if (
+            0 <= i < len(self.para_orig)
+            and self.structured[i]
+            and orig_start < self.para_orig[i][1]
+        ):
+            return self.para_orig[i][0], self.para_orig[i][1], True
+        j = bisect_right(self.sent_starts, orig_start) - 1
+        if 0 <= j < len(self.sent_orig) and orig_start < self.sent_orig[j][1]:
+            return self.sent_orig[j][0], self.sent_orig[j][1], False
+        return None
 
 
-def _is_wrap_fragment(text: str) -> bool:
-    return bool(_WRAP_FRAGMENT.search(text))
+def _layout(doc: Document) -> _Layout:
+    cached = doc.__dict__.get("_metadiscourse_layout")
+    if isinstance(cached, _Layout):
+        return cached
+    layout = _Layout(doc)
+    doc.__dict__["_metadiscourse_layout"] = layout
+    return layout
 
 
 def _strip_markers(text: str) -> tuple[str, list[tuple[int, int]]]:
@@ -177,19 +216,18 @@ def _strip_markers(text: str) -> tuple[str, list[tuple[int, int]]]:
 
 
 def _classify(doc: Document, sentence: TextSpan) -> Kind:
-    """``"meta"``, ``"skip"``, or ``"break"`` for one sentence.
+    """``"meta"``, ``"skip"``, or ``"break"`` for one sentence of a paragraph with no line break.
 
     ``"skip"`` neither extends nor breaks a run. A short factless sentence says nothing about
     whether the passage around it is about the writing, and treating it as concrete used to sever
     a run, so a denser passage of prose-about-the-prose could score lower than a sparser one. It
-    is the only neutral class. Everything else is a ``"break"``: a wrap fragment, a non-prose
-    block, and a sentence carrying a fact at any length. The evidence test runs before the length
-    test.
+    is the only neutral class. Everything else is a ``"break"``: a non-prose block, or a sentence
+    carrying a fact at any length. The evidence test runs before the length test.
     """
     from slopscore.normalize.quotes import inside_quotes
 
     text = sentence.text.strip()
-    if doc.in_block_kind(sentence.start, _NOT_PROSE) or _is_wrap_fragment(text):
+    if doc.in_block_kind(sentence.start, _NOT_PROSE):
         return "break"
     rest, marker_spans = _strip_markers(text)
     # The pack sets skip_quoted=True and the run term has to honor it. Test each marker's own
@@ -203,55 +241,39 @@ def _classify(doc: Document, sentence: TextSpan) -> Kind:
         # Judge it as if the marker were not there: a short quotation dropped into a genuine run
         # should not sever it, which is what "skip" exists to prevent.
         return _no_marker(text)
-    if concrete_evidence_count(_without_comments(rest), spelled_numbers=True) > 0:
+    if concrete_evidence_count(rest, spelled_numbers=True) > 0:
         return "break"
-    return "skip" if len(_without_comments(text).split()) < _MIN_SENTENCE_WORDS else "meta"
+    return "skip" if len(text.split()) < _MIN_SENTENCE_WORDS else "meta"
 
 
 def _no_marker(text: str) -> Kind:
     """A sentence with no marker: short and factless says nothing, anything else interrupts."""
-    prose = _without_comments(text)
-    if len(prose.split()) < _MIN_SENTENCE_WORDS:
-        return "skip" if concrete_evidence_count(prose, spelled_numbers=True) == 0 else "break"
+    if len(text.split()) < _MIN_SENTENCE_WORDS:
+        return "skip" if concrete_evidence_count(text, spelled_numbers=True) == 0 else "break"
     return "break"
-
-
-def _paragraph_index(doc: Document) -> Callable[[int], int]:
-    para_starts = [p.start for p in doc.paragraphs]
-
-    def paragraph_of(start: int) -> int:
-        return bisect_right(para_starts, start) - 1 if para_starts else 0
-
-    return paragraph_of
 
 
 def _runs(doc: Document) -> list[list[TextSpan]]:
     """Maximal runs of consecutive evidence-free metadiscourse sentences, longest first.
 
-    Cached on the document: ``extract``, ``score_spans`` and ``prune_spans`` all need it, and
-    classification is ~30 regexes plus an evidence count per sentence. A copy is returned so a
-    caller cannot corrupt the cache.
+    Every sentence of a line-structured paragraph is a ``"break"`` (see the note on
+    ``_HTML_COMMENT``). Cached on the document: ``extract``, ``score_spans`` and ``prune_spans``
+    all need it, and classification is ~30 regexes plus an evidence count per sentence. A copy is
+    returned so a caller cannot corrupt the cache.
     """
     cached = doc.__dict__.get("_metadiscourse_runs")
     if cached is not None:
         return [list(r) for r in cached]
 
-    paragraph_of = _paragraph_index(doc)
+    layout = _layout(doc)
     runs: list[list[TextSpan]] = []
     current: list[TextSpan] = []
     skips = 0
     para = -1
-    fragment_para: int | None = None
     for s in doc.sentences:
         if not s.text.strip():
             continue
-        here = paragraph_of(s.start)
-        # The line that completes a wrap fragment is the second half of one sentence. Judged on
-        # its own, a clause-initial marker at its head ("and,\nin short, nothing changed") reads as
-        # a sentence opener, so it breaks the run like the fragment before it.
-        completes_a_fragment = fragment_para == here
-        fragment_para = here if _is_wrap_fragment(s.text.strip()) else None
-        kind: Kind = "break" if completes_a_fragment else _classify(doc, s)
+        kind: Kind = "break" if layout.is_structured(s.start) else _classify(doc, s)
         if kind == "skip":
             # Tolerated inside a run, but only so many: past the budget the run is not
             # "consecutive" in any sense the explanation could honestly claim.
@@ -261,6 +283,7 @@ def _runs(doc: Document) -> list[list[TextSpan]]:
                 current, skips = [], 0
             continue
         if kind == "meta":
+            here = layout.paragraph_of(s.start)
             if current and here != para:
                 # A paragraph break is a structural boundary on every source type, Markdown or
                 # not. Without this, three signposts in three separate paragraphs of plain text
@@ -282,45 +305,23 @@ def _runs(doc: Document) -> list[list[TextSpan]]:
     return [list(r) for r in runs]
 
 
-def _sentence_ranges(doc: Document) -> list[tuple[int, int, int]]:
-    """``(start, end, evidence window end)`` per sentence, in original coordinates.
+def _restates_a_fact(doc: Document, span: Evidence) -> bool:
+    """True when the text a marker is judged by carries a concrete reference of its own.
 
-    A sentence's evidence window is the sentence itself, extended through the lines that complete
-    it when it is a wrap fragment. Wrapped at 60 columns, "As mentioned above, personal injury
-    lawsuits" and "can motivate someone to malinger PTSD." are two pysbd sentences, and the fact
-    that exempts the marker is on the second line. Judged on the fragment alone, the wrapped copy
-    was charged for a marker the flat copy exempts. A wider window can only exempt more markers,
-    so wrapping cannot add a finding this way.
+    That text is the marker's sentence, or its whole paragraph when the paragraph is
+    line-structured. Every marker's characters are cut out before counting, or a marker that looks
+    concrete would exempt itself. In a line-structured paragraph, comment text is removed (a rule
+    id reads as an identifier) and whitespace is collapsed, which can only find more evidence.
     """
-    paragraph_of = _paragraph_index(doc)
-    sentences = [s for s in doc.sentences if s.text.strip()]
-    out: list[tuple[int, int, int]] = []
-    for i, s in enumerate(sentences):
-        j = i
-        while (
-            _is_wrap_fragment(sentences[j].text.strip())
-            and j + 1 < len(sentences)
-            and paragraph_of(sentences[j + 1].start) == paragraph_of(s.start)
-        ):
-            j += 1
-        start, end = doc.mapper.to_original(s.start, s.end)
-        _, window_end = doc.mapper.to_original(sentences[j].start, sentences[j].end)
-        out.append((start, end, window_end))
-    return out
-
-
-def _restates_a_fact(doc: Document, span: Evidence, ranges: list[tuple[int, int, int]]) -> bool:
-    """True when the sentence around a marker carries a concrete reference of its own.
-
-    Every marker's characters are cut out before counting, or a marker that looks concrete would
-    exempt itself, and so is any comment text, whose rule ids read as identifiers.
-    """
-    for start, end, window_end in ranges:
-        if not start <= span.start_char < end:
-            continue
-        rest, _ = _strip_markers(doc.original_text[start:window_end])
-        return concrete_evidence_count(_without_comments(rest), spelled_numbers=True) > 0
-    return False
+    found = _layout(doc).evidence_range(span.start_char)
+    if found is None:
+        return False
+    start, end, whole_paragraph = found
+    text = doc.original_text[start:end]
+    if whole_paragraph:
+        text = _WHITESPACE.sub(" ", _HTML_COMMENT.sub(" ", text)).strip()
+    rest, _ = _strip_markers(text)
+    return concrete_evidence_count(rest, spelled_numbers=True) > 0
 
 
 def _natural_severity(run_length: int) -> Severity:
@@ -454,11 +455,13 @@ class Metadiscourse(PhrasePack):
 
     def extract(self, doc: Document, profile: str, broad: bool = False) -> FeatureResult:
         base = super().extract(doc, profile, broad=broad)
-        ranges = _sentence_ranges(doc)
+        # A marker inside an HTML comment is a note to a tool or a reader, not the author's prose.
+        comments = [(m.start(), m.end()) for m in _HTML_COMMENT.finditer(doc.original_text)]
         kept = [
             s
             for s in base.spans
-            if s.rule_id not in _EVIDENCE_EXEMPT or not _restates_a_fact(doc, s, ranges)
+            if not any(a <= s.start_char < b for a, b in comments)
+            and (s.rule_id not in _EVIDENCE_EXEMPT or not _restates_a_fact(doc, s))
         ]
         spans = sorted(kept + self._run_spans(doc, kept), key=lambda e: e.start_char)
         return FeatureResult(

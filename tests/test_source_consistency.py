@@ -19,6 +19,7 @@ from __future__ import annotations
 import importlib.util
 import sys
 import textwrap
+from collections import Counter
 from pathlib import Path
 
 import pytest
@@ -115,8 +116,7 @@ def test_no_rule_fires_under_one_ingester_only(scanned: list[dict[str, object]])
         # ingester turns this into a visible failure rather than a silent self-comparison.
         assert reports["text"].input.source_type is SourceType.text
         assert reports["markdown"].input.source_type is SourceType.markdown
-        ids = {s: {e.rule_id for e in reports[s].findings} for s in reports}
-        for rule in (ids["text"] ^ ids["markdown"]) - sweep_sources.STRUCTURE_DEPENDENT:
+        for rule in sweep_sources.ingester_divergence(reports["text"], reports["markdown"]):
             divergent.setdefault(rule, str(entry["text"])[:70])
     assert divergent == {}
 
@@ -206,9 +206,9 @@ def test_hard_wrapping_adds_no_metadiscourse_finding() -> None:
     ``_ruleset.py`` compiles every pattern with ``re.MULTILINE``, so a ``^`` anchor is a LINE
     anchor, and pysbd splits hard-wrapped text on line breaks. Together those made a paragraph
     wrapped at 60 columns (a code comment, a plain-text file, a commit message) fire
-    clause-anchored markers mid-sentence and escalate to a run. Two fixtures: one with no
-    metadiscourse, where a wrap puts "precision matters" at the head of a line, and one where a
-    wrap puts "in short," at the head of a line mid-sentence beside a genuine marker.
+    clause-anchored markers mid-sentence and escalate to a run. Compared as multisets, so a wrap
+    that adds a second copy of a finding fails too, and at several widths plus a wrap after every
+    bracket, quote, colon, and semicolon.
     """
     scorer = SlopScorer()
     no_meta = (
@@ -224,7 +224,22 @@ def test_hard_wrapping_adds_no_metadiscourse_finding() -> None:
     assert _meta(sweep_sources.scan_plain(scorer, no_meta)) == []
     assert _meta(sweep_sources.scan_plain(scorer, one_meta)) == [("META_CLARIFY_FRAME", "low")]
     for text in (no_meta, one_meta):
-        flat = set(_meta(sweep_sources.scan_plain(scorer, text)))
-        for width in (40, 60, 72):
-            wrapped = "\n".join(textwrap.wrap(text, width))
-            assert set(_meta(sweep_sources.scan_plain(scorer, wrapped))) <= flat, wrapped
+        flat = sweep_sources.scan_plain(scorer, text)
+        variants = [textwrap.fill(text, w) for w in (40, 60, 72)]
+        variants.append(sweep_sources.punctuation_wrap(text))
+        for wrapped in variants:
+            report = sweep_sources.scan_plain(scorer, wrapped)
+            assert not (Counter(_meta(report)) - Counter(_meta(flat))), wrapped
+            assert report.dimensions.metadiscourse <= flat.dimensions.metadiscourse
+
+
+def test_wrapping_the_corpus_adds_no_metadiscourse_finding() -> None:
+    # The invariant, on real rows rather than fixtures written to pass it.
+    scorer = SlopScorer()
+    for text, _label in _corpus():
+        flat, wrapped = sweep_sources.wrap_variants(text)
+        base = sweep_sources.scan_plain(scorer, flat)
+        for variant in (wrapped, sweep_sources.punctuation_wrap(flat)):
+            report = sweep_sources.scan_plain(scorer, variant)
+            assert not (Counter(_meta(report)) - Counter(_meta(base)))
+            assert report.dimensions.metadiscourse <= base.dimensions.metadiscourse

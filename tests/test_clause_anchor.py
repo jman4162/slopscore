@@ -115,6 +115,9 @@ def test_anchor_accepts_sentence_boundaries_and_refuses_wraps() -> None:
         "a.\n<!-- c -->\nto be clear, x",
         "a. <!-- c --> to be clear, x",
         "<!-- c -->\nto be clear, x",
+        "a.\n<!-- c -->\n<!-- d -->\nto be clear, x",
+        "a.\n<!-- slopscore-disable-next-line\n A -->\nto be clear, x",
+        "Done.<!-- c -->\nto be clear, x",
         'he said "no." to be clear, x',
         "a.) to be clear, x",
     ]:

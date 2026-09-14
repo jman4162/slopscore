@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections import Counter
+
 import pytest
 
 from slopscore import scan_text
@@ -593,19 +595,22 @@ def test_hard_wrapping_never_raises_a_score() -> None:
     a, b = scan_text(flat), scan_text(wrapped)
     assert a.dimensions.metadiscourse == 0.55
     assert b.dimensions.metadiscourse <= a.dimensions.metadiscourse
-    assert set(_meta(b)) <= set(_meta(a))
+    assert not (Counter(_meta(b)) - Counter(_meta(a)))
 
 
-def test_a_marker_a_wrap_put_at_line_start_is_still_mid_sentence() -> None:
+def test_a_marker_a_wrap_put_at_line_start_adds_no_finding() -> None:
     # "and,\nin short, nothing changed" is one sentence with a parenthetical, not a meta sentence.
-    # Matched fragment by fragment, the lexicon's \A saw "in short," at the head of a line.
+    # Wrapped, the paragraph is line-structured: it forms no run, and the marker is judged against
+    # the whole paragraph, where "two lists" counts as evidence. Wrapping may remove the finding
+    # the flat text reports; it must not add one.
     text = (
         "The team reviewed the two lists and the schedule and,\n"
         "in short, nothing about the plan had changed at all by then.\n"
         "To be clear, the deadline had not moved at all for anyone."
     )
     wrapped, flat = scan_text(text), scan_text(" ".join(text.split()))
-    assert _meta(wrapped) == _meta(flat) == [("META_CLARIFY_FRAME", "low")]
+    assert _meta(flat) == [("META_CLARIFY_FRAME", "low")]
+    assert not (Counter(_meta(wrapped)) - Counter(_meta(flat)))
 
 
 def test_a_fact_bearing_line_without_terminal_punctuation_breaks_a_run() -> None:
@@ -621,12 +626,15 @@ def test_a_fact_bearing_line_without_terminal_punctuation_breaks_a_run() -> None
 
 
 _FACT = "The bridge in Leeds opened in 1932 after three years of work by two firms."
+# A lead sentence with no fact in it, for tests where a fact in the same paragraph would exempt
+# the marker under test.
+_LEAD = "The committee met and then talked for a very long while."
 
 
 @pytest.mark.parametrize(
     "text",
     [
-        _FACT + " \nTo be clear, the point is not really about any of that at all.",
+        _LEAD + " \nTo be clear, the point is not really about any of that at all.",
         "\nTo be clear, the point is not really about any of that at all. " + _FACT,
         _FACT + "\n \nTo be clear, the point is not about any of that at all.",
         'He said "no." To be clear, the point is not about any of that at all.',
@@ -695,15 +703,19 @@ def test_a_suppression_comment_between_lines_is_not_evidence() -> None:
     assert with_comment.dimensions.metadiscourse == without.dimensions.metadiscourse
 
 
-def test_an_inline_suppression_comment_is_not_evidence() -> None:
+def test_an_inline_suppression_comment_never_adds_a_finding() -> None:
+    # A paragraph carrying a comment is line-structured: it forms no run, and a marker in it is
+    # judged against the evidence in the whole paragraph. That can hide a finding the same
+    # paragraph reports without the comment; it cannot add one.
     fact = "The bridge in Leeds opened in 1932 after three years of work."
     marker = "To be clear, the point is not really about any of that at all."
     with_comment = scan_text(
         f"{fact} <!-- slopscore-disable-line LEXICAL_GENERIC_IMPORTANCE --> {marker}"
     )
     without = scan_text(f"{fact} {marker}")
-    assert ("META_CLARIFY_FRAME", "low") in _meta(with_comment)
-    assert with_comment.dimensions.metadiscourse == without.dimensions.metadiscourse
+    assert ("META_CLARIFY_FRAME", "low") in _meta(without)
+    assert not (Counter(_meta(with_comment)) - Counter(_meta(without)))
+    assert with_comment.dimensions.metadiscourse <= without.dimensions.metadiscourse
 
 
 def test_a_marker_split_by_a_hard_wrap_is_missed_not_invented() -> None:
@@ -713,7 +725,7 @@ def test_a_marker_split_by_a_hard_wrap_is_missed_not_invented() -> None:
     flat = scan_text(f"{_A} {_B} {_C}")
     split = scan_text(f"{_A} {_B} {_C}".replace("As noted above,", "As noted\nabove,"))
     assert ("META_RUN_OF_META_SENTENCES", "medium") in _meta(flat)
-    assert set(_meta(split)) <= set(_meta(flat))
+    assert not (Counter(_meta(split)) - Counter(_meta(flat)))
     assert split.dimensions.metadiscourse <= flat.dimensions.metadiscourse
 
 
@@ -791,3 +803,75 @@ def test_a_fact_on_the_next_wrapped_line_still_exempts_the_marker() -> None:
     )
     assert _meta(scan_text(flat)) == []
     assert _meta(scan_text(wrapped)) == []
+
+
+# --- review round 9 --------------------------------------------------------------------------
+
+
+def _assert_wrapping_adds_nothing(flat: str, wrapped: str) -> None:
+    a, b = scan_text(flat), scan_text(wrapped)
+    assert not (Counter(_meta(b)) - Counter(_meta(a))), (_meta(a), _meta(b))
+    assert b.dimensions.metadiscourse <= a.dimensions.metadiscourse
+
+
+@pytest.mark.parametrize(
+    ("flat", "wrapped"),
+    [
+        (
+            _A + " As noted above, the plan (in plain terms) was agreed in Leeds in 1932.",
+            _A + " As noted above, the plan (in plain terms)\nwas agreed in Leeds in 1932.",
+        ),
+        (
+            _A + " In short, the rule is simple: Leeds pays 40 euros for every late form.",
+            _A + " In short, the rule is simple:\nLeeds pays 40 euros for every late form.",
+        ),
+        (
+            _A + ' In plain English, "good enough" was coined by Voltaire in 1764.',
+            _A + ' In plain English, "good enough"\nwas coined by Voltaire in 1764.',
+        ),
+        (
+            "The Leeds bridge opened in 1932 and as noted above the rest follows from that alone.",
+            "The Leeds bridge opened in 1932 and\nas noted above the rest follows from that alone.",
+        ),
+        (
+            _A + " Key points: To be clear, the point is not really about any of that at all.",
+            _A + " Key points:\nTo be clear, the point is not really about any of that at all.",
+        ),
+    ],
+    ids=["after-paren", "after-colon", "after-quote", "fact-on-line-above", "colon-line-run"],
+)
+def test_wrapping_after_any_character_adds_no_finding(flat: str, wrapped: str) -> None:
+    # Round 9 found wrapping after ")", a closing quote, and ":" created runs and findings, and a
+    # fact on the line ABOVE a marker did not exempt it. No earlier fixture put those at a line end.
+    _assert_wrapping_adds_nothing(flat, wrapped)
+
+
+def test_markers_inside_an_html_comment_are_not_charged() -> None:
+    text = (
+        "<!-- In this section we will describe the plan. As noted above, to be clear. -->\n"
+        "The bridge opened in 1932."
+    )
+    assert _meta(scan_text(text)) == []
+
+
+@pytest.mark.parametrize(
+    "comments",
+    [
+        "<!-- slopscore-disable-next-line LEXICAL_GENERIC_IMPORTANCE -->\n"
+        "<!-- slopscore-disable-next-line FORMULAIC_SIMPLY_PUT -->\n",
+        "<!-- slopscore-disable-next-line\n LEXICAL_GENERIC_IMPORTANCE -->\n",
+    ],
+    ids=["stacked", "multi-line"],
+)
+def test_suppression_comments_above_a_paragraph_do_not_hide_its_marker(
+    tmp_path, comments: str
+) -> None:  # type: ignore[no-untyped-def]
+    p = tmp_path / "doc.md"
+    p.write_text(
+        _FACT
+        + "\n\n"
+        + comments
+        + "To be clear, the framing here is what actually matters most.\n",
+        encoding="utf-8",
+    )
+    assert ("META_CLARIFY_FRAME", "low") in _meta(SlopScorer().scan_file(p))

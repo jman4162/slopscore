@@ -37,9 +37,10 @@ __all__ = [
 # * ``(?<=\n\n)`` disagreed with the segmenter's ``\n[ \t]*\n`` about what a paragraph is.
 #
 # It accepts the start of the text, a blank line, terminal punctuation followed by any closers
-# and whitespace, and the end of an HTML comment that itself sits at one of those boundaries.
-# The last is what ``ingest/markdown.py`` leaves in front of a paragraph carrying a suppression
-# comment. A comment that interrupts a wrapped sentence does not start a clause.
+# and whitespace, and the end of one or more HTML comments that themselves follow one of those
+# boundaries. The last is what ``ingest/markdown.py`` leaves in front of a paragraph carrying
+# suppression comments, which it joins with single newlines; a comment may also span lines. A
+# comment that interrupts a wrapped sentence does not start a clause.
 #
 # It refuses a line break after a bare word, which is what a hard wrap looks like. That has a
 # cost, accepted on purpose: a clause after an unpunctuated heading line ("Conclusion\nTo be
@@ -55,7 +56,7 @@ __all__ = [
 # Variable-width lookbehind is a ``regex`` module feature; ``re`` would refuse this pattern.
 CLAUSE_START = (
     r"""(?:(?<=\A\s*)|(?<=\n\s*\n\s*)|(?<=[.!?]["')\]]*\s+)"""
-    r"""|(?<=(?:\A|\n\s*\n|[.!?]["')\]]*\s)\s*<!--(?:(?!-->).)*-->\s*))"""
+    r"""|(?<=(?:\A|\n\s*\n|[.!?]["')\]]*)\s*(?:<!--(?:(?!-->)[\s\S])*-->\s*)+))"""
 )
 CLAUSE_START_TOKEN = "{CLAUSE_START}"
 DEFAULT_FLAGS = re.IGNORECASE | re.MULTILINE

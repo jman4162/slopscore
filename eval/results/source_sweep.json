@@ -14,8 +14,7 @@
       "LEXICAL_MARKETING_UPLIFT": 1,
       "LEXICAL_OVERPOLISHED_VERBS": 2,
       "LEXICAL_SYNTHETIC_SOPHISTICATION": 1,
-      "META_ENDOPHORIC_BACKREF": 1,
-      "META_RUN_OF_META_SENTENCES": 1,
+      "META_CLARIFY_FRAME": 1,
       "META_SECTION_PLAN": 1,
       "PARALLEL_X_NOT_Y": 2,
       "RESIDUE_AS_AN_AI": 1
@@ -25,10 +24,10 @@
   "divergent_examples": {},
   "divergent_rules": {},
   "high_severity_runs_on_clean_rows": [],
+  "meta_findings_added_by_wrapping": [],
   "meta_hits": {
-    "META_ENDOPHORIC_BACKREF": 2
+    "META_ENDOPHORIC_BACKREF": 1
   },
-  "meta_runs_added_by_wrapping": [],
   "meta_runs_flat": 0,
   "meta_runs_wrapped": 0,
   "n_compared_across_ingesters": 155,
@@ -41,6 +40,7 @@
     "FORMULAIC_NOT_ONLY_BUT_ALSO": "longform:161",
     "FORMULAIC_RHETORICAL_WHAT_MEAN": "longform:36",
     "FORMULAIC_WORTH_NOTING": "longform:178",
+    "META_ENDOPHORIC_BACKREF": "longform:11",
     "PARALLEL_NOT_ONLY_BUT_ALSO": "longform:161",
     "PARALLEL_RATHER_THAN_PRIORITIZE": "longform:79",
     "SIGNIF_PIVOTAL_ROLE": "longform:147",
@@ -58,6 +58,7 @@
     "FORMULAIC_NOT_ONLY_BUT_ALSO": 2,
     "FORMULAIC_RHETORICAL_WHAT_MEAN": 1,
     "FORMULAIC_WORTH_NOTING": 1,
+    "META_ENDOPHORIC_BACKREF": 1,
     "PARALLEL_NOT_ONLY_BUT_ALSO": 2,
     "PARALLEL_RATHER_THAN_PRIORITIZE": 1,
     "SIGNIF_PIVOTAL_ROLE": 3,
