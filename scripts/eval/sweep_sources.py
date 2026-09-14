@@ -74,16 +74,22 @@ def _rule_ids(report: Report) -> set[str]:
     return {e.rule_id for e in report.findings}
 
 
+def _has_line_structured_paragraph(text: str) -> bool:
+    return any("\n" in p.strip() or "<!--" in p for p in _PARAGRAPH_BREAK.split(text))
+
+
 def ingester_divergence(text_report: Report, markdown_report: Report) -> set[str]:
     """Rules whose findings differ between the text and Markdown paths in a way that is a defect.
 
     Every rule must agree, with two exceptions that are correct by design. STRUCTURE_DEPENDENT
-    rules read Markdown block structure the text path does not have. And the metadiscourse
-    dimension judges a paragraph that contains a line break conservatively (no run, evidence over
-    the whole paragraph), while the Markdown ingester joins soft line breaks into one line. So on
-    the text path a ``META_`` finding may be missing, but it may never be extra, and that is
-    compared as a multiset.
+    rules read Markdown block structure the text path does not have. And when the text path has a
+    paragraph containing a line break or an HTML comment, the metadiscourse dimension judges it
+    conservatively (no run, evidence over the whole paragraph) while the Markdown ingester joins
+    soft line breaks. For those documents only, a ``META_`` finding may be missing on the text path
+    but never extra, compared as a multiset. For every other document the ``META_`` counts must
+    match exactly, so a defect that drops a finding on flat plain text still fails.
     """
+    structured = _has_line_structured_paragraph(text_report.original_text)
     text_counts = Counter(e.rule_id for e in text_report.findings)
     markdown_counts = Counter(e.rule_id for e in markdown_report.findings)
     out: set[str] = set()
@@ -91,7 +97,8 @@ def ingester_divergence(text_report: Report, markdown_report: Report) -> set[str
         if rule in STRUCTURE_DEPENDENT:
             continue
         if rule.startswith("META_"):
-            if text_counts[rule] > markdown_counts[rule]:
+            extra = text_counts[rule] > markdown_counts[rule]
+            if extra or (not structured and text_counts[rule] != markdown_counts[rule]):
                 out.add(rule)
         elif (text_counts[rule] > 0) != (markdown_counts[rule] > 0):
             out.add(rule)
@@ -216,10 +223,10 @@ def sweep_wrapping(scorer: SlopScorer, documents: list[tuple[str, str, int]]) ->
 
     Asserted: for every document and both wrap variants (60 columns, and a line break after every
     bracket, quote, colon, and semicolon), no metadiscourse finding appears more often wrapped
-    than flat, and the metadiscourse score does not rise. The feature guarantees this by
-    construction (a line-structured paragraph forms no run and is judged as a whole), and this is
-    the check that the construction holds on real text. Wrapping may REMOVE findings; that false
-    negative is accepted.
+    than flat, and the metadiscourse score does not rise. This is a corpus check, not a proof: a
+    line-structured paragraph forms no run and is judged as a whole, which rules out most ways
+    wrapping could add a finding, and CHANGELOG 0.14.0 lists the ones it does not (a wrap inside a
+    quoted marker phrase). Wrapping may REMOVE findings; that false negative is accepted.
 
     Recorded, not asserted: the other rules that differ at 60 columns. Most of that set is
     whole-text patterns with a literal space ("studies show") that cannot match across a line

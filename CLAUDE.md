@@ -190,13 +190,13 @@ make it unlike the other packs.
   recovered by re-deriving runs from the document, never from the span text. **Line-structured paragraphs
   never form a run.** A paragraph containing a line break or an HTML comment contributes no
   sentence to a run, and a marker in it is judged against the evidence in the whole paragraph.
-  That guarantees by construction that turning a space inside a paragraph into a line break never
-  adds a metadiscourse finding or raises the score; `scripts/eval/sweep_sources.py` and
-  `tests/test_source_consistency.py` check it on the corpus. Do not replace this with per-fragment
-  handling: review rounds 5 to 9 tried skipping, re-joining, flattening, and fragment detection,
-  and each let wrapping create a finding. Non-prose blocks (`heading`, `list_item`) and any
-  sentence carrying a fact also break a run; a short factless sentence is neutral. Markers inside
-  an HTML comment are not charged. Clause-initial rules and markers write `{CLAUSE_START}`,
+  This is a conservative rule, not a guarantee: it does not make wrapped text score the same as
+  flat, and review round 10 found cases where wrapping still adds a finding (a wrap inside a quoted
+  marker phrase). CHANGELOG 0.14.0 lists the known limits. Do not replace the rule with
+  per-fragment handling: review rounds 5 to 9 tried skipping, re-joining, flattening, and fragment
+  detection, and each let wrapping create a finding. Non-prose blocks (`heading`, `list_item`) and
+  any sentence carrying a fact also break a run; a short factless sentence is neutral. Markers
+  inside an HTML comment are not charged. Clause-initial rules and markers write `{CLAUSE_START}`,
   expanded by `_ruleset.py:compile_rule_pattern`, which every YAML loader must use. The six
   clause-initial rules that predate v0.14 keep their own anchors on purpose; see the comment on
   `CLAUSE_START`.

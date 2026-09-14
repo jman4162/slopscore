@@ -66,20 +66,27 @@ Metadiscourse. Schema 0.14.0 (new `metadiscourse` dimension).
   sentence documenting `INSIGHT_LOAD_BEARING`. Scores and `INSIGHT_*` findings on corpora
   containing quoted examples will drop relative to 0.13.0, and a `--baseline-file` built on
   0.13.0 will report those findings as resolved.
-- **Line-structured paragraphs never form a run.** pysbd ends a sentence at every line break, so
+- **Hard-wrapped prose is handled conservatively.** pysbd ends a sentence at every line break, so
   hard-wrapped text (code comments, commit messages, plain-text files) arrives as fragments, and a
   clause-initial marker matched against a fragment fired mid-sentence: a wrapped paragraph with no
   metadiscourse in it escalated to a run finding. A paragraph that contains a line break or an
   HTML comment now contributes no sentence to a run, and a marker in it is judged against the
   evidence in the whole paragraph. Clause-initial metadiscourse patterns share one anchor
-  (`{CLAUSE_START}` in the YAML) that refuses a line break after a bare word. Together these
-  guarantee that turning a space inside a paragraph into a line break never adds a metadiscourse
-  finding or raises the score. The release sweep checks that on every plain-prose corpus document,
-  wrapped at 60 columns and again after every bracket, quote, colon, and semicolon. The cost is
-  false negatives: runs are not reported in hard-wrapped plain text, in web text extracted with
-  single newlines, or in a paragraph carrying a suppression comment, and a clause after an
-  unpunctuated heading line, a colon, or a semicolon is not anchored. Markers inside an HTML
-  comment are not charged. The clause-initial rules that shipped in 0.13.0 keep their anchors.
+  (`{CLAUSE_START}` in the YAML) that refuses a line break after a bare word. Markers inside an
+  HTML comment are not charged. The clause-initial rules that shipped in 0.13.0 keep their
+  anchors. The release sweep wraps every plain-prose corpus document at 60 columns and again after
+  every bracket, quote, colon, and semicolon, and finds no added metadiscourse finding.
+- **Known limits of `metadiscourse` on line-structured text, not fixed in 0.14.0.** Found in
+  review. Turn the dimension off with `disabled_dimensions` if they matter for your input.
+  - A hard wrap inside a quoted marker phrase can add a finding, because quotation marks are not
+    paired across a line break.
+  - A paragraph carrying an HTML comment, including a suppression comment for an unrelated rule,
+    forms no run, and a fact anywhere in it exempts its evidence-gated markers.
+  - Text that separates paragraphs with single newlines, such as extracted web articles, forms no
+    run, and one fact in it exempts every evidence-gated marker.
+  - A clause after an unpunctuated heading line, a colon, or a semicolon is not anchored.
+  - A long single-newline document dense with markers scans slowly: 400 marker sentences take
+    about 5 seconds, against 0.5 seconds when the same sentences share one line.
 - **Disabling a run's licensing rule removes the run.** `disabled_rules` and inline suppression
   filter by rule id after extraction, so silencing the one `META_` rule inside a run left the
   `META_RUN_OF_META_SENTENCES` finding in the report at medium severity while the dimension

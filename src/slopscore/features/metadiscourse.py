@@ -80,16 +80,19 @@ _MAX_SKIPS_IN_RUN = 1
 # between blocks) or an HTML comment contributes no sentence to a run, and a marker in it is
 # judged against the evidence in the whole paragraph rather than in its own sentence.
 #
-# That gives one guarantee by construction: turning a space inside a paragraph into a line break
-# never adds a metadiscourse finding and never raises the score. Rule matches cannot grow, because
-# {CLAUSE_START} refuses a line break after a bare word and a literal space in a pattern cannot
-# match a newline. Exemptions cannot shrink, because the paragraph contains every character of the
-# sentence. Runs cannot appear, because the paragraph contributes none.
+# This is a conservative rule, not a guarantee. It stops wrapped fragments from being judged one
+# at a time, which v0.14 review rounds 5 to 9 showed cannot be done without letting wrapping create
+# findings. It does not make wrapped text score the same as flat, and it does not rule out every
+# case where wrapping adds a finding. Known limits, from review round 10:
 #
-# The cost is false negatives, accepted on purpose. v0.14 review rounds 5 to 9 each tried to judge
-# line fragments one at a time (skipping them, re-joining them, flattening the text into a copy,
-# breaking on a fragment and its completion), and each attempt let wrapping create a finding at a
-# character the tests had not put at a line end.
+# * normalize/quotes.py does not pair quotes across a line break, so a wrap inside a quoted marker
+#   phrase exposes a marker the flat text skips;
+# * a paragraph carrying an HTML comment, including a suppression comment for an unrelated rule,
+#   forms no run, and a fact anywhere in it exempts its evidence-gated markers;
+# * text that separates paragraphs with single newlines (extracted web text, much pasted text) is
+#   one paragraph to this rule, so it forms no run and one fact exempts the whole of it;
+# * the whole-paragraph evidence check runs once per evidence-gated marker, so a long
+#   single-newline document dense with markers scans slowly.
 _HTML_COMMENT = re.compile(r"<!--[\s\S]*?-->")
 _WHITESPACE = re.compile(r"\s+")
 

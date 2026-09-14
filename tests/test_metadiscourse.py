@@ -581,10 +581,10 @@ def test_suppressing_the_licensing_rule_removes_the_run() -> None:
 
 
 def test_hard_wrapping_never_raises_a_score() -> None:
-    # Wrapped prose is judged conservatively, not invariantly. pysbd ends a sentence at every line
-    # break, and a wrap fragment plus the line that completes it both break a run, so wrapping can
-    # hide a run but never create one. Review rounds 5 to 8 each tried to make wrapped text score
-    # the same as flat, and each attempt produced a false positive somewhere else.
+    # A paragraph with a line break forms no run, and its markers are judged against the whole
+    # paragraph, so wrapping this fixture removes the run rather than adding one. That is not a
+    # guarantee for every input: CHANGELOG 0.14.0 lists the known cases where wrapping still adds
+    # a finding, such as a wrap inside a quoted marker phrase.
     import textwrap
 
     fact = "The bridge in Leeds opened in 1932 after three years of work by two firms. " * 40
@@ -613,16 +613,24 @@ def test_a_marker_a_wrap_put_at_line_start_adds_no_finding() -> None:
     assert not (Counter(_meta(wrapped)) - Counter(_meta(flat)))
 
 
-def test_a_fact_bearing_line_without_terminal_punctuation_breaks_a_run() -> None:
-    # The evidence test runs before any length or termination test: a caption, a list line, or
-    # a URL line with no period is still a fact, and a fact ends a run.
+@pytest.mark.parametrize(
+    ("middle", "expect_run"),
+    [
+        ("In other words, revenue was 4.2 million dollars in 2021 at the Leeds filing.", False),
+        ("In other words, revenue was not really the point of any of this at all.", True),
+    ],
+    ids=["fact-breaks-the-run", "factless-control-extends-it"],
+)
+def test_a_fact_bearing_sentence_breaks_a_run(middle: str, expect_run: bool) -> None:
+    # A flat paragraph, so the paragraph rule cannot be what breaks the run, and a factless control,
+    # so the test fails if fact detection stops working. The earlier version put the fact on its own
+    # line, which made the paragraph line-structured; it formed no run whatever the line said.
     text = (
-        "To be clear, the framing here is what actually matters most of all.\n"
-        "- Revenue: 4.2 million dollars in 2021 (Leeds filing)\n"
-        "In short, the point is not really about any of that at all either."
+        "To be clear, the framing here is what actually matters most of all. "
+        f"{middle} In short, the point is not really about any of that at all either."
     )
-    report = scan_text(text)
-    assert ("META_RUN_OF_META_SENTENCES", "medium") not in _meta(report)
+    runs = [e for e in scan_text(text).findings if e.rule_id == "META_RUN_OF_META_SENTENCES"]
+    assert bool(runs) is expect_run
 
 
 _FACT = "The bridge in Leeds opened in 1932 after three years of work by two firms."
