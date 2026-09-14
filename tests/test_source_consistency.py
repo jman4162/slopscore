@@ -10,8 +10,8 @@ passed only because it routed through the Markdown ingester.
 Neither round found that by reading a diff; both found it by running the code. These are the
 assertions ``scripts/eval/sweep_sources.py`` applies to the whole corpus at release time, on a
 slice small enough to run on every CI job. The slice is chosen for power, not convenience: it
-holds label-1 rows as well as label-0, and the one corpus row that carries a ``META_`` finding,
-so a change that silenced the dimension outright turns it red.
+holds label-1 rows as well as label-0, the one corpus row that carries a ``META_`` finding, and
+a real Markdown document with headings and lists.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ import pytest
 
 from slopscore import SlopScorer
 from slopscore.eval.datasets import load_jsonl
-from slopscore.ingest.text import looks_like_markdown
+from slopscore.ingest.text import ingest_text, looks_like_markdown
 from slopscore.models import Report, Severity, SourceType
 
 _ROOT = Path(__file__).resolve().parents[1]
@@ -53,11 +53,10 @@ def _corpus() -> list[tuple[str, int]]:
     rows = load_jsonl(_ROOT / "eval" / "datasets" / "longform.jsonl")
     # Plain prose only: a row with Markdown syntax is sniffed onto the Markdown path by the text
     # ingester, and forcing the text path on it diverges for legitimate reasons.
-    plain = [(i, r) for i, r in enumerate(rows) if not looks_like_markdown(r.text)]
+    plain = [r for r in rows if not looks_like_markdown(r.text)]
     picked: list[tuple[str, int]] = []
     for label in (0, 1):
-        picked.extend((r.text, r.label) for _, r in plain if r.label == label)
-        picked = picked[: _PER_LABEL * (label + 1)]
+        picked.extend([(r.text, r.label) for r in plain if r.label == label][:_PER_LABEL])
     meta_row = rows[_META_ROW]
     assert not looks_like_markdown(meta_row.text)
     picked.append((meta_row.text, meta_row.label))
@@ -84,14 +83,16 @@ def _reports(entry: dict[str, object]) -> dict[str, Report]:
     return reports
 
 
-def test_the_two_paths_really_are_two_ingesters(scanned: list[dict[str, object]]) -> None:
-    # An earlier version of this file compared ".txt" against ".md" through the suffix dispatch,
-    # and 18 of its 33 documents were sniffed as Markdown on both sides: a self-comparison.
-    assert {int(e["label"]) for e in scanned} == {0, 1}  # type: ignore[call-overload]
-    for entry in scanned:
-        reports = _reports(entry)
-        assert reports["text"].input.source_type is SourceType.text
-        assert reports["markdown"].input.source_type is SourceType.markdown
+def test_the_text_path_is_what_a_user_gets() -> None:
+    # The comparison is only meaningful if the "text" side is the path a .txt file or stdin
+    # really takes. For these rows the ingester's own dispatch picks the text path; an earlier
+    # version compared ".txt" against ".md" and 18 of its 33 documents were sniffed as Markdown on
+    # both sides, a self-comparison.
+    labels = set()
+    for text, label in _corpus():
+        labels.add(label)
+        assert ingest_text(text).source_type is SourceType.text
+    assert labels == {0, 1}
 
 
 def test_fixture_exercises_the_metadiscourse_rules(scanned: list[dict[str, object]]) -> None:
@@ -118,12 +119,34 @@ def test_no_rule_fires_under_one_ingester_only(scanned: list[dict[str, object]])
 
 def test_no_high_severity_run_on_clean_documents(scanned: list[dict[str, object]]) -> None:
     # Round 4's plain-text defect produced exactly this, and it trips --fail-on high for users.
-    for entry in scanned:
-        if entry["label"] != 0:
-            continue
-        for report in _reports(entry).values():
-            for e in report.findings:
-                assert not (e.rule_id == RULE_META_RUN and e.severity is Severity.high)
+    # README.md goes through the Markdown ingester because headings and lists are the structure
+    # the run guard exists for, and no corpus row above has any.
+    scorer = SlopScorer()
+    readme = sweep_sources.scan_markdown(scorer, (_ROOT / "README.md").read_text(encoding="utf-8"))
+    reports = [readme] + [
+        r for entry in scanned if entry["label"] == 0 for r in _reports(entry).values()
+    ]
+    for report in reports:
+        for e in report.findings:
+            assert not (e.rule_id == RULE_META_RUN and e.severity is Severity.high)
+
+
+def test_section_openers_under_headings_are_not_one_run() -> None:
+    # The IMRaD shape: four sections each opening with a signpost. Headings break a run, so this
+    # is four signposts, not a high-severity run of four.
+    text = "\n\n".join(
+        f"## {title}\n\nIn this section we will describe the {noun} we have taken here."
+        for title, noun in [
+            ("Introduction", "motivation"),
+            ("Methods", "approach"),
+            ("Results", "outcome"),
+            ("Discussion", "interpretation"),
+        ]
+    )
+    report = sweep_sources.scan_markdown(SlopScorer(), text)
+    assert report.input.source_type is SourceType.markdown
+    assert any(e.rule_id == "META_SECTION_PLAN" for e in report.findings)
+    assert not any(e.rule_id == RULE_META_RUN for e in report.findings)
 
 
 _RUN = (
@@ -137,8 +160,8 @@ def test_a_genuine_run_is_found_on_every_path() -> None:
     """The positive direction: flat, hard-wrapped, and Markdown all report the same run.
 
     The negative tests above pass with the run term switched off; this one does not. Wrapping
-    used to lose the run entirely: each wrapped meta sentence became a marker-less tail that
-    ended it, so a hard-wrapped .txt scored 0.09 where the same prose flat scored 0.55.
+    once lost the run entirely: each wrapped meta sentence became a marker-less tail that ended
+    it, so a hard-wrapped .txt scored 0.09 where the same prose flat scored 0.55.
     """
     scorer = SlopScorer()
     flat, wrapped = sweep_sources.wrap_variants(_RUN)
@@ -164,32 +187,38 @@ def test_signposts_in_separate_paragraphs_are_not_one_run(path: str) -> None:
         "As noted above, the framing here is what actually matters most of all.\n\n"
         "To be clear, the point is not really about any of that at all.\n"
     )
-    scan = getattr(sweep_sources, f"scan_{'plain' if path == 'text' else 'markdown'}")
+    scan = sweep_sources.scan_plain if path == "text" else sweep_sources.scan_markdown
     report = scan(SlopScorer(), text)
     assert not any(e.rule_id == RULE_META_RUN for e in report.findings)
 
 
-def test_hard_wrapping_does_not_create_a_metadiscourse_run() -> None:
-    """Hard-wrapped prose must not manufacture a run.
+def _meta(report: Report) -> list[tuple[str, str]]:
+    return sorted(
+        (e.rule_id, e.severity.value) for e in report.findings if e.rule_id.startswith("META_")
+    )
+
+
+def test_hard_wrapping_changes_no_metadiscourse_finding() -> None:
+    """Hard-wrapped prose must produce exactly the metadiscourse findings flat prose does.
 
     ``_ruleset.py`` compiles every pattern with ``re.MULTILINE``, so a ``^`` anchor is a LINE
-    anchor, and the marker lexicon is matched against each sentence in isolation, where ``\\A``
-    is the head of that sentence. pysbd also splits hard-wrapped text on line breaks. Together
-    those made a paragraph wrapped at 60 columns -- a code comment, a plain-text file, a commit
-    message -- arrive as fragments each of which matched a clause-anchored marker, escalating
-    text with no metadiscourse in it to a run. Two fixtures: one where no wrapped line starts at
-    a marker, and one where a wrap puts a marker at the head of a line mid-sentence.
+    anchor, and pysbd splits hard-wrapped text on line breaks. Together those made a paragraph
+    wrapped at 60 columns -- a code comment, a plain-text file, a commit message -- fire
+    clause-anchored markers mid-sentence and escalate to a run. Two fixtures: one with no
+    metadiscourse at all, where a wrap puts "precision matters" at the head of a line, and one
+    where a wrap puts "in short," at the head of a line mid-sentence beside a genuine marker.
     """
     scorer = SlopScorer()
-    fixtures = [
+    no_meta = (
         "The team reviewed the two lists and the schedule, and precision matters more than "
         "speed for this path, and to be clear, they said the deadline had not moved, and "
-        "overall, the next item was deferred to the spring.",
-        "The team reviewed the two lists and the schedule and,\nin short, nothing about the "
-        "plan had changed at all by then.\nTo be clear, the deadline had not moved at all for "
-        "anyone.",
-    ]
-    for text in fixtures:
-        for variant in (text, "\n".join(textwrap.wrap(" ".join(text.split()), 60))):
-            findings = sweep_sources.scan_plain(scorer, variant).findings
-            assert not any(e.rule_id == RULE_META_RUN for e in findings)
+        "overall, the next item was deferred to the spring."
+    )
+    one_meta = (
+        "The team reviewed the two lists and the schedule and, in short, nothing about the "
+        "plan had changed at all by then. To be clear, the deadline had not moved at all for "
+        "anyone."
+    )
+    for text, expected in [(no_meta, []), (one_meta, [("META_CLARIFY_FRAME", "low")])]:
+        for variant in (text, "\n".join(textwrap.wrap(text, 60))):
+            assert _meta(sweep_sources.scan_plain(scorer, variant)) == expected, variant

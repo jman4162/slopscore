@@ -1,4 +1,4 @@
-"""Every clause-initial rule uses the one shared anchor, and the anchor does what it says."""
+"""Clause-initial rules use the one shared anchor, and every YAML loader expands it."""
 
 from __future__ import annotations
 
@@ -11,58 +11,104 @@ from slopscore.config import data_path
 from slopscore.features._ruleset import (
     CLAUSE_START,
     CLAUSE_START_TOKEN,
-    expand_pattern,
+    compile_rule_pattern,
     load_rules,
     load_rules_from_directory,
 )
 
 _DATA = Path(data_path("patterns")).parent
 
+# Rules that use a bare `^` line anchor or a hand-written sentence lookbehind ON PURPOSE.
+#
+# RESIDUE_*: "Certainly!" or "Great question!" as the first thing on a line IS the tell.
+# The other six shipped before v0.14 with their own anchors. Moving them onto CLAUSE_START
+# changed their findings on flat prose (they fired after a mid-line semicolon and stopped firing
+# after an unpunctuated heading line), so they were put back. Their wrap-sensitivity is recorded in
+# eval/results/source_sweep.json. Adding an id here is a decision to be written down, not a fix.
+LINE_ANCHORED = frozenset(
+    {
+        "RESIDUE_CERTAINLY",
+        "RESIDUE_SYCOPHANTIC_OPENER",
+        "FORMULAIC_IN_CONCLUSION",
+        "FORMULAIC_THAT_SAID",
+        "FORMULAIC_SIMPLY_PUT",
+        "WEASEL_CERTAINTY_OPENER",
+        "CANDOR_ADVERB_PARENTHETICAL",
+        "PARALLEL_X_NOT_Y",
+    }
+)
 
-def _every_yaml_pattern() -> list[tuple[str, str]]:
-    out: list[tuple[str, str]] = []
+_BARE_CARET = re.compile(r"(?<!\[)\^")
+_HAND_LOOKBEHIND = re.compile(r"\(\?<=\[[.!?]")
+
+
+def _every_yaml_pattern() -> list[tuple[str, str, str]]:
+    """``(file, rule id or "marker", pattern)`` for every pattern under data/."""
+    out: list[tuple[str, str, str]] = []
     for path in sorted(_DATA.rglob("*.yaml")):
         raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        if not isinstance(raw, dict):
+            continue
         for entry in raw.get("rules", []) or []:
-            out.append((f"{path.name}:{entry['rule_id']}", entry["pattern"]))
+            if "pattern" in entry:
+                out.append((path.name, entry["rule_id"], entry["pattern"]))
         for marker in raw.get("markers", []) or []:
-            out.append((f"{path.name}:marker", marker))
+            out.append((path.name, "marker", marker))
     return out
 
 
-def test_no_pattern_hand_writes_a_clause_anchor() -> None:
-    # `^` under MULTILINE is a line anchor. It fired mid-sentence on hard-wrapped prose, and each
-    # hand-copied lookbehind that replaced it was wrong in its own way (one whitespace character,
-    # a private definition of "paragraph break"). The prompt_residue rules are the exception:
-    # "Certainly!" and "Great question!" as the first thing on a line IS the tell.
-    offenders = [
-        name
-        for name, pattern in _every_yaml_pattern()
-        if "(?:^|" in pattern or "(?<=[.!?]\\s)" in pattern or "(?<=\\n\\n)" in pattern
-    ]
-    assert offenders == []
-    assert any(CLAUSE_START_TOKEN in p for _, p in _every_yaml_pattern())
-
-
-def test_the_loader_expands_the_token() -> None:
-    rules = load_rules("patterns", "formulaic.yaml") + load_rules_from_directory(
-        "patterns", "metadiscourse"
+def test_no_unlisted_pattern_anchors_on_a_line_or_a_hand_written_boundary() -> None:
+    # `^` under MULTILINE is a line anchor and fires mid-sentence on hard-wrapped prose; every
+    # hand-copied sentence lookbehind was wrong in its own way. Write {CLAUSE_START} instead.
+    offenders = sorted(
+        f"{name}:{rule}"
+        for name, rule, pattern in _every_yaml_pattern()
+        if rule not in LINE_ANCHORED
+        and (_BARE_CARET.search(pattern) or _HAND_LOOKBEHIND.search(pattern))
     )
-    assert all(CLAUSE_START_TOKEN not in r.pattern.pattern for r in rules)
-    assert any(CLAUSE_START in r.pattern.pattern for r in rules)
+    assert offenders == []
+
+
+def test_the_allow_list_is_not_stale() -> None:
+    present = {rule for _, rule, _ in _every_yaml_pattern()}
+    assert present >= LINE_ANCHORED
+
+
+def test_the_token_is_used_and_every_loader_expands_it() -> None:
+    from slopscore.features.metadiscourse import _markers
+    from slopscore.features.suggestions import _swaps
+
+    assert any(CLAUSE_START_TOKEN in p for _, _, p in _every_yaml_pattern())
+    compiled = (
+        [r.pattern for r in load_rules("patterns", "formulaic.yaml")]
+        + [r.pattern for r in load_rules_from_directory("patterns", "metadiscourse")]
+        + [r.pattern for r in load_rules_from_directory("patterns", "metadiscourse_broad")]
+        + _markers()
+        + [s.pattern for s in _swaps()]
+    )
+    assert all(CLAUSE_START_TOKEN not in p.pattern for p in compiled)
+    assert any(CLAUSE_START in p.pattern for p in compiled)
+
+
+def test_an_unexpanded_token_would_fail_silently() -> None:
+    # Why every loader must use compile_rule_pattern: the regex module accepts the raw token as a
+    # literal, so a rule compiled without expansion loads fine and never matches prose.
+    raw = re.compile("{CLAUSE_START}to be clear,", re.IGNORECASE)
+    assert raw.search("It rained. To be clear, x") is None
+    assert compile_rule_pattern("{CLAUSE_START}to be clear,").search("It rained. To be clear, x")
 
 
 def test_anchor_accepts_sentence_boundaries_and_refuses_wraps() -> None:
-    p = re.compile(expand_pattern("{CLAUSE_START}to be clear,"), re.IGNORECASE | re.MULTILINE)
-    assert CLAUSE_START in p.pattern
+    p = compile_rule_pattern("{CLAUSE_START}to be clear,")
     for text in [
         "to be clear, x",
         "\n to be clear, x",
         "a. to be clear, x",
         "a. \nto be clear, x",
         "a.\n \nto be clear, x",
-        "Key points:\nto be clear, x",
-        "-->\nto be clear, x",
+        "a.\n\n   to be clear, x",
+        "Key points: to be clear, x",
+        "Costs rose; to be clear, x",
         'he said "no." to be clear, x',
         "a.) to be clear, x",
     ]:

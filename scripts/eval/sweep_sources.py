@@ -31,14 +31,13 @@ from slopscore import SlopScorer
 from slopscore.core import build_document
 from slopscore.eval.datasets import load_jsonl
 from slopscore.features.cadence import RULE_UNIFORM_RUN
+from slopscore.features.metadiscourse import RULE_META_RUN
 from slopscore.features.structure import StructureTells
 from slopscore.ingest import RawSource
 from slopscore.ingest.markdown import ingest_markdown
-from slopscore.ingest.text import looks_like_markdown, strip_fenced_code
+from slopscore.ingest.text import ingest_text, looks_like_markdown, strip_fenced_code
 from slopscore.models import Report, Severity, SourceType
 from slopscore.scoring.scorer import score_document
-
-RULE_META_RUN = "META_RUN_OF_META_SENTENCES"
 
 # Rules that legitimately depend on document structure, so their absence on plain text is correct
 # rather than a bug. Derived, not copied: the next STRUCTURE_ rule joins it automatically.
@@ -51,15 +50,19 @@ _PARAGRAPH_BREAK = re.compile(r"\n[ \t]*\n")
 
 
 def scan_plain(scorer: SlopScorer, text: str) -> Report:
-    """The text ingester with its Markdown sniffing bypassed.
+    """The text ingester, with Markdown sniffing bypassed only where it would fire.
 
     ``ingest_text`` routes anything that looks like Markdown (two or more heading, list, bold or
     fence lines) through ``ingest_markdown``, so ``scan_file("x.txt")`` on such a document is
     the Markdown path under another name. An earlier version of this sweep compared the two
-    suffixes and had 38 of 193 documents comparing a report with itself; this builds the
-    ``RawSource`` directly so the text path is the text path.
+    suffixes and had 38 of 193 documents comparing a report with itself. Prose that does not look
+    like Markdown goes through ``ingest_text`` itself, so a change to that path is exercised here
+    rather than shadowed by a copy of it; only sniffed documents get a hand-built text source.
     """
-    raw = RawSource(text=strip_fenced_code(text), source_type=SourceType.text, source="doc.txt")
+    if looks_like_markdown(text):
+        raw = RawSource(text=strip_fenced_code(text), source_type=SourceType.text, source="doc.txt")
+    else:
+        raw = ingest_text(text, source="doc.txt")
     return score_document(build_document(raw), scorer.settings)
 
 

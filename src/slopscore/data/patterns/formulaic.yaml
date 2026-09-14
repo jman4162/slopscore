@@ -52,7 +52,7 @@ rules:
 
   - rule_id: FORMULAIC_IN_CONCLUSION
     severity: low
-    pattern: "\\bin conclusion\\b|{CLAUSE_START}(?:to sum up|all in all|in summary|in a nutshell|at the end of the day),"
+    pattern: "\\bin conclusion\\b|(?:^|(?<=[.!?]\\s))(?:to sum up|all in all|in summary|in a nutshell|at the end of the day),"
     explanation: "'In conclusion' / 'to sum up' formulaic closer."
 
   - rule_id: FORMULAIC_GAME_CHANGER
@@ -106,12 +106,12 @@ rules:
 
   - rule_id: FORMULAIC_THAT_SAID
     severity: low
-    pattern: "{CLAUSE_START}(?:that (?:being )?said|with that (?:said|in mind)|having said that),"
+    pattern: "(?:^|(?<=[.!?]\\s))(?:that (?:being )?said|with that (?:said|in mind)|having said that),"
     explanation: "'That said,' reflexive pivot opener."
 
   - rule_id: FORMULAIC_SIMPLY_PUT
     severity: low
-    pattern: "{CLAUSE_START}(?:in essence|simply put|put simply|in short|in other words|to put it (?:simply|another way)),"
+    pattern: "(?:^|(?<=[.!?]\\s))(?:in essence|simply put|put simply|in short|in other words|to put it (?:simply|another way)),"
     explanation: "'Simply put,' restatement opener."
 
   - rule_id: FORMULAIC_MAKE_NO_MISTAKE

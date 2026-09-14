@@ -15,6 +15,7 @@ import yaml
 
 from slopscore.config import data_path
 from slopscore.document import Document
+from slopscore.features._ruleset import compile_rule_pattern
 from slopscore.models import Evidence, Severity, Suggestion
 
 
@@ -34,7 +35,7 @@ def _swaps() -> list[_Swap]:
     return [
         _Swap(
             rule_id=e["rule_id"],
-            pattern=re.compile(e["pattern"], re.IGNORECASE),
+            pattern=compile_rule_pattern(e["pattern"], re.IGNORECASE),
             text=e["suggestion"],
             confidence=float(e["confidence"]),
             reasoning=e["reasoning"],

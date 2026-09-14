@@ -168,10 +168,8 @@ boost the genre where "honestly" is legitimate human speech. `full_scale` is 4.0
 Weak-alone, which means concrete first-person prose with heavy candor filler deliberately scores
 low (see the MODEL_CARD limitation). The comma requirement in `CANDOR_ADVERB_PARENTHETICAL` is what
 keeps the ESL calques "Honestly speaking"/"Frankly speaking" quiet — do not relax it. Do not add
-"Sincerely,"/"Truly," to that rule: a sign-off follows a period-terminated line, which the clause
-anchor accepts, so they would fire on email sign-offs. Clause-initial rules write `{CLAUSE_START}`
-in their YAML, expanded at load time from `_ruleset.py:CLAUSE_START`; never `^`, which is a LINE
-anchor under the `MULTILINE` every pack compiles with and fired mid-sentence on hard-wrapped prose.
+"Sincerely,"/"Truly," to that rule: patterns compile under MULTILINE, so `^` matches every line
+start and they would fire on email sign-offs.
 
 Metadiscourse (v0.14): writing that refers to the text rather than to its subject. This is
 Hyland's
@@ -189,11 +187,16 @@ make it unlike the other packs.
   overrides (`_severity_factor`), and **anchors on the run's first sentence only** — a
   multi-sentence finding span makes `report/html.py` swallow every phrase highlight inside it and
   makes `report/baseline.py` fingerprints change on unrelated edits. Run length is therefore
-  recovered by re-deriving runs from the document, never from the span text. Runs are built
-  over `_units`, not `doc.sentences`: pysbd ends a sentence at every line break, so hard-wrap
-  fragments are re-joined until one finishes a clause, and a paragraph scores the same wrapped
-  or flat. Non-prose blocks (`heading`, `list_item`) and any sentence carrying a fact **break**
-  a run; a short factless sentence is neutral, and an HTML-comment control line is ignored.
+  recovered by re-deriving runs from the document, never from the span text. The dimension
+  reads a **flattened copy** of the cleaned text (`metadiscourse.py:flatten`): soft line breaks
+  become spaces and HTML comments are blanked, one character for one, so offsets are unchanged
+  and pysbd segments hard-wrapped prose as the flat prose it is. Its rules match that copy too.
+  Do not repair pysbd fragments after the fact instead; three attempts at that each broke
+  something new. Non-prose blocks (`heading`, `list_item`) and any sentence carrying a fact
+  **break** a run; a short factless sentence is neutral. Clause-initial rules and markers write
+  `{CLAUSE_START}`, expanded by `_ruleset.py:compile_rule_pattern`, which every YAML loader must
+  use. The six clause-initial rules that predate v0.14 keep their own anchors on purpose; see the
+  comment on `CLAUSE_START`.
   The run's `Evidence` is licensed by a `META_` rule inside it, and `prune_spans`
   (`base.py:SpanPruned`) re-applies that licence after the scorer's `disabled_rules` and
   suppression filtering, so a disabled rule takes its run with it. A terminal-recap term was

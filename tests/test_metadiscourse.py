@@ -658,3 +658,104 @@ def test_marketing_profile_softens_metadiscourse() -> None:
     from slopscore.scoring.profiles import profile_multipliers
 
     assert profile_multipliers("marketing")[Dimension.metadiscourse] == 0.8
+
+
+# --- review round 7 --------------------------------------------------------------------------
+
+_A = "To be clear, the framing here is what actually matters most of all."
+_B = "As noted above, the point is not really about any of that at all either."
+_C = "To be precise, none of this is about the subject at hand whatsoever."
+
+
+def test_a_suppression_comment_between_lines_is_not_evidence() -> None:
+    # The rule id inside a comment read as a concrete identifier and exempted the marker below it,
+    # so suppressing an unrelated rule silenced this one.
+    with_comment = scan_text(
+        "Summary of the plan\n"
+        "<!-- slopscore-disable-next-line LEXICAL_GENERIC_IMPORTANCE -->\n"
+        "As noted above, the point is not really about any of that at all."
+    )
+    without = scan_text(
+        "Summary of the plan\nAs noted above, the point is not really about any of that at all."
+    )
+    assert ("META_ENDOPHORIC_BACKREF", "low") in _meta(with_comment)
+    assert _meta(with_comment) == _meta(without)
+    assert with_comment.dimensions.metadiscourse == without.dimensions.metadiscourse
+
+
+def test_an_inline_suppression_comment_is_not_evidence() -> None:
+    fact = "The bridge in Leeds opened in 1932 after three years of work."
+    marker = "To be clear, the point is not really about any of that at all."
+    with_comment = scan_text(
+        f"{fact} <!-- slopscore-disable-line LEXICAL_GENERIC_IMPORTANCE --> {marker}"
+    )
+    without = scan_text(f"{fact} {marker}")
+    assert ("META_CLARIFY_FRAME", "low") in _meta(with_comment)
+    assert with_comment.dimensions.metadiscourse == without.dimensions.metadiscourse
+
+
+def test_a_marker_split_by_a_hard_wrap_is_still_a_marker() -> None:
+    # Literal spaces in a pattern cannot match a newline, so "As noted\nabove," was invisible to
+    # the lexicon and the rule alike, and a run of three read as two.
+    flat = scan_text(f"{_A} {_B} {_C}")
+    split = scan_text(f"{_A} {_B} {_C}".replace("As noted above,", "As noted\nabove,"))
+    assert ("META_RUN_OF_META_SENTENCES", "medium") in _meta(flat)
+    assert _meta(split) == _meta(flat)
+    assert split.dimensions.metadiscourse == flat.dimensions.metadiscourse
+
+
+def test_a_footnote_marker_does_not_join_sentences() -> None:
+    # A regex notion of "sentence end" did not know ".[1]", joined the first two sentences, and
+    # the footnote number exempted both markers.
+    report = scan_text(f"{_A.replace('all.', 'all.[1]')} {_B} {_C}")
+    assert any(e.rule_id == "META_RUN_OF_META_SENTENCES" for e in report.findings)
+
+
+def test_an_ellipsis_does_not_shorten_a_run() -> None:
+    plain = scan_text(f"{_A} {_B} {_C}")
+    ellipsis = scan_text(f"{_A.replace('all.', 'all…')} {_B} {_C}")
+    assert _meta(ellipsis) == _meta(plain)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Costs rose sharply; that said, the project finished on time.",
+        "My answer to the committee: honestly, we did not have the data.",
+        "He gave one reason: naturally, the weather was to blame.",
+    ],
+)
+def test_pre_existing_clause_rules_keep_their_v013_anchor_on_flat_prose(text: str) -> None:
+    # Moving these onto CLAUSE_START made them fire after a mid-line colon or semicolon. They
+    # shipped in 0.13.0 and this release does not change them.
+    legacy = {"FORMULAIC_THAT_SAID", "CANDOR_ADVERB_PARENTHETICAL", "WEASEL_CERTAINTY_OPENER"}
+    assert not any(e.rule_id in legacy for e in scan_text(text).findings)
+
+
+def test_pre_existing_clause_rules_still_fire_after_a_heading_line() -> None:
+    # The single-newline layout of extracted web articles: an unpunctuated heading, then a clause.
+    text = (
+        "Conclusion\nIn summary, the committee met in Leeds on Tuesday.\n"
+        "Next steps\nThat said, the point is not settled."
+    )
+    ids = {e.rule_id for e in scan_text(text).findings}
+    assert {"FORMULAIC_IN_CONCLUSION", "FORMULAIC_THAT_SAID"} <= ids
+
+
+def test_flatten_preserves_length_and_paragraphs() -> None:
+    from slopscore.features.metadiscourse import flatten
+    from slopscore.normalize.segment import split_paragraphs
+
+    for text in [
+        "a.\nb.\n\nc.\n \nd.",
+        "x <!-- slopscore-disable-line A -->\ny",
+        "<!--\n\n-->z",
+        "one\ntwo\n\n\nthree",
+    ]:
+        flat = flatten(text)
+        assert len(flat) == len(text)
+        assert "<!--" not in flat
+    text = "a.\nb.\n\nc.\n \nd."
+    assert [(p.start, p.end) for p in split_paragraphs(flatten(text))] == [
+        (p.start, p.end) for p in split_paragraphs(text)
+    ]

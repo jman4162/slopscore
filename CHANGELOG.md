@@ -66,20 +66,16 @@ Metadiscourse. Schema 0.14.0 (new `metadiscourse` dimension).
   sentence documenting `INSIGHT_LOAD_BEARING`. Scores and `INSIGHT_*` findings on corpora
   containing quoted examples will drop relative to 0.13.0, and a `--baseline-file` built on
   0.13.0 will report those findings as resolved.
-- **One clause anchor, and six older rules now use it.** Rules that must match a sentence
-  opener wrote their own anchor, and every copy was wrong somewhere: `^` is a line anchor under
-  the `MULTILINE` every pack compiles with, so it matched mid-sentence on hard-wrapped prose
-  (code comments, commit messages, plain-text files); `(?<=[.!?]\s)` allowed one whitespace
-  character, so a sentence boundary written `. \n` never anchored; and a second definition of
-  "paragraph break" disagreed with the segmenter's. YAML now writes `{CLAUSE_START}`, expanded
-  at load time from `_ruleset.py:CLAUSE_START`. The pre-existing `FORMULAIC_IN_CONCLUSION`,
-  `FORMULAIC_THAT_SAID`, `FORMULAIC_SIMPLY_PUT`, `WEASEL_CERTAINTY_OPENER`,
-  `CANDOR_ADVERB_PARENTHETICAL` and `PARALLEL_X_NOT_Y` moved onto it, so on hard-wrapped text
-  they stop firing mid-sentence and start firing after `. \n`, a blank line containing a space,
-  a colon-terminated line, and a closing quote; they no longer fire on the line after a bare,
-  unpunctuated line. Flat prose is unchanged. Hard-wrapped metadiscourse also now scores the
-  same as flat: sentence fragments are re-joined before a run is classified, where before a
-  wrapped run either manufactured itself out of fragments or vanished.
+- **Hard-wrapped prose scores the same as flat.** pysbd ends a sentence at every line break, so
+  wrapped text (code comments, commit messages, plain-text files) arrived as fragments. Matched
+  fragment by fragment, a clause-initial marker fired mid-sentence, and a wrapped paragraph with
+  no metadiscourse in it escalated to a run. The dimension now reads a copy of the text in which
+  soft line breaks are spaces and HTML comments are blank, one character for one, so offsets are
+  unchanged and pysbd segments wrapped prose as flat prose. A marker split across a wrap ("As
+  noted" / "above,") is found, and a rule id inside a suppression comment no longer counts as a
+  concrete identifier that exempts the marker beside it. Clause-initial metadiscourse patterns
+  share one anchor, `{CLAUSE_START}` in the YAML, expanded by `_ruleset.py:compile_rule_pattern`.
+  The clause-initial rules that shipped in 0.13.0 keep their anchors unchanged.
 - **Disabling a run's licensing rule removes the run.** `disabled_rules` and inline suppression
   filter by rule id after extraction, so silencing the one `META_` rule inside a run left the
   `META_RUN_OF_META_SENTENCES` finding in the report at medium severity while the dimension

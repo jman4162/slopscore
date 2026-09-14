@@ -16,45 +16,57 @@ from slopscore.models import Evidence, Severity
 __all__ = [
     "CLAUSE_START",
     "CLAUSE_START_TOKEN",
+    "DEFAULT_FLAGS",
     "SEVERITY_WEIGHT",
     "Rule",
+    "compile_rule_pattern",
     "expand_pattern",
     "find_matches",
     "load_rules",
     "load_rules_from_directory",
 ]
 
-# The start of a clause, for rules that must only match a sentence opener ("To be clear,",
-# "Honestly,", "In short,"). Written ONCE here and spliced into YAML patterns at load time
-# wherever they say ``{CLAUSE_START}``, because every hand-copied version of it has been wrong in
-# a different way:
+# The start of a clause, for metadiscourse rules and markers that must only match a sentence
+# opener ("To be clear,", "In short:"). Written ONCE here and spliced into YAML wherever a pattern
+# says ``{CLAUSE_START}``, because every hand-copied version of it was wrong in a different way:
 #
 # * ``^`` is a LINE anchor under the ``re.MULTILINE`` these rules compile with, so it matched
-#   mid-sentence on hard-wrapped prose (code comments, commit messages, plain-text files) and let
-#   a wrapped paragraph with no metadiscourse in it escalate to a run finding.
-# * ``(?<=[.!?]\s)`` allowed exactly one whitespace character, so a sentence boundary written as
-#   ``. \n`` (trailing space, then the line break; 18 of 180 long-form corpus rows) never anchored,
-#   and neither did a sentence after a closing quote (``he said "no." To be clear,``).
-# * ``(?<=\n\n)`` was a second definition of "paragraph break" that disagreed with the
-#   segmenter's ``\n[ \t]*\n``: a blank line containing a space was a paragraph to one and not
-#   the other, so the same bytes scored differently as .txt and as .md.
+#   mid-sentence on hard-wrapped prose (code comments, commit messages, plain-text files).
+# * ``(?<=[.!?]\s)`` allowed exactly one whitespace character, so a boundary written ``. \n``
+#   never anchored, and neither did a sentence after a closing quote (``"no." To be clear,``).
+# * ``(?<=\n\n)`` disagreed with the segmenter's ``\n[ \t]*\n`` about what a paragraph is.
 #
-# What it accepts: the start of the text (leading whitespace allowed), a blank line, terminal
-# punctuation plus any closers and whitespace (a line break included), a colon- or
-# semicolon-terminated line ("Key points:\nTo be clear,"), and the end of an HTML comment,
-# which is what ``ingest/markdown.py`` leaves in front of a paragraph carrying a suppression
-# comment. What it refuses: a line break after a bare word, which is what a hard wrap looks
-# like. The cost is a plain-text heading with no punctuation ("Background\nTo be clear,"), and
-# that is accepted: the wrap case is far commoner and the false positive it produced was severe.
+# It accepts the start of the text, a blank line, and terminal punctuation (colon and semicolon
+# included) followed by any closers and whitespace. The metadiscourse feature matches it against
+# a flattened copy of the text in which soft line breaks are spaces and HTML comments are blank
+# (``features/metadiscourse.py:flatten``), so it never has to reason about line structure.
+#
+# Deliberately NOT used by the clause-initial rules that shipped before v0.14
+# (FORMULAIC_IN_CONCLUSION, FORMULAIC_THAT_SAID, FORMULAIC_SIMPLY_PUT, WEASEL_CERTAINTY_OPENER,
+# CANDOR_ADVERB_PARENTHETICAL, PARALLEL_X_NOT_Y). Moving them onto it changed their findings on
+# flat prose: they began firing after a mid-line semicolon, and stopped firing after an
+# unpunctuated heading line. Their wrap-sensitivity predates v0.14 and is recorded in
+# eval/results/source_sweep.json; changing it is a calibration decision, not a release fix.
 #
 # Variable-width lookbehind is a ``regex`` module feature; ``re`` would refuse this pattern.
-CLAUSE_START = r"""(?:(?<=\A\s*)|(?<=\n\s*\n)|(?<=[.!?:;]["')\]]*\s+)|(?<=-->\s*))"""
+CLAUSE_START = r"""(?:(?<=\A\s*)|(?<=\n\s*\n\s*)|(?<=[.!?:;]["')\]]*\s+))"""
 CLAUSE_START_TOKEN = "{CLAUSE_START}"
+DEFAULT_FLAGS = re.IGNORECASE | re.MULTILINE
 
 
 def expand_pattern(pattern: str) -> str:
     """Splice the shared anchor into a YAML pattern before compiling it."""
     return pattern.replace(CLAUSE_START_TOKEN, CLAUSE_START)
+
+
+def compile_rule_pattern(pattern: str, flags: int = DEFAULT_FLAGS) -> re.Pattern[str]:
+    """Compile a pattern read from YAML. Every YAML loader goes through this.
+
+    The ``regex`` module compiles an unexpanded ``{CLAUSE_START}`` without complaint, as a
+    literal that never matches prose, so a loader that compiled patterns itself would silently
+    disable any rule using the token.
+    """
+    return re.compile(expand_pattern(pattern), flags)
 
 
 @dataclass(frozen=True)
@@ -73,7 +85,7 @@ def _rules_from_yaml(raw: dict[str, Any]) -> list[Rule]:
             Rule(
                 rule_id=entry["rule_id"],
                 severity=Severity(entry.get("severity", "low")),
-                pattern=re.compile(expand_pattern(entry["pattern"]), re.IGNORECASE | re.MULTILINE),
+                pattern=compile_rule_pattern(entry["pattern"]),
                 explanation=entry["explanation"],
                 source=entry.get("source", ""),
             )
