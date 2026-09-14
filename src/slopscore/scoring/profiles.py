@@ -50,8 +50,9 @@ PROFILES: dict[str, dict[Dimension, float]] = {
         # "cards on the table"), so this is boosted where insight_signaling is softened.
         Dimension.performative_candor: 1.2,
         # "In this guide we will show you", "TL;DR:", "Key takeaways:" and "the bottom line is"
-        # are marketing's native register, so this is softened like the rest of the profile.
-        # Left absent it defaulted to 1.0, higher than every other slop dimension here.
+        # are marketing's native register, so this is softened like lexical_markers and
+        # significance_inflation above. It was the one profile with no entry for the dimension,
+        # so it defaulted to 1.0 while every other profile had taken a position.
         Dimension.metadiscourse: 0.8,
     },
     "technical": {

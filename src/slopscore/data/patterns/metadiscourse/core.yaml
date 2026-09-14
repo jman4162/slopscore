@@ -15,6 +15,10 @@
 # ordinary writing. features/metadiscourse.py scores the worst RUN of consecutive
 # evidence-free meta sentences alongside the usual per-100-word rate.
 #
+# Clause-initial rules write `{CLAUSE_START}`, expanded at load time from
+# features/_ruleset.py:CLAUSE_START. Never `^`: patterns compile under re.MULTILINE, so it is a
+# LINE anchor and fires mid-sentence on hard-wrapped prose.
+#
 # This is the CORE (conservative) tier, on by default. See ../metadiscourse_broad/ for the
 # opt-in `--broad` tier of code glosses that ESL and simple-English writers use for clarity.
 # Sources: WP:AISIGNS (frame markers, section summaries); Hyland 2005; user-reported 2026 catches.
@@ -38,7 +42,7 @@ rules:
     # Only to/for/than: in/at/with follow the metadiscourse use at least as often as the
     # object-level one, and blocking them silenced "Precision matters in practice", "That
     # distinction is important in this debate", "The phrasing matters at scale".
-    pattern: "(?:\\A|(?<=\\n\\n)|(?<=[.!?][\"')\\]]?\\s))(?:Precision|Accuracy|Clarity|Word choice|The phrasing|The wording|The framing|The language|The distinction|That distinction|This distinction) (?:matters|is important|is what matters|is the point)\\b(?!\\s+(?:to|for|than)\\b)"
+    pattern: "{CLAUSE_START}(?:Precision|Accuracy|Clarity|Word choice|The phrasing|The wording|The framing|The language|The distinction|That distinction|This distinction) (?:matters|is important|is what matters|is the point)\\b(?!\\s+(?:to|for|than)\\b)"
     explanation: "'Precision matters here' — a sentence about the writing, not about the subject."
     source: "human-reader catch, Summitward stocks-are-always-risky (2026-09)"
 
@@ -61,20 +65,20 @@ rules:
   # --- endophoric markers: pointing at other parts of the same text ------------------------------
   - rule_id: META_ENDOPHORIC_BACKREF
     severity: low
-    pattern: "\\b(?:as (?:mentioned|noted|discussed|stated|described|explained|shown|we saw|we discussed|I (?:said|mentioned|noted))) (?:above|earlier|previously|before|already)\\b|(?:\\A|(?<=\\n\\n)|(?<=[.!?][\"')\\]]?\\s))(?:to recap|as a reminder),"
+    pattern: "\\b(?:as (?:mentioned|noted|discussed|stated|described|explained|shown|we saw|we discussed|I (?:said|mentioned|noted))) (?:above|earlier|previously|before|already)\\b|{CLAUSE_START}(?:to recap|as a reminder),"
     explanation: "'As noted above' — points back at the text rather than restating the fact."
     source: "Hyland 2005 (endophoric markers)"
 
   - rule_id: META_TRANSITION_ESTABLISHED
     severity: low
     # "having said that" is absent: FORMULAIC_THAT_SAID owns it.
-    pattern: "(?:\\A|(?<=\\n\\n)|(?<=[.!?][\"')\\]]?\\s))(?:having (?:established|covered|seen|discussed|laid out)|now that (?:we(?:'ve| have)|you(?:'ve| have)) (?:established|covered|seen|discussed)|with (?:that|this) (?:established|covered|out of the way|in hand))\\b"
+    pattern: "{CLAUSE_START}(?:having (?:established|covered|seen|discussed|laid out)|now that (?:we(?:'ve| have)|you(?:'ve| have)) (?:established|covered|seen|discussed)|with (?:that|this) (?:established|covered|out of the way|in hand))\\b"
     explanation: "'Having established that, we can turn to' — narrates the document's own progress."
     source: "WP:AISIGNS (section summaries)"
 
   - rule_id: META_TAKEAWAY
     severity: low
-    pattern: "\\b(?:the )?key takeaways? (?:is|are|here is)\\b|(?:\\A|(?<=\\n\\n)|(?<=[.!?][\"')\\]]?\\s))(?:\\*\\*)?(?:key )?takeaways?(?:\\*\\*)?\\s*:|\\btl;?dr\\b"
+    pattern: "\\b(?:the )?key takeaways? (?:is|are|here is)\\b|{CLAUSE_START}(?:\\*\\*)?(?:key )?takeaways?(?:\\*\\*)?\\s*:|\\btl;?dr\\b"
     explanation: "'The key takeaway is' / 'TL;DR' — labels the point instead of making it."
     source: "WP:AISIGNS (overuse of boldface, key-takeaways fashion)"
 
@@ -83,7 +87,7 @@ rules:
     severity: low
     # The colon twin of FORMULAIC_SIMPLY_PUT, which requires a trailing comma and so misses
     # "Put simply:" entirely. "in plain English" is absent here — META_PLAIN_ENGLISH owns it.
-    pattern: "(?:\\A|(?<=\\n\\n)|(?<=[.!?][\"')\\]]?\\s))(?:in essence|simply put|put simply|in short|in other words|to put it (?:simply|another way))\\s*:"
+    pattern: "{CLAUSE_START}(?:in essence|simply put|put simply|in short|in other words|to put it (?:simply|another way))\\s*:"
     explanation: "'Put simply:' restatement opener (the colon form)."
     source: "AI-tell (2024-2026)"
 
@@ -98,6 +102,6 @@ rules:
     # "let me be clear" is absent: FORMULAIC_MAKE_NO_MISTAKE owns it. The trailing comma is
     # required, the way CANDOR_ADVERB_PARENTHETICAL requires one, so "I want to be clear about
     # the dates" stays quiet.
-    pattern: "(?:\\A|(?<=\\n\\n)|(?<=[.!?][\"')\\]]?\\s))(?:to be clear|to be precise|let me be precise|to put a finer point on it|for the avoidance of doubt),"
+    pattern: "{CLAUSE_START}(?:to be clear|to be precise|let me be precise|to put a finer point on it|for the avoidance of doubt),"
     explanation: "'To be clear,' — announces clarity rather than supplying it."
     source: "AI-tell (2024-2026)"

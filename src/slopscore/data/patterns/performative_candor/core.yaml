@@ -57,12 +57,14 @@ rules:
     # .yaml anchors "Clearly,". The REQUIRED trailing comma is what keeps the ESL calques
     # ("Honestly speaking, ...", "Frankly speaking, ...") and the manner adverb ("she answered
     # honestly") quiet — that is this rule's main fairness property.
-    # Do NOT add "Sincerely," or "Truly,": rules compile under MULTILINE, so ^ matches every line
-    # start and those would fire on every email sign-off.
+    # Do NOT add "Sincerely," or "Truly,": a sign-off follows a line that ends in a period, which
+    # is exactly what {CLAUSE_START} accepts, so those would fire on every email sign-off. The
+    # `^[-*]` arm is a Markdown list marker at a line start and is the one place a line anchor
+    # is meant.
     # The comma-flanked parenthetical ("This is, frankly, absurd") counts, but not a manner
     # adverb inside a list ("plainly, honestly, and without malice"): the list case is excluded
     # by a preceding "-ly," item or a following ", and/or".
-    pattern: "(?:(?:^|(?<=[.!?]\\s)|(?<=[.!?]\\s\\s)|(?<=^[-*]\\s))(?:Honestly|Frankly|Candidly|Truthfully),|(?<=,\\s)(?<!ly,\\s)(?:Honestly|Frankly|Candidly|Truthfully),(?!\\s*(?:and|or|but)\\b))"
+    pattern: "(?:(?:{CLAUSE_START}|(?<=^[-*]\\s))(?:Honestly|Frankly|Candidly|Truthfully),|(?<=,\\s)(?<!ly,\\s)(?:Honestly|Frankly|Candidly|Truthfully),(?!\\s*(?:and|or|but)\\b))"
     explanation: "'Honestly, / Frankly,' opener — sincerity styling with no informational content."
     source: "AI-tell (2024-2026)"
 

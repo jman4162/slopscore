@@ -35,6 +35,21 @@ class SpanScored(Protocol):
 
 
 @runtime_checkable
+class SpanPruned(Protocol):
+    """A feature with spans that are only valid in the company of other spans.
+
+    The scorer drops disabled and suppressed spans by rule id, one at a time. A span that was
+    only emitted BECAUSE another span existed (the metadiscourse run finding, licensed by a
+    metadiscourse rule inside it) survives that filter when its licence does not, and then sits
+    in the report at medium or high severity while ``score_spans`` refuses to charge it: a
+    finding that trips ``--fail-on`` and contributes nothing. ``prune_spans`` runs on the
+    survivors so evidence and points appear and disappear together.
+    """
+
+    def prune_spans(self, doc: Document, spans: list[Evidence]) -> list[Evidence]: ...
+
+
+@runtime_checkable
 class Cataloged(Protocol):
     """A feature that can list every rule id it may emit (for suppression-name validation)."""
 

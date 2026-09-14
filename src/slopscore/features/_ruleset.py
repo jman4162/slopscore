@@ -14,12 +14,47 @@ from slopscore.features.base import SEVERITY_WEIGHT
 from slopscore.models import Evidence, Severity
 
 __all__ = [
+    "CLAUSE_START",
+    "CLAUSE_START_TOKEN",
     "SEVERITY_WEIGHT",
     "Rule",
+    "expand_pattern",
     "find_matches",
     "load_rules",
     "load_rules_from_directory",
 ]
+
+# The start of a clause, for rules that must only match a sentence opener ("To be clear,",
+# "Honestly,", "In short,"). Written ONCE here and spliced into YAML patterns at load time
+# wherever they say ``{CLAUSE_START}``, because every hand-copied version of it has been wrong in
+# a different way:
+#
+# * ``^`` is a LINE anchor under the ``re.MULTILINE`` these rules compile with, so it matched
+#   mid-sentence on hard-wrapped prose (code comments, commit messages, plain-text files) and let
+#   a wrapped paragraph with no metadiscourse in it escalate to a run finding.
+# * ``(?<=[.!?]\s)`` allowed exactly one whitespace character, so a sentence boundary written as
+#   ``. \n`` (trailing space, then the line break; 18 of 180 long-form corpus rows) never anchored,
+#   and neither did a sentence after a closing quote (``he said "no." To be clear,``).
+# * ``(?<=\n\n)`` was a second definition of "paragraph break" that disagreed with the
+#   segmenter's ``\n[ \t]*\n``: a blank line containing a space was a paragraph to one and not
+#   the other, so the same bytes scored differently as .txt and as .md.
+#
+# What it accepts: the start of the text (leading whitespace allowed), a blank line, terminal
+# punctuation plus any closers and whitespace (a line break included), a colon- or
+# semicolon-terminated line ("Key points:\nTo be clear,"), and the end of an HTML comment,
+# which is what ``ingest/markdown.py`` leaves in front of a paragraph carrying a suppression
+# comment. What it refuses: a line break after a bare word, which is what a hard wrap looks
+# like. The cost is a plain-text heading with no punctuation ("Background\nTo be clear,"), and
+# that is accepted: the wrap case is far commoner and the false positive it produced was severe.
+#
+# Variable-width lookbehind is a ``regex`` module feature; ``re`` would refuse this pattern.
+CLAUSE_START = r"""(?:(?<=\A\s*)|(?<=\n\s*\n)|(?<=[.!?:;]["')\]]*\s+)|(?<=-->\s*))"""
+CLAUSE_START_TOKEN = "{CLAUSE_START}"
+
+
+def expand_pattern(pattern: str) -> str:
+    """Splice the shared anchor into a YAML pattern before compiling it."""
+    return pattern.replace(CLAUSE_START_TOKEN, CLAUSE_START)
 
 
 @dataclass(frozen=True)
@@ -38,7 +73,7 @@ def _rules_from_yaml(raw: dict[str, Any]) -> list[Rule]:
             Rule(
                 rule_id=entry["rule_id"],
                 severity=Severity(entry.get("severity", "low")),
-                pattern=re.compile(entry["pattern"], re.IGNORECASE | re.MULTILINE),
+                pattern=re.compile(expand_pattern(entry["pattern"]), re.IGNORECASE | re.MULTILINE),
                 explanation=entry["explanation"],
                 source=entry.get("source", ""),
             )

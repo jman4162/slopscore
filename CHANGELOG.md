@@ -66,6 +66,27 @@ Metadiscourse. Schema 0.14.0 (new `metadiscourse` dimension).
   sentence documenting `INSIGHT_LOAD_BEARING`. Scores and `INSIGHT_*` findings on corpora
   containing quoted examples will drop relative to 0.13.0, and a `--baseline-file` built on
   0.13.0 will report those findings as resolved.
+- **One clause anchor, and six older rules now use it.** Rules that must match a sentence
+  opener wrote their own anchor, and every copy was wrong somewhere: `^` is a line anchor under
+  the `MULTILINE` every pack compiles with, so it matched mid-sentence on hard-wrapped prose
+  (code comments, commit messages, plain-text files); `(?<=[.!?]\s)` allowed one whitespace
+  character, so a sentence boundary written `. \n` never anchored; and a second definition of
+  "paragraph break" disagreed with the segmenter's. YAML now writes `{CLAUSE_START}`, expanded
+  at load time from `_ruleset.py:CLAUSE_START`. The pre-existing `FORMULAIC_IN_CONCLUSION`,
+  `FORMULAIC_THAT_SAID`, `FORMULAIC_SIMPLY_PUT`, `WEASEL_CERTAINTY_OPENER`,
+  `CANDOR_ADVERB_PARENTHETICAL` and `PARALLEL_X_NOT_Y` moved onto it, so on hard-wrapped text
+  they stop firing mid-sentence and start firing after `. \n`, a blank line containing a space,
+  a colon-terminated line, and a closing quote; they no longer fire on the line after a bare,
+  unpunctuated line. Flat prose is unchanged. Hard-wrapped metadiscourse also now scores the
+  same as flat: sentence fragments are re-joined before a run is classified, where before a
+  wrapped run either manufactured itself out of fragments or vanished.
+- **Disabling a run's licensing rule removes the run.** `disabled_rules` and inline suppression
+  filter by rule id after extraction, so silencing the one `META_` rule inside a run left the
+  `META_RUN_OF_META_SENTENCES` finding in the report at medium severity while the dimension
+  scored 0.0, and `--fail-on medium` exited non-zero for a rule the user had turned off. A
+  `SpanPruned` hook in `features/base.py` runs after the scorer's filter for exactly this.
+- **`marketing` profile: `metadiscourse` 0.8.** It was the one profile with no entry, so it
+  defaulted to 1.0 in the genre where "TL;DR:" and "Key takeaways:" are native register.
 - **`metadiscourse` corroborates nothing.** It is in neither `WEAK_DIMENSIONS` nor
   `CORROBORATING_DIMENSIONS`. Weak means damped to 0.3 when alone, which is the failure it exists
   to fix; but left in the derived corroborating set, its length-invariant concentration term

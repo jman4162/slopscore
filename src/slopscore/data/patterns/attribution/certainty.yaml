@@ -7,7 +7,7 @@
 rules:
   - rule_id: WEASEL_CERTAINTY_OPENER
     severity: low
-    pattern: "(?:^|(?<=[.!?]\\s)|(?<=[.!?]\\s\\s))(?:Clearly|Obviously|Undoubtedly|Undeniably|Naturally),"
+    pattern: "{CLAUSE_START}(?:Clearly|Obviously|Undoubtedly|Undeniably|Naturally),"
     explanation: "'Clearly, / Obviously,' opener — asserts a claim the writer has not justified."
     source: "WP:AIWEASEL"
 

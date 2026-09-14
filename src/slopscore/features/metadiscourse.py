@@ -26,6 +26,7 @@ the score is not ``severity_rate_score`` alone. It subclasses ``PhrasePack`` so 
 from __future__ import annotations
 
 from bisect import bisect_right
+from collections.abc import Callable
 from functools import lru_cache
 from typing import Literal
 
@@ -34,6 +35,7 @@ import yaml
 
 from slopscore.config import data_path
 from slopscore.document import Document
+from slopscore.features._ruleset import expand_pattern
 from slopscore.features.base import (
     MIN_RATE_WORDS,
     SEVERITY_WEIGHT,
@@ -74,12 +76,25 @@ _MIN_SENTENCE_WORDS = 6
 # bridged two distant markers into a run the evidence then described as consecutive.
 _MAX_SKIPS_IN_RUN = 1
 
-# A run member has to be a finished clause. pysbd splits hard-wrapped prose on line breaks, so a
-# paragraph wrapped at 60 columns arrives as fragments ending in "and" -- and because the marker
-# lexicon is matched against each sentence in isolation, \A matches at the head of every one of
-# them. A wrapped paragraph containing no metadiscourse therefore produced a run of three. A
-# fragment is un-judgeable rather than meta, so it is skipped, exactly like a too-short sentence.
-_ENDS_CLAUSE = re.compile(r"""[.!?:;]["')\]]*\s*$""")
+# Where a sentence ends. pysbd splits hard-wrapped prose on line breaks, so a paragraph wrapped
+# at 60 columns arrives as fragments ending in "and" -- and because the marker lexicon is
+# matched against each sentence in isolation, \A matches at the head of every one of them. A
+# wrapped paragraph containing no metadiscourse produced a run of three that way; skipping the
+# fragments instead switched the run term off on wrapped prose entirely, since every wrapped
+# meta sentence became a marker-less tail that ended the run. So ``_units`` re-joins fragments
+# until one of them finishes a clause, and classification sees whole sentences on wrapped and
+# flat text alike. Colons and semicolons count: "Key points:" on its own line is a finished
+# clause, not the first half of the paragraph that follows it. So does the end of an HTML
+# comment, matching the ``-->`` arm of ``_ruleset.CLAUSE_START``.
+_ENDS_CLAUSE = re.compile(r"""(?:[.!?:;]["')\]]*|-->)\s*$""")
+
+# A sentence that is nothing but an HTML comment is a control line (``suppress.py`` reads
+# ``<!-- slopscore-disable-next-line RULE -->``), not prose. It is neither a run member nor a
+# break, and it must not be joined to the paragraph after it: joined, the rule id inside it
+# counted as an identifier, which made the sentence it protected "concrete" and exempted a
+# marker the same sentence would have been charged for without the comment. pysbd splits the
+# comment itself into "<!" and "-- ... -->", so both halves are recognized as well as the whole.
+_CONTROL_LINE = re.compile(r"\A\s*(?:<!--.*?-->|<!|--.*?-->)\s*\Z", re.DOTALL)
 
 # Rules whose construction is legitimate when it restates a FACT. A code gloss over "the bus
 # costs two euros" is a comprehension aid, not prose about the prose, and it is how ESL and
@@ -113,9 +128,11 @@ def _markers() -> list[re.Pattern[str]]:
     """The non-scoring marker superset used to classify a sentence as metadiscourse."""
     with data_path("lexicons", "metadiscourse_markers.yaml").open(encoding="utf-8") as fh:
         raw = yaml.safe_load(fh)
-    # Same module and flags _ruleset.py compiles the YAML rules with, so a marker copied from
-    # patterns/*.yaml behaves identically here.
-    return [re.compile(m, re.IGNORECASE | re.MULTILINE) for m in raw.get("markers", [])]
+    # Same module, flags, and {CLAUSE_START} expansion _ruleset.py compiles the YAML rules with,
+    # so a marker copied from patterns/*.yaml behaves identically here.
+    return [
+        re.compile(expand_pattern(m), re.IGNORECASE | re.MULTILINE) for m in raw.get("markers", [])
+    ]
 
 
 def _strip_markers(text: str) -> tuple[str, list[tuple[int, int]]]:
@@ -149,20 +166,20 @@ def _strip_markers(text: str) -> tuple[str, list[tuple[int, int]]]:
 
 
 def _classify(doc: Document, sentence: TextSpan) -> Kind:
-    """``"meta"``, ``"skip"``, or ``"break"`` for one sentence.
+    """``"meta"``, ``"skip"``, or ``"break"`` for one sentence (a unit from ``_units``).
 
-    ``"skip"`` neither extends nor breaks a run: a sentence too short to judge says nothing about
+    ``"skip"`` neither extends nor breaks a run: a short factless sentence says nothing about
     whether the passage around it is about the writing, and treating it as concrete used to sever
-    a run, so a denser passage of prose-about-the-prose could score lower than a sparser one.
-    Everything else -- a sentence carrying a fact, or any non-prose block -- is a ``"break"``.
+    a run, so a denser passage of prose-about-the-prose could score lower than a sparser one. It
+    is the only neutral class. Everything else -- a sentence carrying a fact at ANY length, or
+    any non-prose block -- is a ``"break"``: the evidence test runs before the length test, so a
+    six-word line holding a figure or a URL ends a run rather than being passed over.
     """
     from slopscore.normalize.quotes import inside_quotes
 
     text = sentence.text.strip()
     if doc.in_block_kind(sentence.start, _NOT_PROSE):
         return "break"
-    if not _ENDS_CLAUSE.search(text):
-        return "skip"
     rest, marker_spans = _strip_markers(text)
     # The pack sets skip_quoted=True and the run term has to honor it. Test each marker's own
     # offsets, not the sentence's: pysbd keeps 'He said "In this section we will..."' as ONE
@@ -175,9 +192,9 @@ def _classify(doc: Document, sentence: TextSpan) -> Kind:
         # Judge it as if the marker were not there: a short quotation dropped into a genuine run
         # should not sever it, which is what "skip" exists to prevent.
         return _no_marker(text)
-    if len(text.split()) < _MIN_SENTENCE_WORDS:
-        return "skip"
-    return "break" if concrete_evidence_count(rest, spelled_numbers=True) > 0 else "meta"
+    if concrete_evidence_count(rest, spelled_numbers=True) > 0:
+        return "break"
+    return "skip" if len(text.split()) < _MIN_SENTENCE_WORDS else "meta"
 
 
 def _no_marker(text: str) -> Kind:
@@ -185,6 +202,54 @@ def _no_marker(text: str) -> Kind:
     if len(text.split()) < _MIN_SENTENCE_WORDS:
         return "skip" if concrete_evidence_count(text, spelled_numbers=True) == 0 else "break"
     return "break"
+
+
+def _paragraph_index(doc: Document) -> Callable[[int], int]:
+    para_starts = [p.start for p in doc.paragraphs]
+
+    def paragraph_of(start: int) -> int:
+        return bisect_right(para_starts, start) - 1 if para_starts else 0
+
+    return paragraph_of
+
+
+def _units(doc: Document) -> list[TextSpan]:
+    """The document's sentences with hard-wrap fragments re-joined.
+
+    pysbd ends a sentence at every line break, so wrapped prose arrives as fragments. A fragment
+    that does not finish a clause (``_ENDS_CLAUSE``) is joined to what follows it in the same
+    paragraph, until one does. The result is what the run detector and the fact-restatement
+    check classify, and it is the same for a paragraph whether or not it is wrapped: three
+    signposts wrapped at 60 columns are a run of three, and a marker that a wrap happened to put
+    at the head of a line ("...and,\nin short, nothing changed") is mid-sentence again, where
+    the lexicon's clause anchor cannot see it. Cached on the document like ``_runs``.
+    """
+    cached = doc.__dict__.get("_metadiscourse_units")
+    if cached is not None:
+        return list(cached)
+
+    paragraph_of = _paragraph_index(doc)
+    units: list[TextSpan] = []
+    open_: TextSpan | None = None
+    for s in doc.sentences:
+        if not s.text.strip() or _CONTROL_LINE.match(s.text):
+            continue
+        if open_ is not None and paragraph_of(s.start) == paragraph_of(open_.start):
+            open_ = TextSpan(
+                text=doc.cleaned_text[open_.start : s.end], start=open_.start, end=s.end
+            )
+        else:
+            if open_ is not None:
+                units.append(open_)
+            open_ = s
+        if _ENDS_CLAUSE.search(open_.text):
+            units.append(open_)
+            open_ = None
+    if open_ is not None:
+        units.append(open_)
+
+    doc.__dict__["_metadiscourse_units"] = units
+    return list(units)
 
 
 def _runs(doc: Document) -> list[list[TextSpan]]:
@@ -198,18 +263,12 @@ def _runs(doc: Document) -> list[list[TextSpan]]:
     if cached is not None:
         return [list(r) for r in cached]
 
-    para_starts = [p.start for p in doc.paragraphs]
-
-    def paragraph_of(sentence: TextSpan) -> int:
-        return bisect_right(para_starts, sentence.start) - 1 if para_starts else 0
-
+    paragraph_of = _paragraph_index(doc)
     runs: list[list[TextSpan]] = []
     current: list[TextSpan] = []
     skips = 0
     para = -1
-    for s in doc.sentences:
-        if not s.text.strip():
-            continue
+    for s in _units(doc):
         kind = _classify(doc, s)
         if kind == "skip":
             # Tolerated inside a run, but only so many: past the budget the run is not
@@ -220,7 +279,7 @@ def _runs(doc: Document) -> list[list[TextSpan]]:
                 current, skips = [], 0
             continue
         if kind == "meta":
-            here = paragraph_of(s)
+            here = paragraph_of(s.start)
             if current and here != para:
                 # A paragraph break is a structural boundary on every source type, Markdown or
                 # not. Without this, three signposts in three separate paragraphs of plain text
@@ -243,8 +302,13 @@ def _runs(doc: Document) -> list[list[TextSpan]]:
 
 
 def _sentence_ranges(doc: Document) -> list[tuple[int, int]]:
-    """Original-coordinate range of every sentence, positionally aligned with ``doc.sentences``."""
-    return [doc.mapper.to_original(s.start, s.end) for s in doc.sentences]
+    """Original-coordinate range of every unit (see ``_units``), in document order.
+
+    Units rather than ``doc.sentences``, so a marker's exemption is judged against the whole
+    sentence it sits in: on wrapped prose the fact that exempts "In short," may be on the next
+    line, and a fragment-only check charged the wrapped copy of a sentence it exempted flat.
+    """
+    return [doc.mapper.to_original(s.start, s.end) for s in _units(doc)]
 
 
 def _restates_a_fact(doc: Document, span: Evidence, ranges: list[tuple[int, int]]) -> bool:
@@ -264,6 +328,35 @@ def _restates_a_fact(doc: Document, span: Evidence, ranges: list[tuple[int, int]
 
 def _natural_severity(run_length: int) -> Severity:
     return Severity.high if run_length >= 4 else Severity.medium
+
+
+def _run_extents(doc: Document) -> dict[int, tuple[int, int, int]]:
+    """``{original start: (run length, original start, original end)}`` for every run.
+
+    Explicit max on collision, not a dict comprehension: ``_runs`` is sorted longest-first, so
+    the comprehension's last write would keep the SHORTEST run at a shared start.
+    """
+    extents: dict[int, tuple[int, int, int]] = {}
+    for run in _runs(doc):
+        start, _ = doc.mapper.to_original(run[0].start, run[0].end)
+        _, end = doc.mapper.to_original(run[-1].start, run[-1].end)
+        best = extents.get(start)
+        if best is None or len(run) > best[0]:
+            extents[start] = (len(run), start, end)
+    return extents
+
+
+def _licensed(start: int, end: int, spans: list[Evidence]) -> bool:
+    """Whether a run over ``[start, end)`` may score: a metadiscourse rule of our own sits in it.
+
+    The marker lexicon is a superset of this dimension's rules, so a run can be built entirely
+    from phrases whose scoring rule lives in formulaic_structure. Charging for those would bill
+    one set of phrases to two weighted dimensions, which the pack design explicitly disclaims.
+    The lexicon supplies the shape; only a rule of this dimension supplies the licence to score.
+    This is the ONE predicate behind ``extract``, ``score_spans`` and ``prune_spans``: it was
+    once two, and they drifted.
+    """
+    return any(r.rule_id != RULE_META_RUN and start <= r.start_char < end for r in spans)
 
 
 def _severity_factor(span: Evidence, natural: Severity) -> float:
@@ -288,39 +381,40 @@ class Metadiscourse(PhrasePack):
         rule_spans = [s for s in spans if s.rule_id != RULE_META_RUN]
         rate = severity_rate_score(doc, rule_spans, self._full_scale, MIN_RATE_WORDS)
 
-        # Explicit max(), not a dict comprehension: _runs is sorted longest-first, so on any key
-        # collision the comprehension's last write would keep the SHORTEST run.
-        extents: dict[int, tuple[int, int, int]] = {}
-        for run in _runs(doc):
-            start, _ = doc.mapper.to_original(run[0].start, run[0].end)
-            _, end = doc.mapper.to_original(run[-1].start, run[-1].end)
-            best = extents.get(start)
-            if best is None or len(run) > best[0]:
-                extents[start] = (len(run), start, end)
-
+        extents = _run_extents(doc)
         concentration = 0.0
         for s in (s for s in spans if s.rule_id == RULE_META_RUN):
             extent = extents.get(s.start_char)
-            if extent is None:
+            if extent is None or not _licensed(extent[1], extent[2], spans):
                 continue
-            n, run_start, run_end = extent
-            # The marker lexicon is a superset of this dimension's rules, so a run can be built
-            # entirely from phrases whose scoring rule lives in formulaic_structure. Charging for
-            # those would bill one set of phrases to two weighted dimensions, which the pack
-            # design explicitly disclaims. Require at least one metadiscourse rule of our own
-            # inside the run; the lexicon still supplies the shape, just not the licence to score.
-            if not any(
-                r.rule_id != RULE_META_RUN and run_start <= r.start_char < run_end for r in spans
-            ):
-                continue
+            n = extent[0]
             concentration = max(
                 concentration, _run_score(n) * _severity_factor(s, _natural_severity(n))
             )
 
         return min(1.0, max(rate, concentration))
 
+    def prune_spans(self, doc: Document, spans: list[Evidence]) -> list[Evidence]:
+        """Drop a run finding whose licensing rule the scorer has just filtered out.
+
+        ``extract`` only emits a run that ``_licensed`` approves, but the scorer applies
+        ``disabled_rules`` and inline suppressions AFTER that, by rule id. Disable or suppress the
+        one ``META_`` rule inside a run and the run span survived on its own: a medium- or
+        high-severity finding in the report, ``metadiscourse == 0.0``, and ``--fail-on medium``
+        exiting non-zero for a rule the user had turned off.
+        """
+        extents = _run_extents(doc)
+        kept: list[Evidence] = []
+        for s in spans:
+            if s.rule_id == RULE_META_RUN:
+                extent = extents.get(s.start_char)
+                if extent is None or not _licensed(extent[1], extent[2], spans):
+                    continue
+            kept.append(s)
+        return kept
+
     def _run_spans(self, doc: Document, rule_spans: list[Evidence]) -> list[Evidence]:
-        """One span per scored run, anchored on the run's FIRST sentence.
+        """One span per licensed run, anchored on the run's FIRST sentence.
 
         Not the whole run: report/html.py picks the longest span at each offset and skips the
         ones inside it, so a multi-sentence finding swallowed every phrase-level highlight in the
@@ -328,17 +422,16 @@ class Metadiscourse(PhrasePack):
         rule_id | span text)``) stable when an unrelated word later in the passage is edited,
         which ``--fail-on-new`` depends on.
 
-        A run is only emitted when at least one metadiscourse rule of our own falls inside it --
-        the same gate ``score_spans`` applies. Emitting one the scorer then declines to charge
-        left a medium- or high-severity finding in the report with ``metadiscourse == 0.0``,
-        which still tripped ``--fail-on`` and exited CI non-zero. Evidence and points have to
-        appear and disappear together.
+        Only a run ``_licensed`` approves is emitted. Emitting one the scorer then declines to
+        charge left a medium- or high-severity finding in the report with ``metadiscourse ==
+        0.0``, which still tripped ``--fail-on``. ``prune_spans`` applies the same predicate
+        again after the scorer's own filtering, for the same reason.
         """
         spans: list[Evidence] = []
         for run in _runs(doc):
             start, _ = doc.mapper.to_original(run[0].start, run[0].end)
             _, end = doc.mapper.to_original(run[-1].start, run[-1].end)
-            if not any(start <= r.start_char < end for r in rule_spans):
+            if not _licensed(start, end, rule_spans):
                 continue
             n = len(run)
             spans.append(

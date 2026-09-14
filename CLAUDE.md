@@ -168,8 +168,10 @@ boost the genre where "honestly" is legitimate human speech. `full_scale` is 4.0
 Weak-alone, which means concrete first-person prose with heavy candor filler deliberately scores
 low (see the MODEL_CARD limitation). The comma requirement in `CANDOR_ADVERB_PARENTHETICAL` is what
 keeps the ESL calques "Honestly speaking"/"Frankly speaking" quiet — do not relax it. Do not add
-"Sincerely,"/"Truly," to that rule: patterns compile under MULTILINE, so `^` matches every line
-start and they would fire on email sign-offs.
+"Sincerely,"/"Truly," to that rule: a sign-off follows a period-terminated line, which the clause
+anchor accepts, so they would fire on email sign-offs. Clause-initial rules write `{CLAUSE_START}`
+in their YAML, expanded at load time from `_ruleset.py:CLAUSE_START`; never `^`, which is a LINE
+anchor under the `MULTILINE` every pack compiles with and fired mid-sentence on hard-wrapped prose.
 
 Metadiscourse (v0.14): writing that refers to the text rather than to its subject. This is
 Hyland's
@@ -187,9 +189,15 @@ make it unlike the other packs.
   overrides (`_severity_factor`), and **anchors on the run's first sentence only** — a
   multi-sentence finding span makes `report/html.py` swallow every phrase highlight inside it and
   makes `report/baseline.py` fingerprints change on unrelated edits. Run length is therefore
-  recovered by re-deriving runs from the document, never from the span text. Non-prose blocks
-  (`heading`, `list_item`) **break** a run; only a too-short factless sentence is neutral.
-  A terminal-recap term was built and dropped: see CHANGELOG 0.14.0.
+  recovered by re-deriving runs from the document, never from the span text. Runs are built
+  over `_units`, not `doc.sentences`: pysbd ends a sentence at every line break, so hard-wrap
+  fragments are re-joined until one finishes a clause, and a paragraph scores the same wrapped
+  or flat. Non-prose blocks (`heading`, `list_item`) and any sentence carrying a fact **break**
+  a run; a short factless sentence is neutral, and an HTML-comment control line is ignored.
+  The run's `Evidence` is licensed by a `META_` rule inside it, and `prune_spans`
+  (`base.py:SpanPruned`) re-applies that licence after the scorer's `disabled_rules` and
+  suppression filtering, so a disabled rule takes its run with it. A terminal-recap term was
+  built and dropped: see CHANGELOG 0.14.0.
 - **It is in neither `WEAK_DIMENSIONS` nor `CORROBORATING_DIMENSIONS`.** Weak means damped x0.3
   alone, which is the failure it exists to fix. But left in the derived corroborating set, a
   length-invariant 0.55 clears the gate on its own: three meta sentences took an otherwise

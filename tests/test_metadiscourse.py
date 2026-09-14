@@ -541,3 +541,120 @@ def test_prose_attribute_subject_survives_in_at_with(text: str) -> None:
     # The lookahead blocked in/at/with, which follow the metadiscourse use at least as often as
     # the object-level one it targets.
     assert "META_PROSE_ATTRIBUTE_SUBJECT" in _core_ids(text)
+
+
+# --- review round 6 --------------------------------------------------------------------------
+
+_RUN_OF_THREE = (
+    "To be clear, the framing here is what actually matters most of all. In short, the point "
+    "is not really about any of that at all either. Simply put, none of this is about the "
+    "subject at hand whatsoever."
+)
+
+
+def _meta(report):  # type: ignore[no-untyped-def]
+    return [(e.rule_id, e.severity.value) for e in report.findings if e.rule_id.startswith("META_")]
+
+
+def test_disabling_the_licensing_rule_removes_the_run() -> None:
+    # The scorer filters by rule id AFTER extraction, so the run span used to survive the removal
+    # of the one META_ rule that licensed it: a medium finding, metadiscourse 0.0, and --fail-on
+    # medium exiting non-zero for a rule the user had turned off.
+    on = SlopScorer(settings=Settings()).scan_text(_RUN_OF_THREE)
+    assert ("META_RUN_OF_META_SENTENCES", "medium") in _meta(on)
+    assert on.dimensions.metadiscourse == 0.55
+
+    off = SlopScorer(settings=Settings(disabled_rules=frozenset({"META_CLARIFY_FRAME"}))).scan_text(
+        _RUN_OF_THREE
+    )
+    assert _meta(off) == []
+    assert off.dimensions.metadiscourse == 0.0
+
+
+def test_suppressing_the_licensing_rule_removes_the_run() -> None:
+    text = "<!-- slopscore-disable-file META_CLARIFY_FRAME -->\n" + _RUN_OF_THREE
+    report = scan_text(text)
+    assert _meta(report) == []
+    assert report.dimensions.metadiscourse == 0.0
+
+
+def test_a_wrapped_run_scores_the_same_as_flat() -> None:
+    # Fragments are re-joined before classification. Before, a wrapped meta sentence became a
+    # first fragment (skipped) plus a marker-less tail (a break), so wrapping switched the run
+    # term off: 0.55 flat became 0.094 wrapped on a 1,066-word plain-text file.
+    import textwrap
+
+    fact = "The bridge in Leeds opened in 1932 after three years of work by two firms. " * 40
+    flat = fact + "\n\n" + _RUN_OF_THREE
+    wrapped = (
+        "\n".join(textwrap.wrap(fact, 60)) + "\n\n" + "\n".join(textwrap.wrap(_RUN_OF_THREE, 60))
+    )
+    a, b = scan_text(flat), scan_text(wrapped)
+    assert a.dimensions.metadiscourse == b.dimensions.metadiscourse == 0.55
+    assert _meta(a) == _meta(b)
+
+
+def test_a_marker_a_wrap_put_at_line_start_is_still_mid_sentence() -> None:
+    # "and,\nin short, nothing changed" is one sentence with a parenthetical, not a meta sentence.
+    # Matched fragment by fragment, the lexicon's \A saw "in short," at the head of a line.
+    text = (
+        "The team reviewed the two lists and the schedule and,\n"
+        "in short, nothing about the plan had changed at all by then.\n"
+        "To be clear, the deadline had not moved at all for anyone."
+    )
+    wrapped, flat = scan_text(text), scan_text(" ".join(text.split()))
+    assert _meta(wrapped) == _meta(flat) == [("META_CLARIFY_FRAME", "low")]
+
+
+def test_a_fact_bearing_line_without_terminal_punctuation_breaks_a_run() -> None:
+    # The evidence test runs before any length or termination test: a caption, a list line, or
+    # a URL line with no period is still a fact, and a fact ends a run.
+    text = (
+        "To be clear, the framing here is what actually matters most of all.\n"
+        "- Revenue: 4.2 million dollars in 2021 (Leeds filing)\n"
+        "In short, the point is not really about any of that at all either."
+    )
+    report = scan_text(text)
+    assert ("META_RUN_OF_META_SENTENCES", "medium") not in _meta(report)
+
+
+_FACT = "The bridge in Leeds opened in 1932 after three years of work by two firms."
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Key points:\nTo be clear, the point is not really about any of that at all.",
+        _FACT + " \nTo be clear, the point is not really about any of that at all.",
+        "\nTo be clear, the point is not really about any of that at all. " + _FACT,
+        _FACT + "\n \nTo be clear, the point is not about any of that at all.",
+        'He said "no." To be clear, the point is not about any of that at all.',
+    ],
+    ids=["colon-line", "dot-space-newline", "leading-blank", "blank-with-space", "after-quote"],
+)
+def test_clause_anchor_accepts_every_sentence_boundary(text: str) -> None:
+    assert ("META_CLARIFY_FRAME", "low") in _meta(scan_text(text))
+
+
+def test_clause_anchor_refuses_a_hard_wrap() -> None:
+    assert _meta(scan_text("and\nto be clear, the point is not about any of that at all.")) == []
+
+
+def test_a_suppression_comment_does_not_exempt_the_paragraph_below_it(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    # The Markdown ingester leaves "-->\nTo be clear," in front of a paragraph carrying a
+    # suppression comment. Two defects hid the marker: the anchor did not accept "-->" as a
+    # boundary, and, once fragments were re-joined, the rule id inside the comment counted as an
+    # identifier that made the sentence "concrete".
+    p = tmp_path / "doc.md"
+    p.write_text(
+        _FACT + "\n\n<!-- slopscore-disable-next-line LEXICAL_MARKERS -->\n"
+        "To be clear, the point is not really about any of that at all.\n",
+        encoding="utf-8",
+    )
+    assert ("META_CLARIFY_FRAME", "low") in _meta(SlopScorer().scan_file(p))
+
+
+def test_marketing_profile_softens_metadiscourse() -> None:
+    from slopscore.scoring.profiles import profile_multipliers
+
+    assert profile_multipliers("marketing")[Dimension.metadiscourse] == 0.8

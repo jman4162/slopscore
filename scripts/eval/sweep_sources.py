@@ -9,7 +9,9 @@ test that claimed to cover it passed only because it routed through the Markdown
 
 Neither round found that by reading a diff; both found it by running the code. So this sweeps the
 committed long-form corpus and the repository's own prose through each applicable ingester and
-reports every rule that fires under one and not another.
+reports every rule that fires under one and not another. The comparisons that are assertions
+exit non-zero when they fail; the rest are recorded in ``eval/results/source_sweep.json`` to be
+diffed between releases.
 
 Run: python scripts/eval/sweep_sources.py
 """
@@ -17,81 +19,94 @@ Run: python scripts/eval/sweep_sources.py
 from __future__ import annotations
 
 import json
-import shutil
-import tempfile
+import sys
 import textwrap
 from collections import Counter
 from pathlib import Path
 from typing import Any
 
+import regex as re
+
 from slopscore import SlopScorer
+from slopscore.core import build_document
 from slopscore.eval.datasets import load_jsonl
-from slopscore.models import Severity
+from slopscore.features.cadence import RULE_UNIFORM_RUN
+from slopscore.features.structure import StructureTells
+from slopscore.ingest import RawSource
+from slopscore.ingest.markdown import ingest_markdown
+from slopscore.ingest.text import looks_like_markdown, strip_fenced_code
+from slopscore.models import Report, Severity, SourceType
+from slopscore.scoring.scorer import score_document
+
+RULE_META_RUN = "META_RUN_OF_META_SENTENCES"
 
 # Rules that legitimately depend on document structure, so their absence on plain text is correct
-# rather than a bug. Anything NOT listed here firing under one ingester and not another is a
-# finding: write the exception down or fix the rule.
-STRUCTURE_DEPENDENT = frozenset(
-    {
-        "STRUCTURE_EMOJI_HEADING",
-        "STRUCTURE_INLINE_HEADER_LIST",
-        "STRUCTURE_SKIPPED_HEADING_LEVEL",
-        "STRUCTURE_THEMATIC_BREAKS",
-        "STRUCTURE_BOLD_DENSITY",
-        "STRUCTURE_TITLE_CASE_HEADING",
-        # Markdown emphasis markers hide phrases from the text ingester, and headings and list
-        # items are excluded from cadence and from metadiscourse runs only when blocks exist.
-        "CADENCE_UNIFORM_RUN",
-    }
-)
+# rather than a bug. Derived, not copied: the next STRUCTURE_ rule joins it automatically.
+# CADENCE_UNIFORM_RUN is here because headings and list items are excluded from cadence only when
+# blocks exist. Anything NOT in this set firing under one ingester and not another is a finding:
+# write the exception down or fix the rule.
+STRUCTURE_DEPENDENT: frozenset[str] = StructureTells().rule_ids() | {RULE_UNIFORM_RUN}
+
+_PARAGRAPH_BREAK = re.compile(r"\n[ \t]*\n")
 
 
-def _scan(scorer: SlopScorer, tmp: Path, text: str, suffix: str) -> Any:
-    """Scan through the real suffix dispatch in ``ingest.from_path``.
+def scan_plain(scorer: SlopScorer, text: str) -> Report:
+    """The text ingester with its Markdown sniffing bypassed.
 
-    Not ``from_string``: it ignores the source name and always uses the text ingester, so
-    comparing from_string(text, "x.md") against from_string(text, "x.txt") compares a document
-    with itself. An earlier version of this script did exactly that and reported no divergence
-    on 193 documents, which is the same empty assertion a review round caught elsewhere in this
-    release.
+    ``ingest_text`` routes anything that looks like Markdown (two or more heading, list, bold or
+    fence lines) through ``ingest_markdown``, so ``scan_file("x.txt")`` on such a document is
+    the Markdown path under another name. An earlier version of this sweep compared the two
+    suffixes and had 38 of 193 documents comparing a report with itself; this builds the
+    ``RawSource`` directly so the text path is the text path.
     """
-    path = tmp / f"doc{suffix}"
-    path.write_text(text, encoding="utf-8")
-    return scorer.scan_file(path)
+    raw = RawSource(text=strip_fenced_code(text), source_type=SourceType.text, source="doc.txt")
+    return score_document(build_document(raw), scorer.settings)
+
+
+def scan_markdown(scorer: SlopScorer, text: str) -> Report:
+    return score_document(build_document(ingest_markdown(text, source="doc.md")), scorer.settings)
+
+
+def _rule_ids(report: Report) -> set[str]:
+    return {e.rule_id for e in report.findings}
 
 
 def sweep(scorer: SlopScorer, documents: list[tuple[str, str, int]]) -> dict[str, Any]:
-    """Scan each document as .txt and as .md; report rules that differ."""
+    """Scan each plain-prose document as text and as Markdown; report rules that differ.
+
+    Only documents with no Markdown syntax are compared across ingesters: forcing the text path
+    on a Markdown file is an expected divergence (emphasis markers hide phrases, tables and
+    fences become prose), not a defect. Markdown documents are still scanned, through their own
+    ingester, for the META_ counts and the high-severity check.
+    """
     divergent: Counter[str] = Counter()
     high_runs: list[str] = []
     meta_hits: Counter[str] = Counter()
     examples: dict[str, str] = {}
+    compared = 0
 
-    tmp = Path(tempfile.mkdtemp(prefix="slopscore-sweep-"))
     for name, text, label in documents:
-        txt = _scan(scorer, tmp, text, ".txt")
-        md = _scan(scorer, tmp, text, ".md")
-        as_txt = {e.rule_id for e in txt.findings}
-        as_md = {e.rule_id for e in md.findings}
+        if looks_like_markdown(text):
+            reports = [scan_markdown(scorer, text)]
+        else:
+            compared += 1
+            reports = [scan_plain(scorer, text), scan_markdown(scorer, text)]
+            assert reports[0].input.source_type is SourceType.text
+            assert reports[1].input.source_type is SourceType.markdown
+            for rule in (_rule_ids(reports[0]) ^ _rule_ids(reports[1])) - STRUCTURE_DEPENDENT:
+                divergent[rule] += 1
+                examples.setdefault(rule, name)
 
-        for rule in (as_txt ^ as_md) - STRUCTURE_DEPENDENT:
-            divergent[rule] += 1
-            examples.setdefault(rule, name)
-
-        for report in (txt, md):
+        for report in reports:
             for e in report.findings:
                 if e.rule_id.startswith("META_"):
                     meta_hits[e.rule_id] += 1
-                if (
-                    e.rule_id == "META_RUN_OF_META_SENTENCES"
-                    and e.severity is Severity.high
-                    and label == 0
-                ):
+                if e.rule_id == RULE_META_RUN and e.severity is Severity.high and label == 0:
                     high_runs.append(name)
 
-    shutil.rmtree(tmp, ignore_errors=True)
     return {
         "n_documents": len(documents),
+        "n_compared_across_ingesters": compared,
         "divergent_rules": dict(divergent),
         "divergent_examples": examples,
         "high_severity_runs_on_clean_rows": sorted(set(high_runs)),
@@ -104,6 +119,7 @@ def by_paragraph_ranks_by_density(scorer: SlopScorer) -> bool:
 
     The invariant the reverted global density floor broke: under a floor a paragraph's score
     tracks its absolute hit count rather than its density, and ``--by-paragraph`` exists to rank.
+    ``tests/test_conservatism.py`` pins the same pair.
     """
     short_dense = (
         "It's worth noting that the committee met in Leeds on 14 March 2021 to review tenders."
@@ -133,74 +149,88 @@ def collect(root: Path) -> list[tuple[str, str, int]]:
     return docs
 
 
+def wrap_variants(text: str, width: int = 60) -> tuple[str, str]:
+    """The same prose flat and hard-wrapped, with its paragraph breaks kept in both.
+
+    Paragraphs are preserved so the paragraph guard and the blank-line arm of the clause anchor
+    are exercised; an earlier version collapsed every document to one paragraph, so the flat
+    variant could never contain a run that crossed one. Hyphen and long-word breaking are off:
+    "ever-\\nevolving" is an artifact of ``textwrap``, not a property of wrapped prose.
+    """
+    paragraphs = [" ".join(p.split()) for p in _PARAGRAPH_BREAK.split(text) if p.strip()]
+    flat = "\n\n".join(paragraphs)
+    wrapped = "\n\n".join(
+        "\n".join(textwrap.wrap(p, width, break_on_hyphens=False, break_long_words=False))
+        for p in paragraphs
+    )
+    return flat, wrapped
+
+
 def sweep_wrapping(scorer: SlopScorer, documents: list[tuple[str, str, int]]) -> dict[str, Any]:
     """The same text, hard-wrapped and not, through the SAME ingester.
 
     This is the comparison that catches the MULTILINE class, and comparing .txt against .md does
-    not: wrapping a Markdown document at 60 columns breaks its syntax, so the two ingesters
-    legitimately see different prose and the cross-ingester diff is full of expected noise.
-    Holding the ingester fixed and varying only line breaks isolates the defect -- rules whose
-    `^` anchor made them fire mid-sentence on wrapped prose, which let a wrapped paragraph
-    containing no metadiscourse escalate to a full run finding.
+    not: wrapping a Markdown document breaks its syntax, so the two ingesters legitimately see
+    different prose and the cross-ingester diff is full of expected noise. Holding the ingester
+    fixed (the text path, sniffing bypassed) and varying only line breaks isolates the defect.
+
+    Asserted: every document has the same number of metadiscourse runs flat and wrapped. That
+    was the v0.14 defect in both directions -- a wrapped paragraph with no metadiscourse in it
+    escalated to a run, and then a genuine run vanished when wrapped.
+
+    Recorded, not asserted: the other rules that differ. Most of that set is whole-text patterns
+    with a literal space ("studies show") that cannot match across a line break, plus pysbd
+    re-segmenting at line breaks for the sentence-level features. It predates v0.14 and is not
+    this release's to fix, so it is written down to be diffed rather than gated on.
     """
-    tmp = Path(tempfile.mkdtemp(prefix="slopscore-wrap-"))
     divergent: Counter[str] = Counter()
     examples: dict[str, str] = {}
     flat_runs = wrapped_runs = 0
+    run_mismatch: list[str] = []
     for name, text, _label in documents:
-        flat = " ".join(text.split())
-        for i, variant in enumerate((flat, "\n".join(textwrap.wrap(flat, 60)))):
-            p = tmp / f"w{i}.txt"
-            p.write_text(variant, encoding="utf-8")
-            findings = scorer.scan_file(p).findings
-            runs = sum(1 for e in findings if e.rule_id == "META_RUN_OF_META_SENTENCES")
-            if i == 0:
-                a = {e.rule_id for e in findings}
-                flat_runs += runs
-            else:
-                b = {e.rule_id for e in findings}
-                wrapped_runs += runs
-        for rule in a ^ b:
+        if looks_like_markdown(text):
+            continue
+        flat, wrapped = wrap_variants(text)
+        a = scan_plain(scorer, flat)
+        b = scan_plain(scorer, wrapped)
+        fa = sum(1 for e in a.findings if e.rule_id == RULE_META_RUN)
+        fb = sum(1 for e in b.findings if e.rule_id == RULE_META_RUN)
+        flat_runs += fa
+        wrapped_runs += fb
+        if fa != fb:
+            run_mismatch.append(name)
+        for rule in _rule_ids(a) ^ _rule_ids(b):
             divergent[rule] += 1
             examples.setdefault(rule, name)
-    shutil.rmtree(tmp, ignore_errors=True)
-    # RECORDED, NOT ASSERTED. Wrap-sensitivity turns out to be a repo-wide property: 28 rules
-    # across 8 dimensions change behavior when the same prose is hard-wrapped, because pysbd
-    # re-segments on line breaks. That predates v0.14 and is not this release's to fix, so the
-    # set is written down to be diffed rather than gated on. What IS asserted is the metadiscourse
-    # run count, which was the v0.14 defect: a wrapped paragraph with no metadiscourse in it
-    # escalated to a run of three.
     return {
         "wrap_divergent_rules": dict(divergent),
         "wrap_divergent_examples": examples,
         "meta_runs_flat": flat_runs,
         "meta_runs_wrapped": wrapped_runs,
+        "meta_run_mismatch": run_mismatch,
     }
 
 
 def sweep_code(scorer: SlopScorer, root: Path) -> dict[str, Any]:
     """The code ingester against the text ingester on the same source files.
 
-    ``.py`` prose is docstrings and comments only; scanned as ``.txt`` the whole file is prose.
+    ``.py`` prose is docstrings and comments only; through the text path the whole file is prose.
     Rules that fire on one and not the other are expected here -- the point is to record WHICH,
-    so a change in that set is visible.
+    so a change in that set is visible. The text side bypasses sniffing: a Python file with a
+    few ``# - item`` comment lines otherwise routes through the Markdown ingester.
     """
-    tmp = Path(tempfile.mkdtemp(prefix="slopscore-code-"))
     divergent: Counter[str] = Counter()
     files = sorted((root / "src" / "slopscore").rglob("*.py"))
-    for i, f in enumerate(files):
+    for f in files:
         source = f.read_text(encoding="utf-8")
         as_code = scorer.scan_file(f)
-        txt_path = tmp / f"f{i}.txt"
-        txt_path.write_text(source, encoding="utf-8")
-        as_text = scorer.scan_file(txt_path)
-        for rule in {e.rule_id for e in as_code.findings} ^ {e.rule_id for e in as_text.findings}:
+        as_text = scan_plain(scorer, source)
+        for rule in _rule_ids(as_code) ^ _rule_ids(as_text):
             divergent[rule] += 1
-    shutil.rmtree(tmp, ignore_errors=True)
     return {"n_files": len(files), "code_vs_text_divergence": dict(divergent)}
 
 
-def main() -> None:
+def main() -> int:
     root = Path(__file__).resolve().parents[2]
     scorer = SlopScorer()
     documents = collect(root)
@@ -213,23 +243,46 @@ def main() -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
-    print(f"swept {result['n_documents']} documents as .txt and .md")
-    print(f"  rules differing by ingester : {result['divergent_rules'] or 'none'}")
-    print(f"  high-severity runs on clean : {result['high_severity_runs_on_clean_rows'] or 'none'}")
-    print(f"  META_ hits                  : {result['meta_hits'] or 'none'}")
-    print(f"  --by-paragraph by density   : {result['by_paragraph_ranks_by_density']}")
+    failures: list[str] = []
+    if result["divergent_rules"]:
+        failures.append(f"rules differing by ingester: {result['divergent_rules']}")
+    if result["high_severity_runs_on_clean_rows"]:
+        failures.append(
+            f"high-severity runs on clean rows: {result['high_severity_runs_on_clean_rows']}"
+        )
+    if not result["by_paragraph_ranks_by_density"]:
+        failures.append("--by-paragraph ranks by length, not density")
+    if result["meta_run_mismatch"]:
+        failures.append(f"metadiscourse runs differ flat vs wrapped: {result['meta_run_mismatch']}")
+
     print(
-        f"  META runs flat / wrapped    : {result['meta_runs_flat']} / {result['meta_runs_wrapped']}  (asserted equal)"
+        f"swept {result['n_documents']} documents "
+        f"({result['n_compared_across_ingesters']} plain-prose, compared text vs Markdown)"
+    )
+    print(f"  rules differing by ingester : {result['divergent_rules'] or 'none'}  (asserted)")
+    print(
+        f"  high-severity runs on clean : "
+        f"{result['high_severity_runs_on_clean_rows'] or 'none'}  (asserted)"
+    )
+    print(f"  META_ hits                  : {result['meta_hits'] or 'none'}")
+    print(f"  --by-paragraph by density   : {result['by_paragraph_ranks_by_density']}  (asserted)")
+    print(
+        f"  META runs flat / wrapped    : {result['meta_runs_flat']} / {result['meta_runs_wrapped']}"
+        f"  (asserted equal per document; mismatches: {result['meta_run_mismatch'] or 'none'})"
     )
     print(
-        f"  rules differing by wrapping : {len(result['wrap_divergent_rules'])} rules (recorded, repo-wide, not gated)"
+        f"  rules differing by wrapping : {len(result['wrap_divergent_rules'])} rules "
+        "(recorded, repo-wide, not gated)"
     )
     code = result["code_ingester"]
     print(
         f"  code vs text on {code['n_files']:3d} .py files : {code['code_vs_text_divergence'] or 'none'}"
     )
     print(f"wrote {out}")
+    for f in failures:
+        print(f"FAIL: {f}")
+    return 1 if failures else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

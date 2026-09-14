@@ -13,7 +13,9 @@ deferred to the evaluation milestone. The intent of each profile:
   crux" are legitimate here). Metadiscourse is halved: IMRaD signposting ("In this section we
   describe...", "As noted above") is a genre requirement, not a tell.
 - **marketing**: down-weight lexical markers, genericity, significance inflation, copula avoidance,
-  formatting — marketing naturally resembles slop, so only flag severe cases.
+  formatting — marketing naturally resembles slop, so only flag severe cases. Metadiscourse is
+  0.8: "In this guide we will show you", "TL;DR:" and "Key takeaways:" are the genre's native
+  register.
 - **technical**: down-weight lexical markers, cadence, copula avoidance ("functions/serves as" is
   precise), parallelism, and insight signaling ("load-bearing / pressure-test" are apt in
   engineering writing). Metadiscourse is halved: reference docs cross-reference by design.

@@ -11,10 +11,11 @@
 #
 # Order does not matter; each entry is a case-insensitive regex matched against one sentence.
 #
-# SENTENCE ANCHOR: use `(?:\\A|(?<=\\n\\n)|(?<=[.!?][\"')\\]]?\\s))`, never `^`. Patterns compile
-# under re.MULTILINE, so `^` is a LINE anchor and fires mid-sentence on hard-wrapped prose --
-# which let a wrapped paragraph containing no metadiscourse escalate to a full run finding. See
-# the same note in ../patterns/metadiscourse/core.yaml.
+# SENTENCE ANCHOR: write `{CLAUSE_START}`, never `^` and never a hand-copied lookbehind. It is
+# expanded at load time from features/_ruleset.py:CLAUSE_START, which is the one definition and
+# carries the reasons. Patterns compile under re.MULTILINE, so `^` is a LINE anchor and fires
+# mid-sentence on hard-wrapped prose; that let a wrapped paragraph containing no metadiscourse
+# escalate to a full run finding.
 
 markers:
   # frame markers: announcing what the text will do
@@ -30,31 +31,31 @@ markers:
   # endophoric markers: pointing at other parts of the same text
   - "\\bas (?:mentioned|noted|discussed|stated|described|explained|shown|we saw|we discussed) (?:above|earlier|previously|before|already)\\b"
   - "\\bas I (?:said|mentioned|noted) (?:above|earlier|previously|before)\\b"
-  - "(?:\\A|(?<=\\n\\n)|(?<=[.!?][\"')\\]]?\\s))(?:to recap|as a reminder),"
-  - "(?:\\A|(?<=\\n\\n)|(?<=[.!?][\"')\\]]?\\s))(?:having (?:established|covered|seen|discussed|laid out|said that)|now that we(?:'ve| have)|with (?:that|this) (?:established|out of the way))\\b"
+  - "{CLAUSE_START}(?:to recap|as a reminder),"
+  - "{CLAUSE_START}(?:having (?:established|covered|seen|discussed|laid out|said that)|now that we(?:'ve| have)|with (?:that|this) (?:established|out of the way))\\b"
 
   # closers and summaries
   - "\\bin conclusion\\b"
-  - "(?:\\A|(?<=\\n\\n)|(?<=[.!?][\"')\\]]?\\s))(?:to sum up|all in all|in summary|in a nutshell|at the end of the day|overall),"
+  - "{CLAUSE_START}(?:to sum up|all in all|in summary|in a nutshell|at the end of the day|overall),"
   - "\\b(?:the )?key takeaways? (?:is|are|here)\\b"
-  - "(?:\\A|(?<=\\n\\n)|(?<=[.!?][\"')\\]]?\\s))(?:\\*\\*)?(?:key )?takeaways?(?:\\*\\*)?\\s*:"
+  - "{CLAUSE_START}(?:\\*\\*)?(?:key )?takeaways?(?:\\*\\*)?\\s*:"
   - "\\btl;?dr\\b"
 
   # code glosses: restating the writer's own clause
-  - "(?:\\A|(?<=\\n\\n)|(?<=[.!?][\"')\\]]?\\s))(?:in essence|simply put|put simply|in short|in other words|to put it (?:simply|another way))\\s*[,:]"
+  - "{CLAUSE_START}(?:in essence|simply put|put simply|in short|in other words|to put it (?:simply|another way))\\s*[,:]"
   - "\\bin plain (?:English|terms|language)\\b"
   - "\\bin layman'?s terms\\b"
-  - "(?:\\A|(?<=\\n\\n)|(?<=[.!?][\"')\\]]?\\s))(?:that is to say|which is to say|i\\.e\\.),"
+  - "{CLAUSE_START}(?:that is to say|which is to say|i\\.e\\.),"
   - "\\bwhat (?:this|that) means is\\b"
 
   # emphasis and clarity scaffolds that announce rather than state
-  - "(?:\\A|(?<=\\n\\n)|(?<=[.!?][\"')\\]]?\\s))(?:to be clear|to be precise|let me be (?:clear|precise)|for the avoidance of doubt|to put a finer point on it),"
+  - "{CLAUSE_START}(?:to be clear|to be precise|let me be (?:clear|precise)|for the avoidance of doubt|to put a finer point on it),"
   - "\\bit(?:'s| is) (?:also )?worth (?:noting|mentioning|pointing out)\\b"
   - "\\bit should be noted\\b"
   - "\\b(?:make no mistake|the bottom line is|the reality is)\\b"
-  - "(?:\\A|(?<=\\n\\n)|(?<=[.!?][\"')\\]]?\\s))(?:that (?:being )?said|with that (?:said|in mind)),"
+  - "{CLAUSE_START}(?:that (?:being )?said|with that (?:said|in mind)),"
 
   # prose-grading: the writer evaluates their own phrasing
   - "\\bthe (?:defensible|accurate|correct|precise|rigorous|honest|charitable|careful|exact) (?:version|phrasing|framing|statement|formulation|wording)\\b"
-  - "(?:\\A|(?<=\\n\\n)|(?<=[.!?][\"')\\]]?\\s))(?:Precision|Accuracy|Clarity|Word choice|The phrasing|The wording|The framing|The language|The distinction|That distinction|This distinction) (?:matters|is important|is what matters|is the point)\\b"
+  - "{CLAUSE_START}(?:Precision|Accuracy|Clarity|Word choice|The phrasing|The wording|The framing|The language|The distinction|That distinction|This distinction) (?:matters|is important|is what matters|is the point)\\b"
   - "\\b(?:a true but loose|loose|sloppy|imprecise) (?:claim|phrasing|wording|framing)\\b"

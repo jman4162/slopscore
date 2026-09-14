@@ -15,7 +15,7 @@ import math
 
 from slopscore.config import STRICTNESS_GAIN, Scorer, Settings
 from slopscore.document import Document
-from slopscore.features.base import Feature, SpanScored, registry
+from slopscore.features.base import Feature, SpanPruned, SpanScored, registry
 from slopscore.models import (
     STANDARD_WARNINGS,
     Dimension,
@@ -165,6 +165,9 @@ def _extract_filtered(
     kept, changed = _filter_spans(result, settings, suppressions)
     if not changed:
         return result
+    if isinstance(feature, SpanPruned):
+        # A span licensed by one that was just dropped goes with it; see SpanPruned.
+        kept = feature.prune_spans(doc, kept)
     if isinstance(feature, SpanScored):
         score = feature.score_spans(doc, settings.profile, kept)
         return FeatureResult(dimension=result.dimension, score=score, spans=kept)
