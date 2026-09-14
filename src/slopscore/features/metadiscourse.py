@@ -2,8 +2,8 @@
 
 Two measurements, combined with ``max``:
 
-* **rate** -- the shared severity-weighted hits-per-100-words used by every phrase pack.
-* **concentration** -- the longest run of consecutive *evidence-free* metadiscourse sentences,
+* **rate**: the shared severity-weighted hits-per-100-words used by every phrase pack.
+* **concentration**: the longest run of consecutive *evidence-free* metadiscourse sentences,
   scored independently of document length.
 
 The concentration term exists because the rate term alone cannot see this defect in long-form
@@ -12,11 +12,11 @@ prose. The passage that prompted the dimension saturates ``formulaic_structure``
 ``per_hundred_words`` divides them away. ``MODEL_CARD.md`` names the same effect on the Wikipedia
 slice ("their tells are sparse and per-100-word rates dilute them").
 
-The distinction the concentration term draws is the honest one: a lone "as noted above" in a long
-essay is ordinary writing, while several sentences in a row that talk about the writing and carry
-no fact are the defect, at any length. Requiring the run's sentences to be evidence-free is also
-the fairness gate -- "In summary, Japan took 34 years to recover from 1989" is a real summary
-sentence and is exempt, which is how ESL and simple-English writers use restatement scaffolding.
+A lone "as noted above" in a long essay is ordinary writing, while several sentences in a row
+that talk about the writing and carry no fact are the defect, at any length. Requiring the run's
+sentences to be evidence-free is also the fairness gate. "In summary, Japan took 34 years to
+recover from 1989" is a real summary sentence and is exempt, which is how ESL and simple-English
+writers use restatement scaffolding.
 
 Hand-written rather than a plain phrase pack for the same reason ``formulaic_patterns.py`` is:
 the score is not ``severity_rate_score`` alone. It subclasses ``PhrasePack`` so rule loading,
@@ -25,7 +25,6 @@ the score is not ``severity_rate_score`` alone. It subclasses ``PhrasePack`` so 
 
 from __future__ import annotations
 
-import dataclasses
 from bisect import bisect_right
 from collections.abc import Callable
 from functools import lru_cache
@@ -46,7 +45,6 @@ from slopscore.features.base import (
 from slopscore.features.phrase_packs import PhrasePack
 from slopscore.features.specificity import concrete_evidence_count
 from slopscore.models import Dimension, Evidence, EvidenceKind, FeatureResult, Severity
-from slopscore.normalize.segment import split_sentences
 from slopscore.spans import TextSpan
 
 Kind = Literal["meta", "skip", "break"]
@@ -55,13 +53,13 @@ RULE_META_RUN = "META_RUN_OF_META_SENTENCES"
 
 # Headings and list items end a run rather than being passed over. They are structural
 # boundaries: four sections each opening "In this section we will describe..." are four
-# signposts, not one four-sentence run, and treating the headings between them as transparent
-# produced a single high-severity finding on ordinary IMRaD and reference-doc structure -- and a
+# signposts, not one four-sentence run. Treating the headings between them as transparent
+# produced a single high-severity finding on ordinary IMRaD and reference-doc structure, and a
 # span whose text visibly contained the numbers its own explanation said were absent.
 #
 # This guard alone is NOT enough: Document.in_block_kind returns False whenever doc.blocks is
-# empty, which is every non-Markdown source -- plain text, stdin, extracted code comments, web
-# articles. A paragraph break is the structural boundary that exists for all of them, so _runs
+# empty, which is every non-Markdown source (plain text, stdin, extracted code comments, web
+# articles). A paragraph break is the structural boundary that exists for all of them, so _runs
 # also ends a run whenever the paragraph index changes.
 _NOT_PROSE = frozenset({"heading", "list_item"})
 
@@ -78,28 +76,28 @@ _MIN_SENTENCE_WORDS = 6
 # bridged two distant markers into a run the evidence then described as consecutive.
 _MAX_SKIPS_IN_RUN = 1
 
-# This dimension reads a FLATTENED copy of the cleaned text: every HTML comment blanked to
-# spaces, and every line break that is not part of a paragraph break turned into a space. Each
-# substitution is one character for one, so every offset into the copy is an offset into the
-# cleaned text, and evidence maps back through the same ``OffsetMapper``.
+# Hard-wrapped prose is judged CONSERVATIVELY, not invariantly. pysbd ends a sentence at every
+# line break, so a paragraph wrapped at 60 columns (a code comment, a commit message, a plain-text
+# file) arrives as fragments such as "We reviewed the budget with the team and". A sentence that
+# ends in a letter, digit, comma, or dash is such a fragment, or an unpunctuated heading line.
+# It BREAKS a run, and so does the sentence that completes it on the next line of the same
+# paragraph. Neither is judged as metadiscourse, and neither is passed over.
 #
-# Why a copy rather than per-sentence repair. pysbd ends a sentence at every line break, so
-# hard-wrapped prose (code comments, commit messages, plain-text files) arrives as fragments, and
-# every attempt to repair the fragments afterwards was wrong in a new way: skipping them turned the
-# run term off on wrapped text, re-joining them joined whole sentences whose ending pysbd knows
-# and a regex did not (``.[1]``, an ellipsis), and a marker split across a wrap ("As noted\nabove")
-# was invisible to both the lexicon and the rule because their literal spaces cannot match a
-# newline. Flattening first lets pysbd segment wrapped prose as the flat prose it is.
-#
-# Why comments are blanked. A suppression comment (``<!-- slopscore-disable-next-line RULE -->``)
-# is a control line, not prose. Left in, the rule id inside it counted as a concrete identifier and
-# exempted the marker next to it -- so suppressing an unrelated rule silenced this one.
-#
-# Scope: this dimension only. Every other pack still matches the unflattened text, and its
-# wrap-sensitivity is recorded in ``eval/results/source_sweep.json`` rather than changed here.
-_HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
-_SOFT_BREAK = re.compile(r"(?<!\n[ \t]*)\n(?![ \t]*\n)")
-_NOT_NEWLINE = re.compile(r"[^\n]")
+# The consequence, accepted on purpose: wrapping can hide a run, and it can never create one.
+# Review rounds 5 to 8 of v0.14 tried to make wrapped text score the same as flat. Skipping the
+# fragments bridged runs across fact-bearing lines. Re-joining them joined whole sentences whose
+# ending a regex did not know. Flattening the text into a second copy turned comment lines into
+# paragraph breaks, left quotation ranges stale, and ran pysbd ten times slower on long lines.
+# Every one of those was a false positive or a user-visible cost. A missed run on wrapped text
+# is a false negative, and this tool prefers false negatives to accusations.
+_WRAP_FRAGMENT = re.compile(r"[\p{L}\p{N},\-\u2013\u2014]\s*\Z")
+
+# Text inside an HTML comment is a control line (``suppress.py`` reads
+# ``<!-- slopscore-disable-next-line RULE -->``), not prose, and the rule id inside it reads as a
+# concrete identifier. Left in, suppressing an unrelated rule exempted the marker beside the
+# comment. It is removed before evidence is counted. pysbd sometimes splits a comment into "<!"
+# and "-- ... -->", so both halves are matched as well as the whole.
+_COMMENT_TEXT = re.compile(r"<!--.*?-->|<!--.*\Z|\A\s*--.*?-->|<!\s*\Z", re.DOTALL)
 
 # Rules whose construction is legitimate when it restates a FACT. A code gloss over "the bus
 # costs two euros" is a comprehension aid, not prose about the prose, and it is how ESL and
@@ -118,7 +116,7 @@ _EVIDENCE_EXEMPT = frozenset(
     }
 )
 
-# Run length -> dimension score. Deliberately length-invariant: this is the whole point of the
+# Run length to dimension score. Deliberately length-invariant: this is the whole point of the
 # term. Capped below 1.0 so a run alone never saturates the dimension.
 _RUN_SCORE: dict[int, float] = {2: 0.35, 3: 0.55, 4: 0.75}
 _RUN_SCORE_MAX = 0.90
@@ -133,34 +131,19 @@ def _markers() -> list[re.Pattern[str]]:
     """The non-scoring marker superset used to classify a sentence as metadiscourse."""
     with data_path("lexicons", "metadiscourse_markers.yaml").open(encoding="utf-8") as fh:
         raw = yaml.safe_load(fh)
-    # Same compile helper _ruleset.py uses for the YAML rules (flags and {CLAUSE_START}
-    # expansion), so a marker copied from patterns/*.yaml behaves identically here.
+    # The same compile path _ruleset.py uses for the YAML rules (flags and {CLAUSE_START}
+    # expansion). A marker whose scoring rule predates v0.14 ("in short,", "that said,") is
+    # anchored with CLAUSE_START here and with that rule's own 0.13.0 anchor there, so the two can
+    # disagree at a line start; see the comment on CLAUSE_START.
     return [compile_rule_pattern(m) for m in raw.get("markers", [])]
 
 
-def flatten(text: str) -> str:
-    """``text`` with comments blanked and soft line breaks turned into spaces, same length."""
-    blanked = _HTML_COMMENT.sub(lambda m: _NOT_NEWLINE.sub(" ", m.group()), text)
-    return str(_SOFT_BREAK.sub(" ", blanked))
+def _without_comments(text: str) -> str:
+    return str(_COMMENT_TEXT.sub(" ", text))
 
 
-def _flat(doc: Document) -> Document:
-    """``doc`` over its flattened text, re-segmented. ``doc`` itself when flattening is a no-op.
-
-    Every field but the text and its sentences is shared: offsets are unchanged, so the mapper,
-    paragraphs, blocks, and quoted ranges all still apply. Cached on the document.
-    """
-    cached = doc.__dict__.get("_metadiscourse_flat")
-    if isinstance(cached, Document):
-        return cached
-    text = flatten(doc.cleaned_text)
-    flat = (
-        doc
-        if text == doc.cleaned_text
-        else dataclasses.replace(doc, cleaned_text=text, sentences=split_sentences(text))
-    )
-    doc.__dict__["_metadiscourse_flat"] = flat
-    return flat
+def _is_wrap_fragment(text: str) -> bool:
+    return bool(_WRAP_FRAGMENT.search(text))
 
 
 def _strip_markers(text: str) -> tuple[str, list[tuple[int, int]]]:
@@ -169,13 +152,13 @@ def _strip_markers(text: str) -> tuple[str, list[tuple[int, int]]]:
     All of them, not just the first: a sentence stacking several markers ("As noted above, in
     plain English, three things stand out") kept the others' text behind and was scored concrete,
     so the densest metadiscourse sentence in a passage was the one that broke the run. The
-    excision matters because markers can look concrete on their own -- "In plain English" contains
+    excision matters because markers can look concrete on their own. "In plain English" contains
     "English", which the proper-noun heuristic reads as a name, and "three things" contains a
     number.
 
     Each marker becomes ", " and the result is whitespace-collapsed, because ``_PROPER`` matches
-    on ``(?<=[a-z,;:]\\s)`` -- exactly one space. Substituting a bare space hid a name that
-    followed a comma-terminated marker ("In short, Tokyo remains the largest market" counted zero
+    on ``(?<=[a-z,;:]\\s)``, exactly one space. Substituting a bare space hid a name that followed
+    a comma-terminated marker ("In short, Tokyo remains the largest market" counted zero
     evidence), and substituting ", " without collapsing left two spaces and hid it just the same.
     """
     spans: list[tuple[int, int]] = []
@@ -194,18 +177,19 @@ def _strip_markers(text: str) -> tuple[str, list[tuple[int, int]]]:
 
 
 def _classify(doc: Document, sentence: TextSpan) -> Kind:
-    """``"meta"``, ``"skip"``, or ``"break"`` for one sentence of the flattened document.
+    """``"meta"``, ``"skip"``, or ``"break"`` for one sentence.
 
-    ``"skip"`` neither extends nor breaks a run: a short factless sentence says nothing about
+    ``"skip"`` neither extends nor breaks a run. A short factless sentence says nothing about
     whether the passage around it is about the writing, and treating it as concrete used to sever
     a run, so a denser passage of prose-about-the-prose could score lower than a sparser one. It
-    is the only neutral class. Everything else -- a sentence carrying a fact at ANY length, or
-    any non-prose block -- is a ``"break"``: the evidence test runs before the length test.
+    is the only neutral class. Everything else is a ``"break"``: a wrap fragment, a non-prose
+    block, and a sentence carrying a fact at any length. The evidence test runs before the length
+    test.
     """
     from slopscore.normalize.quotes import inside_quotes
 
     text = sentence.text.strip()
-    if doc.in_block_kind(sentence.start, _NOT_PROSE):
+    if doc.in_block_kind(sentence.start, _NOT_PROSE) or _is_wrap_fragment(text):
         return "break"
     rest, marker_spans = _strip_markers(text)
     # The pack sets skip_quoted=True and the run term has to honor it. Test each marker's own
@@ -219,15 +203,16 @@ def _classify(doc: Document, sentence: TextSpan) -> Kind:
         # Judge it as if the marker were not there: a short quotation dropped into a genuine run
         # should not sever it, which is what "skip" exists to prevent.
         return _no_marker(text)
-    if concrete_evidence_count(rest, spelled_numbers=True) > 0:
+    if concrete_evidence_count(_without_comments(rest), spelled_numbers=True) > 0:
         return "break"
-    return "skip" if len(text.split()) < _MIN_SENTENCE_WORDS else "meta"
+    return "skip" if len(_without_comments(text).split()) < _MIN_SENTENCE_WORDS else "meta"
 
 
 def _no_marker(text: str) -> Kind:
     """A sentence with no marker: short and factless says nothing, anything else interrupts."""
-    if len(text.split()) < _MIN_SENTENCE_WORDS:
-        return "skip" if concrete_evidence_count(text, spelled_numbers=True) == 0 else "break"
+    prose = _without_comments(text)
+    if len(prose.split()) < _MIN_SENTENCE_WORDS:
+        return "skip" if concrete_evidence_count(prose, spelled_numbers=True) == 0 else "break"
     return "break"
 
 
@@ -243,25 +228,30 @@ def _paragraph_index(doc: Document) -> Callable[[int], int]:
 def _runs(doc: Document) -> list[list[TextSpan]]:
     """Maximal runs of consecutive evidence-free metadiscourse sentences, longest first.
 
-    Sentences come from the flattened document (see ``_flat``); their offsets are cleaned-text
-    offsets like any other. Cached on the document: ``extract``, ``score_spans`` and
-    ``prune_spans`` all need it, and classification is ~30 regexes plus an evidence count per
-    sentence. A copy is returned so a caller cannot corrupt the cache.
+    Cached on the document: ``extract``, ``score_spans`` and ``prune_spans`` all need it, and
+    classification is ~30 regexes plus an evidence count per sentence. A copy is returned so a
+    caller cannot corrupt the cache.
     """
     cached = doc.__dict__.get("_metadiscourse_runs")
     if cached is not None:
         return [list(r) for r in cached]
 
-    flat = _flat(doc)
     paragraph_of = _paragraph_index(doc)
     runs: list[list[TextSpan]] = []
     current: list[TextSpan] = []
     skips = 0
     para = -1
-    for s in flat.sentences:
+    fragment_para: int | None = None
+    for s in doc.sentences:
         if not s.text.strip():
             continue
-        kind = _classify(flat, s)
+        here = paragraph_of(s.start)
+        # The line that completes a wrap fragment is the second half of one sentence. Judged on
+        # its own, a clause-initial marker at its head ("and,\nin short, nothing changed") reads as
+        # a sentence opener, so it breaks the run like the fragment before it.
+        completes_a_fragment = fragment_para == here
+        fragment_para = here if _is_wrap_fragment(s.text.strip()) else None
+        kind: Kind = "break" if completes_a_fragment else _classify(doc, s)
         if kind == "skip":
             # Tolerated inside a run, but only so many: past the budget the run is not
             # "consecutive" in any sense the explanation could honestly claim.
@@ -271,7 +261,6 @@ def _runs(doc: Document) -> list[list[TextSpan]]:
                 current, skips = [], 0
             continue
         if kind == "meta":
-            here = paragraph_of(s.start)
             if current and here != para:
                 # A paragraph break is a structural boundary on every source type, Markdown or
                 # not. Without this, three signposts in three separate paragraphs of plain text
@@ -293,31 +282,44 @@ def _runs(doc: Document) -> list[list[TextSpan]]:
     return [list(r) for r in runs]
 
 
-def _sentence_ranges(doc: Document) -> list[tuple[int, int, str]]:
-    """``(original start, original end, flattened text)`` for every sentence, in order.
+def _sentence_ranges(doc: Document) -> list[tuple[int, int, int]]:
+    """``(start, end, evidence window end)`` per sentence, in original coordinates.
 
-    The text is the flattened sentence, not ``original_text[start:end]``: the original still
-    carries line breaks, which hide a wrapped marker from ``_strip_markers``, and comments, whose
-    rule ids read as concrete evidence.
+    A sentence's evidence window is the sentence itself, extended through the lines that complete
+    it when it is a wrap fragment. Wrapped at 60 columns, "As mentioned above, personal injury
+    lawsuits" and "can motivate someone to malinger PTSD." are two pysbd sentences, and the fact
+    that exempts the marker is on the second line. Judged on the fragment alone, the wrapped copy
+    was charged for a marker the flat copy exempts. A wider window can only exempt more markers,
+    so wrapping cannot add a finding this way.
     """
-    ranges: list[tuple[int, int, str]] = []
-    for s in _flat(doc).sentences:
+    paragraph_of = _paragraph_index(doc)
+    sentences = [s for s in doc.sentences if s.text.strip()]
+    out: list[tuple[int, int, int]] = []
+    for i, s in enumerate(sentences):
+        j = i
+        while (
+            _is_wrap_fragment(sentences[j].text.strip())
+            and j + 1 < len(sentences)
+            and paragraph_of(sentences[j + 1].start) == paragraph_of(s.start)
+        ):
+            j += 1
         start, end = doc.mapper.to_original(s.start, s.end)
-        ranges.append((start, end, s.text))
-    return ranges
+        _, window_end = doc.mapper.to_original(sentences[j].start, sentences[j].end)
+        out.append((start, end, window_end))
+    return out
 
 
-def _restates_a_fact(span: Evidence, ranges: list[tuple[int, int, str]]) -> bool:
+def _restates_a_fact(doc: Document, span: Evidence, ranges: list[tuple[int, int, int]]) -> bool:
     """True when the sentence around a marker carries a concrete reference of its own.
 
     Every marker's characters are cut out before counting, or a marker that looks concrete would
-    exempt itself.
+    exempt itself, and so is any comment text, whose rule ids read as identifiers.
     """
-    for start, end, sentence in ranges:
+    for start, end, window_end in ranges:
         if not start <= span.start_char < end:
             continue
-        rest, _ = _strip_markers(sentence)
-        return concrete_evidence_count(rest, spelled_numbers=True) > 0
+        rest, _ = _strip_markers(doc.original_text[start:window_end])
+        return concrete_evidence_count(_without_comments(rest), spelled_numbers=True) > 0
     return False
 
 
@@ -353,7 +355,7 @@ def _licensed(start: int, end: int, spans: list[Evidence]) -> bool:
     from phrases whose scoring rule lives in formulaic_structure. Charging for those would bill
     one set of phrases to two weighted dimensions, which the pack design explicitly disclaims.
     The lexicon supplies the shape; only a rule of this dimension supplies the licence to score.
-    This is the ONE predicate behind ``extract``, ``score_spans`` and ``prune_spans``: it was
+    This is the ONE predicate behind ``extract``, ``score_spans`` and ``prune_spans``. It was
     once two, and they drifted.
     """
     return any(r.rule_id != RULE_META_RUN and start <= r.start_char < end for r in spans)
@@ -451,14 +453,12 @@ class Metadiscourse(PhrasePack):
         return spans
 
     def extract(self, doc: Document, profile: str, broad: bool = False) -> FeatureResult:
-        # Rules match the flattened text too, so a marker split by a hard wrap is found and a
-        # marker inside a comment is not. Evidence offsets are unchanged by flattening.
-        base = super().extract(_flat(doc), profile, broad=broad)
+        base = super().extract(doc, profile, broad=broad)
         ranges = _sentence_ranges(doc)
         kept = [
             s
             for s in base.spans
-            if s.rule_id not in _EVIDENCE_EXEMPT or not _restates_a_fact(s, ranges)
+            if s.rule_id not in _EVIDENCE_EXEMPT or not _restates_a_fact(doc, s, ranges)
         ]
         spans = sorted(kept + self._run_spans(doc, kept), key=lambda e: e.start_char)
         return FeatureResult(

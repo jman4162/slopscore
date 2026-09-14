@@ -15,7 +15,7 @@
       "LEXICAL_OVERPOLISHED_VERBS": 2,
       "LEXICAL_SYNTHETIC_SOPHISTICATION": 1,
       "META_ENDOPHORIC_BACKREF": 1,
-      "META_PLAIN_ENGLISH": 1,
+      "META_RUN_OF_META_SENTENCES": 1,
       "META_SECTION_PLAN": 1,
       "PARALLEL_X_NOT_Y": 2,
       "RESIDUE_AS_AN_AI": 1
@@ -28,7 +28,7 @@
   "meta_hits": {
     "META_ENDOPHORIC_BACKREF": 2
   },
-  "meta_run_mismatch": [],
+  "meta_runs_added_by_wrapping": [],
   "meta_runs_flat": 0,
   "meta_runs_wrapped": 0,
   "n_compared_across_ingesters": 155,

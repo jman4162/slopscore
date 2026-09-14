@@ -70,8 +70,13 @@ def test_no_unlisted_pattern_anchors_on_a_line_or_a_hand_written_boundary() -> N
 
 
 def test_the_allow_list_is_not_stale() -> None:
-    present = {rule for _, rule, _ in _every_yaml_pattern()}
-    assert present >= LINE_ANCHORED
+    # Each exemption must still be needed: the rule exists AND still uses a line anchor or a
+    # hand-written boundary. A rule moved onto {CLAUSE_START} and left on the list would silently
+    # exempt any bare `^` added to it later.
+    patterns = {rule: pattern for _, rule, pattern in _every_yaml_pattern()}
+    assert set(patterns) >= LINE_ANCHORED
+    for rule in LINE_ANCHORED:
+        assert _BARE_CARET.search(patterns[rule]) or _HAND_LOOKBEHIND.search(patterns[rule]), rule
 
 
 def test_the_token_is_used_and_every_loader_expands_it() -> None:
@@ -107,11 +112,24 @@ def test_anchor_accepts_sentence_boundaries_and_refuses_wraps() -> None:
         "a. \nto be clear, x",
         "a.\n \nto be clear, x",
         "a.\n\n   to be clear, x",
-        "Key points: to be clear, x",
-        "Costs rose; to be clear, x",
+        "a.\n<!-- c -->\nto be clear, x",
+        "a. <!-- c --> to be clear, x",
+        "<!-- c -->\nto be clear, x",
         'he said "no." to be clear, x',
         "a.) to be clear, x",
     ]:
         assert p.search(text), text
-    for text in ["and\nto be clear, x", "and, to be clear, x", "and to be clear, x"]:
+    # Refused: a hard wrap, a mid-sentence parenthetical, and, as accepted false negatives, a
+    # clause after a colon, a semicolon, or an unpunctuated heading line.
+    for text in [
+        "and\nto be clear, x",
+        "and, to be clear, x",
+        "and to be clear, x",
+        "Key points: to be clear, x",
+        "Costs rose; to be clear, x",
+        "Background\nto be clear, x",
+        # A comment end is a boundary only when the comment itself starts at one.
+        "and\n<!-- c -->\nto be clear, x",
+        "-->\nto be clear, x",
+    ]:
         assert not p.search(text), text

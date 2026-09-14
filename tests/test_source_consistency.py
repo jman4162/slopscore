@@ -111,6 +111,10 @@ def test_no_rule_fires_under_one_ingester_only(scanned: list[dict[str, object]])
     divergent: dict[str, str] = {}
     for entry in scanned:
         reports = _reports(entry)
+        # Both sides are asserted, so a regression that routed either one through the other
+        # ingester turns this into a visible failure rather than a silent self-comparison.
+        assert reports["text"].input.source_type is SourceType.text
+        assert reports["markdown"].input.source_type is SourceType.markdown
         ids = {s: {e.rule_id for e in reports[s].findings} for s in reports}
         for rule in (ids["text"] ^ ids["markdown"]) - sweep_sources.STRUCTURE_DEPENDENT:
             divergent.setdefault(rule, str(entry["text"])[:70])
@@ -156,26 +160,24 @@ _RUN = (
 )
 
 
-def test_a_genuine_run_is_found_on_every_path() -> None:
-    """The positive direction: flat, hard-wrapped, and Markdown all report the same run.
+def test_a_genuine_run_is_found_flat_and_never_invented_by_wrapping() -> None:
+    """Flat text and Markdown report the run; wrapping may lose it but never adds to it.
 
-    The negative tests above pass with the run term switched off; this one does not. Wrapping
-    once lost the run entirely: each wrapped meta sentence became a marker-less tail that ended
-    it, so a hard-wrapped .txt scored 0.09 where the same prose flat scored 0.55.
+    The negative tests above pass with the run term switched off; the flat half of this one does
+    not. Wrapped prose is judged conservatively: a wrap fragment and its completion break a run.
     """
     scorer = SlopScorer()
     flat, wrapped = sweep_sources.wrap_variants(_RUN)
     assert "\n" in wrapped
-    reports = [
-        sweep_sources.scan_plain(scorer, flat),
-        sweep_sources.scan_plain(scorer, wrapped),
-        sweep_sources.scan_markdown(scorer, flat),
-    ]
-    for report in reports:
+    found = [sweep_sources.scan_plain(scorer, flat), sweep_sources.scan_markdown(scorer, flat)]
+    for report in found:
         runs = [e for e in report.findings if e.rule_id == RULE_META_RUN]
         assert len(runs) == 1
         assert runs[0].severity is Severity.medium
-    assert len({r.dimensions.metadiscourse for r in reports}) == 1
+    assert found[0].dimensions.metadiscourse == found[1].dimensions.metadiscourse
+    wrapped_report = sweep_sources.scan_plain(scorer, wrapped)
+    assert wrapped_report.dimensions.metadiscourse <= found[0].dimensions.metadiscourse
+    assert len([e for e in wrapped_report.findings if e.rule_id == RULE_META_RUN]) <= 1
 
 
 @pytest.mark.parametrize("path", ["text", "markdown"])
@@ -198,15 +200,15 @@ def _meta(report: Report) -> list[tuple[str, str]]:
     )
 
 
-def test_hard_wrapping_changes_no_metadiscourse_finding() -> None:
-    """Hard-wrapped prose must produce exactly the metadiscourse findings flat prose does.
+def test_hard_wrapping_adds_no_metadiscourse_finding() -> None:
+    """Hard-wrapped prose must never produce a metadiscourse finding flat prose does not.
 
     ``_ruleset.py`` compiles every pattern with ``re.MULTILINE``, so a ``^`` anchor is a LINE
     anchor, and pysbd splits hard-wrapped text on line breaks. Together those made a paragraph
-    wrapped at 60 columns -- a code comment, a plain-text file, a commit message -- fire
+    wrapped at 60 columns (a code comment, a plain-text file, a commit message) fire
     clause-anchored markers mid-sentence and escalate to a run. Two fixtures: one with no
-    metadiscourse at all, where a wrap puts "precision matters" at the head of a line, and one
-    where a wrap puts "in short," at the head of a line mid-sentence beside a genuine marker.
+    metadiscourse, where a wrap puts "precision matters" at the head of a line, and one where a
+    wrap puts "in short," at the head of a line mid-sentence beside a genuine marker.
     """
     scorer = SlopScorer()
     no_meta = (
@@ -219,6 +221,10 @@ def test_hard_wrapping_changes_no_metadiscourse_finding() -> None:
         "plan had changed at all by then. To be clear, the deadline had not moved at all for "
         "anyone."
     )
-    for text, expected in [(no_meta, []), (one_meta, [("META_CLARIFY_FRAME", "low")])]:
-        for variant in (text, "\n".join(textwrap.wrap(text, 60))):
-            assert _meta(sweep_sources.scan_plain(scorer, variant)) == expected, variant
+    assert _meta(sweep_sources.scan_plain(scorer, no_meta)) == []
+    assert _meta(sweep_sources.scan_plain(scorer, one_meta)) == [("META_CLARIFY_FRAME", "low")]
+    for text in (no_meta, one_meta):
+        flat = set(_meta(sweep_sources.scan_plain(scorer, text)))
+        for width in (40, 60, 72):
+            wrapped = "\n".join(textwrap.wrap(text, width))
+            assert set(_meta(sweep_sources.scan_plain(scorer, wrapped))) <= flat, wrapped

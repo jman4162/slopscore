@@ -66,16 +66,16 @@ Metadiscourse. Schema 0.14.0 (new `metadiscourse` dimension).
   sentence documenting `INSIGHT_LOAD_BEARING`. Scores and `INSIGHT_*` findings on corpora
   containing quoted examples will drop relative to 0.13.0, and a `--baseline-file` built on
   0.13.0 will report those findings as resolved.
-- **Hard-wrapped prose scores the same as flat.** pysbd ends a sentence at every line break, so
-  wrapped text (code comments, commit messages, plain-text files) arrived as fragments. Matched
-  fragment by fragment, a clause-initial marker fired mid-sentence, and a wrapped paragraph with
-  no metadiscourse in it escalated to a run. The dimension now reads a copy of the text in which
-  soft line breaks are spaces and HTML comments are blank, one character for one, so offsets are
-  unchanged and pysbd segments wrapped prose as flat prose. A marker split across a wrap ("As
-  noted" / "above,") is found, and a rule id inside a suppression comment no longer counts as a
-  concrete identifier that exempts the marker beside it. Clause-initial metadiscourse patterns
-  share one anchor, `{CLAUSE_START}` in the YAML, expanded by `_ruleset.py:compile_rule_pattern`.
-  The clause-initial rules that shipped in 0.13.0 keep their anchors unchanged.
+- **Hard-wrapped prose is judged conservatively.** pysbd ends a sentence at every line break, so
+  wrapped text (code comments, commit messages, plain-text files) arrives as fragments, and a
+  clause-initial marker matched against a fragment fired mid-sentence. A wrapped paragraph with
+  no metadiscourse in it escalated to a run finding. Now a wrap fragment and the line that
+  completes it both break a run, and clause-initial metadiscourse patterns share one anchor
+  (`{CLAUSE_START}` in the YAML) that refuses a line break after a bare word. Wrapping can hide a
+  run but cannot create one. A clause after an unpunctuated heading line, a colon, or a semicolon
+  is not anchored; these are false negatives, accepted in preference to false positives. Text
+  inside an HTML comment no longer counts as evidence, so a suppression comment naming another
+  rule cannot exempt a marker. The clause-initial rules that shipped in 0.13.0 keep their anchors.
 - **Disabling a run's licensing rule removes the run.** `disabled_rules` and inline suppression
   filter by rule id after extraction, so silencing the one `META_` rule inside a run left the
   `META_RUN_OF_META_SENTENCES` finding in the report at medium severity while the dimension

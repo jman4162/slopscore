@@ -27,8 +27,8 @@ __all__ = [
 ]
 
 # The start of a clause, for metadiscourse rules and markers that must only match a sentence
-# opener ("To be clear,", "In short:"). Written ONCE here and spliced into YAML wherever a pattern
-# says ``{CLAUSE_START}``, because every hand-copied version of it was wrong in a different way:
+# opener ("To be clear,", "As noted above,"). Written ONCE here and spliced into YAML wherever a
+# pattern says ``{CLAUSE_START}``, because every hand-copied version was wrong in its own way:
 #
 # * ``^`` is a LINE anchor under the ``re.MULTILINE`` these rules compile with, so it matched
 #   mid-sentence on hard-wrapped prose (code comments, commit messages, plain-text files).
@@ -36,20 +36,27 @@ __all__ = [
 #   never anchored, and neither did a sentence after a closing quote (``"no." To be clear,``).
 # * ``(?<=\n\n)`` disagreed with the segmenter's ``\n[ \t]*\n`` about what a paragraph is.
 #
-# It accepts the start of the text, a blank line, and terminal punctuation (colon and semicolon
-# included) followed by any closers and whitespace. The metadiscourse feature matches it against
-# a flattened copy of the text in which soft line breaks are spaces and HTML comments are blank
-# (``features/metadiscourse.py:flatten``), so it never has to reason about line structure.
+# It accepts the start of the text, a blank line, terminal punctuation followed by any closers
+# and whitespace, and the end of an HTML comment that itself sits at one of those boundaries.
+# The last is what ``ingest/markdown.py`` leaves in front of a paragraph carrying a suppression
+# comment. A comment that interrupts a wrapped sentence does not start a clause.
 #
-# Deliberately NOT used by the clause-initial rules that shipped before v0.14
-# (FORMULAIC_IN_CONCLUSION, FORMULAIC_THAT_SAID, FORMULAIC_SIMPLY_PUT, WEASEL_CERTAINTY_OPENER,
-# CANDOR_ADVERB_PARENTHETICAL, PARALLEL_X_NOT_Y). Moving them onto it changed their findings on
-# flat prose: they began firing after a mid-line semicolon, and stopped firing after an
-# unpunctuated heading line. Their wrap-sensitivity predates v0.14 and is recorded in
-# eval/results/source_sweep.json; changing it is a calibration decision, not a release fix.
+# It refuses a line break after a bare word, which is what a hard wrap looks like. That has a
+# cost, accepted on purpose: a clause after an unpunctuated heading line ("Conclusion\nTo be
+# clear,") or after a colon or semicolon is not anchored. Every one of those misses is a false
+# negative, and this tool prefers false negatives to accusations.
+#
+# NOT used by the clause-initial rules that shipped before v0.14 (FORMULAIC_IN_CONCLUSION,
+# FORMULAIC_THAT_SAID, FORMULAIC_SIMPLY_PUT, WEASEL_CERTAINTY_OPENER, CANDOR_ADVERB_PARENTHETICAL,
+# PARALLEL_X_NOT_Y). Moving them onto it changed their findings on flat prose, so they keep their
+# 0.13.0 anchors, including the ``^`` that can fire mid-sentence on hard-wrapped text. Changing
+# that is a calibration decision for a later release, not a fix to ship with this one.
 #
 # Variable-width lookbehind is a ``regex`` module feature; ``re`` would refuse this pattern.
-CLAUSE_START = r"""(?:(?<=\A\s*)|(?<=\n\s*\n\s*)|(?<=[.!?:;]["')\]]*\s+))"""
+CLAUSE_START = (
+    r"""(?:(?<=\A\s*)|(?<=\n\s*\n\s*)|(?<=[.!?]["')\]]*\s+)"""
+    r"""|(?<=(?:\A|\n\s*\n|[.!?]["')\]]*\s)\s*<!--(?:(?!-->).)*-->\s*))"""
+)
 CLAUSE_START_TOKEN = "{CLAUSE_START}"
 DEFAULT_FLAGS = re.IGNORECASE | re.MULTILINE
 

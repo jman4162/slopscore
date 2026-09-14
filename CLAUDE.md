@@ -187,16 +187,18 @@ make it unlike the other packs.
   overrides (`_severity_factor`), and **anchors on the run's first sentence only** — a
   multi-sentence finding span makes `report/html.py` swallow every phrase highlight inside it and
   makes `report/baseline.py` fingerprints change on unrelated edits. Run length is therefore
-  recovered by re-deriving runs from the document, never from the span text. The dimension
-  reads a **flattened copy** of the cleaned text (`metadiscourse.py:flatten`): soft line breaks
-  become spaces and HTML comments are blanked, one character for one, so offsets are unchanged
-  and pysbd segments hard-wrapped prose as the flat prose it is. Its rules match that copy too.
-  Do not repair pysbd fragments after the fact instead; three attempts at that each broke
-  something new. Non-prose blocks (`heading`, `list_item`) and any sentence carrying a fact
-  **break** a run; a short factless sentence is neutral. Clause-initial rules and markers write
-  `{CLAUSE_START}`, expanded by `_ruleset.py:compile_rule_pattern`, which every YAML loader must
-  use. The six clause-initial rules that predate v0.14 keep their own anchors on purpose; see the
-  comment on `CLAUSE_START`.
+  recovered by re-deriving runs from the document, never from the span text. **Hard-wrapped prose
+  is judged conservatively, not invariantly.** pysbd ends a sentence at every line break; a
+  sentence ending in a letter, digit, comma, or dash (a wrap fragment or an unpunctuated heading
+  line), and the line that completes it, **break** a run. Wrapping can hide a run but never create
+  one. Do not try to make wrapped text score the same as flat: skipping fragments, re-joining
+  them, and flattening the text into a copy each produced a new false positive in review.
+  Non-prose blocks (`heading`, `list_item`) and any sentence carrying a fact also break a run; a
+  short factless sentence is neutral. HTML comment text is removed before evidence is counted,
+  because a rule id inside a suppression comment reads as an identifier. Clause-initial rules and
+  markers write `{CLAUSE_START}`, expanded by `_ruleset.py:compile_rule_pattern`, which every YAML
+  loader must use. The six clause-initial rules that predate v0.14 keep their own anchors on
+  purpose; see the comment on `CLAUSE_START`.
   The run's `Evidence` is licensed by a `META_` rule inside it, and `prune_spans`
   (`base.py:SpanPruned`) re-applies that licence after the scorer's `disabled_rules` and
   suppression filtering, so a disabled rule takes its run with it. A terminal-recap term was

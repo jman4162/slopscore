@@ -578,10 +578,11 @@ def test_suppressing_the_licensing_rule_removes_the_run() -> None:
     assert report.dimensions.metadiscourse == 0.0
 
 
-def test_a_wrapped_run_scores_the_same_as_flat() -> None:
-    # Fragments are re-joined before classification. Before, a wrapped meta sentence became a
-    # first fragment (skipped) plus a marker-less tail (a break), so wrapping switched the run
-    # term off: 0.55 flat became 0.094 wrapped on a 1,066-word plain-text file.
+def test_hard_wrapping_never_raises_a_score() -> None:
+    # Wrapped prose is judged conservatively, not invariantly. pysbd ends a sentence at every line
+    # break, and a wrap fragment plus the line that completes it both break a run, so wrapping can
+    # hide a run but never create one. Review rounds 5 to 8 each tried to make wrapped text score
+    # the same as flat, and each attempt produced a false positive somewhere else.
     import textwrap
 
     fact = "The bridge in Leeds opened in 1932 after three years of work by two firms. " * 40
@@ -590,8 +591,9 @@ def test_a_wrapped_run_scores_the_same_as_flat() -> None:
         "\n".join(textwrap.wrap(fact, 60)) + "\n\n" + "\n".join(textwrap.wrap(_RUN_OF_THREE, 60))
     )
     a, b = scan_text(flat), scan_text(wrapped)
-    assert a.dimensions.metadiscourse == b.dimensions.metadiscourse == 0.55
-    assert _meta(a) == _meta(b)
+    assert a.dimensions.metadiscourse == 0.55
+    assert b.dimensions.metadiscourse <= a.dimensions.metadiscourse
+    assert set(_meta(b)) <= set(_meta(a))
 
 
 def test_a_marker_a_wrap_put_at_line_start_is_still_mid_sentence() -> None:
@@ -624,20 +626,30 @@ _FACT = "The bridge in Leeds opened in 1932 after three years of work by two fir
 @pytest.mark.parametrize(
     "text",
     [
-        "Key points:\nTo be clear, the point is not really about any of that at all.",
         _FACT + " \nTo be clear, the point is not really about any of that at all.",
         "\nTo be clear, the point is not really about any of that at all. " + _FACT,
         _FACT + "\n \nTo be clear, the point is not about any of that at all.",
         'He said "no." To be clear, the point is not about any of that at all.',
     ],
-    ids=["colon-line", "dot-space-newline", "leading-blank", "blank-with-space", "after-quote"],
+    ids=["dot-space-newline", "leading-blank", "blank-with-space", "after-quote"],
 )
 def test_clause_anchor_accepts_every_sentence_boundary(text: str) -> None:
     assert ("META_CLARIFY_FRAME", "low") in _meta(scan_text(text))
 
 
-def test_clause_anchor_refuses_a_hard_wrap() -> None:
-    assert _meta(scan_text("and\nto be clear, the point is not about any of that at all.")) == []
+@pytest.mark.parametrize(
+    "text",
+    [
+        "and\nto be clear, the point is not about any of that at all.",
+        # Accepted costs, both false negatives: a clause after an unpunctuated heading line or
+        # after a colon is not anchored. See the comment on _ruleset.CLAUSE_START.
+        "Background\nTo be clear, the point is not really about any of that at all.",
+        "Key points:\nTo be clear, the point is not really about any of that at all.",
+    ],
+    ids=["hard-wrap", "heading-line", "colon-line"],
+)
+def test_clause_anchor_refuses_a_line_break_after_an_unterminated_line(text: str) -> None:
+    assert _meta(scan_text(text)) == []
 
 
 def test_a_suppression_comment_does_not_exempt_the_paragraph_below_it(tmp_path) -> None:  # type: ignore[no-untyped-def]
@@ -694,14 +706,15 @@ def test_an_inline_suppression_comment_is_not_evidence() -> None:
     assert with_comment.dimensions.metadiscourse == without.dimensions.metadiscourse
 
 
-def test_a_marker_split_by_a_hard_wrap_is_still_a_marker() -> None:
-    # Literal spaces in a pattern cannot match a newline, so "As noted\nabove," was invisible to
-    # the lexicon and the rule alike, and a run of three read as two.
+def test_a_marker_split_by_a_hard_wrap_is_missed_not_invented() -> None:
+    # Literal spaces in a pattern cannot match a newline, so "As noted\nabove," is not a marker.
+    # That is a false negative, and the wrap fragment before it breaks the run rather than
+    # letting the sentences on either side join into a longer one.
     flat = scan_text(f"{_A} {_B} {_C}")
     split = scan_text(f"{_A} {_B} {_C}".replace("As noted above,", "As noted\nabove,"))
     assert ("META_RUN_OF_META_SENTENCES", "medium") in _meta(flat)
-    assert _meta(split) == _meta(flat)
-    assert split.dimensions.metadiscourse == flat.dimensions.metadiscourse
+    assert set(_meta(split)) <= set(_meta(flat))
+    assert split.dimensions.metadiscourse <= flat.dimensions.metadiscourse
 
 
 def test_a_footnote_marker_does_not_join_sentences() -> None:
@@ -742,20 +755,39 @@ def test_pre_existing_clause_rules_still_fire_after_a_heading_line() -> None:
     assert {"FORMULAIC_IN_CONCLUSION", "FORMULAIC_THAT_SAID"} <= ids
 
 
-def test_flatten_preserves_length_and_paragraphs() -> None:
-    from slopscore.features.metadiscourse import flatten
-    from slopscore.normalize.segment import split_paragraphs
+def test_a_wrap_fragment_and_its_completion_break_a_run() -> None:
+    from slopscore.features.metadiscourse import _runs
 
-    for text in [
-        "a.\nb.\n\nc.\n \nd.",
-        "x <!-- slopscore-disable-line A -->\ny",
-        "<!--\n\n-->z",
-        "one\ntwo\n\n\nthree",
-    ]:
-        flat = flatten(text)
-        assert len(flat) == len(text)
-        assert "<!--" not in flat
-    text = "a.\nb.\n\nc.\n \nd."
-    assert [(p.start, p.end) for p in split_paragraphs(flatten(text))] == [
-        (p.start, p.end) for p in split_paragraphs(text)
-    ]
+    # Three genuine signposts, the middle one wrapped mid-clause. Flat, this is a run of three.
+    # Wrapped, the fragment and its completion both break, so no run of three can form.
+    text = f"{_A}\nAs noted above, the point is not really\nabout any of that at all either. {_C}"
+    doc = _doc(text)
+    assert all(len(run) < 3 for run in _runs(doc))
+
+
+def test_a_comment_inside_a_wrapped_sentence_does_not_start_a_clause() -> None:
+    # Review round 8: a suppression comment on its own line, between a wrap fragment and the rest
+    # of its sentence, anchored "to be clear," mid-sentence. The end of a comment counts as a
+    # clause start only when the comment itself sits at one.
+    text = (
+        "We reviewed the budget with the team on Friday and\n"
+        "<!-- slopscore-disable-next-line LEXICAL_GENERIC_IMPORTANCE -->\n"
+        "to be clear, the framing here is what actually matters most of all."
+    )
+    assert _meta(scan_text(text)) == []
+
+
+def test_a_fact_on_the_next_wrapped_line_still_exempts_the_marker() -> None:
+    # Review round 8 sweep, longform row 164: wrapped, the fact that exempts "As mentioned above,"
+    # sat on the line after the marker's fragment, so the wrapped copy was charged and the flat
+    # copy was not. That is the one direction wrapping must never move a finding.
+    flat = (
+        "Estimates vary widely across the two studies. As mentioned above, personal injury "
+        "lawsuits can motivate someone to malinger PTSD."
+    )
+    wrapped = (
+        "Estimates vary widely across the two studies. As mentioned above, personal injury "
+        "lawsuits\ncan motivate someone to malinger PTSD."
+    )
+    assert _meta(scan_text(flat)) == []
+    assert _meta(scan_text(wrapped)) == []
