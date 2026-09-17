@@ -101,8 +101,8 @@
       "metrics": {
         "n": 180,
         "n_positive": 60,
-        "auroc": 0.7048,
-        "pr_auc": 0.5933,
+        "auroc": 0.7033,
+        "pr_auc": 0.5913,
         "tpr_at_1fpr": 0.1333,
         "tpr_at_5fpr": 0.2333,
         "ece": 0.2509,

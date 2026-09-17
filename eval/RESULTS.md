@@ -30,7 +30,7 @@ and reverted, for the reasons in `MODEL_CARD.md`.
 | Set | n | AUROC | PR-AUC | TPR@1%FPR | ECE |
 |---|---|---|---|---|---|
 | benchmark (in-sample, overt slop, 13-40 words) | 149 | 0.857 | 0.863 | 0.329 | 0.213 |
-| longform (committed, 300+ words, eval-only) | 180 | 0.705 | 0.593 | 0.133 | 0.251 |
+| longform (committed, 300+ words, eval-only) | 180 | 0.703 | 0.591 | 0.133 | 0.251 |
 | wiki_aicleanup, full articles (held-out) | 180 | 0.746 | 0.770 | 0.111 | 0.415 |
 | wiki_aicleanup, lead sections only (v0.10 slice) | 40 | 0.647 | 0.627 | 0.000 | 0.463 |
 

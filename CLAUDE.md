@@ -77,6 +77,9 @@ Key invariants when extending:
   structure_tells (weak, v0.13: Markdown block shape from `Document.blocks`),
   prompt_residue, metadiscourse, human_writing_signals (negative). `genericity`, `cadence_sameness`, `redundancy`,
   and `human_writing_signals` are STATISTICAL (no spans, low weight, never corroborate).
+  `formatting_tells` counts ASCII dashes with the Unicode ones: two or three hyphens spaced
+  between words, or unspaced only between two lowercase letters. The lowercase guard keeps
+  names and titles ("Wenner--Gren") out; do not widen it without corpus numbers.
   `insight_signaling` (v0.7) and `performative_candor` (v0.9) are rules-only — deliberately
   excluded from the ML `FEATURE_ORDER`, so they need no model retrain.
 - **Personal baseline:** `scoring/calibrate.py` builds robust per-dimension stats from a corpus;

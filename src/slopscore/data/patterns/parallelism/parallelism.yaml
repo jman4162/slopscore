@@ -63,8 +63,8 @@ rules:
   # accepts an em dash separator when the subject is 'it').
   - rule_id: PARALLEL_NOT_EMDASH_ITS
     severity: medium
-    pattern: "(?<!it )(?:is|are|was|were)\\s+not\\s+[^.?!,;]{1,50}[—–]\\s?it(?:'s| is)\\b"
-    explanation: "'X is not Y—it's Z' em-dash antithesis."
+    pattern: "(?<!it )(?:is|are|was|were)\\s+not\\s+[^.?!,;]{1,50}(?:[—–]| ?-{2,3})\\s?it(?:'s| is)\\b"
+    explanation: "'X is not Y—it's Z' em-dash antithesis (also typed as 'X is not Y -- it's Z')."
     source: "WP:AIPARALLEL"
 
   # v0.13: the antithesis split across a sentence boundary evaded every rule above.

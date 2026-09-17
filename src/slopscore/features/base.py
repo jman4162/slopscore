@@ -76,7 +76,7 @@ def registry() -> list[Feature]:
 # It is NOT applied by default, and that is a measured decision rather than caution. Floored
 # globally it did two things its own rationale did not predict. It raised scores on short text
 # carrying human signal, because a saturated slop dimension cannot be lowered any further while
-# ``human_writing_signals`` -- a negative weight -- is shrunk, removing the counterweight: a
+# ``human_writing_signals``, a negative weight, is shrunk, removing the counterweight: a
 # 36-word slop paragraph with a date and a price went 75.4 up to 80.0. And it inverted
 # ``--by-paragraph``: under a floor a paragraph's score tracks its absolute hit COUNT rather than
 # its density, so a 57-word mild paragraph outranked a 16-word dense one (12.6 against 10.1,
@@ -89,8 +89,8 @@ def registry() -> list[Feature]:
 #
 # The trade-off is real and is not papered over: below 100 words that dimension scores on hit
 # COUNT rather than density, so it does not rank short paragraphs the way ``--by-paragraph``
-# wants. Removing the floor does not restore density there -- the rate saturates at 1.0 instead,
-# for one hit in eleven words as much as four in forty-four -- so the choice is between
+# wants. Removing the floor does not restore density there: the rate saturates at 1.0 instead,
+# for one hit in eleven words as much as four in forty-four, so the choice is between
 # count-based and pinned-at-maximum, and count-based is the one that does not convict clean
 # short text. ``tests/test_conservatism.py`` pins both halves of that comparison.
 MIN_RATE_WORDS = 100

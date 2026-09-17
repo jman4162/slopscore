@@ -3,6 +3,25 @@
 All notable changes to slopscore. The PyPI distribution is `slopscore-lint`; the import package
 and the tool are named `slopscore`.
 
+## Unreleased
+
+- **ASCII dashes count as dashes.** `FORMATTING_EM_DASH` counted only the Unicode em and en dash,
+  so the same habit typed as `--` scored nothing. Models writing into terminals, commit messages,
+  and code comments type `--`, and swapping one for the other is a known way to strip the tell.
+  Two forms now count toward the dash-to-comma ratio: two or three hyphens with a space on each
+  side between words ("the model -- which was new -- failed"), and two or three hyphens between
+  two lowercase letters ("the plan--simple--worked"). CLI flags, `<!--` and `-->`, rule lines,
+  numeric ranges, decrements, and capitalized compounds such as "Wenner--Gren" do not count: in
+  the long-form corpus, three of the four unspaced human uses were names or titles. A spaced
+  single hyphen is not counted. The rule id is unchanged, and the summary span still anchors on
+  the first Unicode dash when a document has one, so `--baseline-file` fingerprints do not change
+  for documents that already fired. `PARALLEL_NOT_EMDASH_ITS` also matches "is not X -- it's Y".
+- **Measured cost.** Long-form AUROC 0.7048 to 0.7033 and PR-AUC 0.5933 to 0.5913; TPR at 1% FPR
+  is unchanged at 0.1333. In that corpus `--` appears in 7 of 120 human documents and 1 of 60 AI
+  documents. Those rows are older text than the ASCII output this change targets, so the corpus
+  measures the cost and not the benefit. The benchmark and both fairness slices contain no dashes
+  of any kind, and their numbers are unchanged.
+
 ## 0.14.0
 
 Metadiscourse. Schema 0.14.0 (new `metadiscourse` dimension).
