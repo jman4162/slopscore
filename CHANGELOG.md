@@ -3,7 +3,9 @@
 All notable changes to slopscore. The PyPI distribution is `slopscore-lint`; the import package
 and the tool are named `slopscore`.
 
-## Unreleased
+## 0.14.1
+
+ASCII dashes. Schema unchanged (0.14.0).
 
 - **ASCII dashes count as dashes.** `FORMATTING_EM_DASH` counted only the Unicode em and en dash,
   so the same habit typed as `--` scored nothing. Models writing into terminals, commit messages,

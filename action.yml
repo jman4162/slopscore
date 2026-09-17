@@ -28,7 +28,7 @@ inputs:
   version:
     description: "slopscore-lint version to install from PyPI (pinned per action release)."
     required: false
-    default: "0.14.0"
+    default: "0.14.1"
   upload-sarif:
     description: Upload results to GitHub code scanning.
     required: false
