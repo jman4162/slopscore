@@ -79,3 +79,27 @@ rules:
     pattern: "\\b(?:it'?s not (?:either\\b|a (?:binary|dichotomy|false (?:choice|dichotomy)))|the answer is (?:not either[,;—-]* )?both)\\b"
     explanation: "'it's not either/or — it's both' false-binary reframe."
     source: "WP:AIPARALLEL"
+
+  # v0.14.2: "X, not Y" as a coda inside a longer sentence ("That's a real cost, but it's a cost,
+  # not a collapse."). PARALLEL_X_NOT_Y only matches a sentence-initial slogan with no comma
+  # before it. The lookbehind requires a non-terminal character and a space or tab before the
+  # subject, so a sentence-initial "It's a cost, not a collapse." is left to PARALLEL_X_NOT_Y and
+  # the two never charge the same span. An article is required on both sides: without it the
+  # rule matched only human rows in MAGE ("based on averages, not individuals", "Jurassic World,
+  # not Jurassic Park").
+  - rule_id: PARALLEL_X_NOT_Y_CODA
+    severity: low
+    pattern: "(?<=[^.!?\\s][ \\t])(?:it|that|this)(?:'s| is| was) (?:a|an|the) [a-z][\\w'-]*(?: [a-z][\\w'-]*){0,2}, not (?:a|an|the) [a-z][\\w'-]*(?: [a-z][\\w'-]*){0,2}[.!?]"
+    explanation: "'..., but it's a cost, not a collapse.' contrastive coda closing a sentence."
+    source: "WP:AIPARALLEL"
+
+  # v0.14.2: the concession-then-denial antithesis split across a sentence break ("That's a
+  # legitimate risk for specific banks. It is not a system-wide run."). The article is required
+  # on both sides so a statement followed by ordinary negation ("It's a Tuesday. It isn't
+  # raining.") does not fire. The first sentence must open on that/this: with "It's" allowed the
+  # rule matched only human rows in MAGE ("It's a fact that... It's not a...").
+  - rule_id: PARALLEL_THATS_X_ITS_NOT_Y
+    severity: low
+    pattern: "\\b(?:that(?:'s| is| was)|this(?:'s| is| was)) (?:a|an) [^.?!]{1,80}[.!?]\\s+(?:it|that|this)(?: is not| isn't|'s not| was not| wasn't) (?:a|an)\\b"
+    explanation: "'That's X. It is not Y.' concession-then-denial antithesis across a sentence break."
+    source: "WP:AIPARALLEL"

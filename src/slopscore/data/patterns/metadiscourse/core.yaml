@@ -55,6 +55,14 @@ rules:
     explanation: "'In this section we will discuss' — describes the text instead of writing it."
     source: "WP:AISIGNS (communication intended for the user)"
 
+  - rule_id: META_ARGUMENT_SETUP
+    severity: low
+    # Frame marker that stages an argument before stating it ("The argument goes like this.").
+    # Mirrored in data/lexicons/metadiscourse_markers.yaml so the run detector sees it.
+    pattern: "\\bthe (?:argument|logic|reasoning|thinking|story) goes (?:something )?like this\\b"
+    explanation: "'The argument goes like this.' announces the argument instead of stating it."
+    source: "human-reader catch, agentic bank run post (2026-09)"
+
   - rule_id: META_ENUMERATION_ANNOUNCE
     severity: low
     # "let's break this down" is deliberately absent: FORMULAIC_LETS_DELVE owns it.

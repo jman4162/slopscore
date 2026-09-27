@@ -56,6 +56,10 @@ Vocabulary drifts by model era (GPT-4 → GPT-4o → GPT-5); the lexicon tags te
   high score on plain or non-native English as evidence of anything about the author.
 - **Short text.** Under ~300 words confidence is low; under ~100 the score abstains.
 - **Genre.** Marketing and travel writing naturally resemble slop; use `--profile` to reweight.
+- **Argued explainer prose.** Specific, fact-dense prose with model-style antithesis ("it's a
+  cost, not a collapse") and staging ("the stronger version of this argument") scores low by
+  design. The rules report the spans; the corroboration gate keeps the label down, because the
+  same register is ordinary human op-ed writing and no benchmark slice yet measures it.
 - **Adversarial edits.** Light paraphrasing evades pattern matching, as it does all detectors.
 - **Coverage.** Wikipedia/markup-specific and authorship-signal tells are intentionally excluded;
   slopscore is a general-prose tool.

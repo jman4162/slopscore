@@ -101,7 +101,7 @@ rules:
   # no rule ("it's worth noting", "that said", "simply put", "make no mistake").
   - rule_id: FORMULAIC_WORTH_NOTING
     severity: low
-    pattern: "\\b(?:it(?:'s| is) (?:also )?worth (?:noting|mentioning|pointing out)|it(?:'s| is) (?:important|worth) to (?:note|mention|remember)|it should be noted)\\b"
+    pattern: "\\b(?:it(?:'s| is) (?:also )?worth (?:noting|mentioning|pointing out|remembering|keeping in mind|bearing in mind)|it(?:'s| is) (?:important|worth) to (?:note|mention|remember)|it should be noted)\\b"
     explanation: "'It's worth noting' announces a point instead of making it."
 
   - rule_id: FORMULAIC_THAT_SAID

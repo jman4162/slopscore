@@ -116,3 +116,16 @@ rules:
     pattern: "\\bthe (?:spine|backbone|through-?line) (?:of [\\w\\s]{1,30} )?is (?:the|our|its|a) (?:same |real |whole |central |underlying |actual )?(?:evidence|argument|thesis|idea|logic|case|point|reason|principle|claim|through-?line|story|framework)\\b"
     explanation: "'the spine is the <evidence/argument>' — anatomy metaphor for an organizing principle."
     source: "human-reader catch, Summitward finance-books guide (2026-07)"
+
+  - rule_id: INSIGHT_STRONGEST_VERSION
+    severity: medium
+    # Announces charity toward the other side ("the stronger version of this argument deserves a
+    # fair hearing") instead of stating the argument. Gated to an argument noun, or to a bare
+    # this/that/it closing the phrase, so literal uses ("the stronger version of the drug", "the
+    # strongest version of the Mustang") stay quiet; the bare phrase is INSIGHT_BROAD_STRONGEST_
+    # VERSION under --broad. "most charitable" is left to INSIGHT_BROAD_CHARITABLE so --broad
+    # never charges one phrase twice. The second arm catches the fair-hearing frame on its own;
+    # when both appear in one sentence the first arm consumes the subject and only one fires.
+    pattern: "\\bthe (?:strong(?:er|est)|best|most (?:compelling|serious|persuasive)) (?:version|form|case|reading) of (?:(?:(?:this|that|the|their|his|her|your|my|our|its|the opposing|the other side's|the skeptics'?|the critics'?) (?:[\\w'-]+ ){0,2}?(?:argument|case|claim|view|position|objection|critique|thesis|point|idea|counterargument|counterpoint|pushback|worry|concern|critic|skeptic)s?\\b)|(?:this|that|it)(?=\\s*[,.;:!?)]|\\s*$|\\s+(?:is|goes|runs|says|would|deserves|holds)\\b))|\\b(?:this|that|the|their|his|her|each) (?:[\\w'-]+ ){0,3}?(?:argument|view|objection|position|critique|claim|idea|counterargument|worry|concern|thesis)s? deserves? a (?:fair|full|serious) hearing\\b"
+    explanation: "'the stronger version of this argument' announces charity to the other side instead of making their argument."
+    source: "human-reader catch, agentic bank run post (2026-09)"

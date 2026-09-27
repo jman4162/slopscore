@@ -3,6 +3,42 @@
 All notable changes to slopscore. The PyPI distribution is `slopscore-lint`; the import package
 and the tool are named `slopscore`.
 
+## 0.14.2
+
+Argued op-ed rhetoric. Schema unchanged (0.14.0); five rule changes, no weight or gate changes.
+
+A reader flagged a 405-word explainer post on agentic bank runs as model-written from its
+rhetoric. v0.14.1 scored it 8.1 "low" with no span findings: every phrase they named missed a
+rule on a technicality.
+
+- **`INSIGHT_STRONGEST_VERSION`** (medium, core): "the stronger/strongest/best version of this
+  argument", "the strongest version of it", and "the objection deserves a fair hearing". The
+  phrase announces charity to the other side instead of stating their argument. Gated to an
+  argument noun or a bare this/that/it, so "the stronger version of the drug" stays quiet. The
+  bare phrase is `INSIGHT_BROAD_STRONGEST_VERSION` under `--broad`, which skips the objects the
+  core rule already charges.
+- **`PARALLEL_X_NOT_Y_CODA`** (low): "..., but it's a cost, not a collapse." `PARALLEL_X_NOT_Y`
+  only matched a sentence-initial slogan. Both sides need an article, and a sentence-initial
+  slogan is left to the old rule so one span is never charged twice.
+- **`PARALLEL_THATS_X_ITS_NOT_Y`** (low): "That's a legitimate risk for specific banks. It is not
+  a system-wide run." The first sentence must open on that/this.
+- **`META_ARGUMENT_SETUP`** (low): "The argument goes like this." Also added to the run
+  detector's marker list.
+- **`FORMULAIC_WORTH_NOTING`** now matches "worth remembering", "worth keeping in mind", and
+  "worth bearing in mind". Same rule id.
+- **Measured.** Before tightening, the two parallelism rules matched 5 MAGE rows, all human, and
+  no AI rows; the article and that/this requirements remove all 5. That check used the same
+  rows the rules were tuned against, so it is not an independent false-positive estimate. None
+  of the new rules fire on the `simple_english` or `non_native` slices, on arXiv, FineWeb-edu,
+  Gutenberg essays, or wiki_2023. Seed-set eval is unchanged (rules TPR at 1% FPR 0.706).
+- **The label does not change, on purpose.** The post now shows five findings and scores 11.3,
+  still "low". Parallelism is a weak dimension and one medium insight hit in 405 words is 0.08,
+  below the corroboration ramp. The post is dense with specifics (rates, SVB, the reverse repo
+  facility) and its author has written in this register for years; "argue the other side, then
+  concede narrowly" is ordinary op-ed practice. `tests/test_op_ed_rhetoric.py` locks in both the
+  findings and the conservative label. No local corpus holds current-model op-eds or human
+  pundit blogs, so raising the weight of this register would be a guess.
+
 ## 0.14.1
 
 ASCII dashes. Schema unchanged (0.14.0).

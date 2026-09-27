@@ -19,6 +19,16 @@ rules:
     explanation: "'steelman' — rationalist jargon; a tell at density."
     source: "AI-tell (2024-2026)"
 
+  - rule_id: INSIGHT_BROAD_STRONGEST_VERSION
+    severity: low
+    # The bare phrase, with no argument-noun gate. Core INSIGHT_STRONGEST_VERSION covers the
+    # argumentative uses; this tier also catches "the strongest version of yourself/of the team",
+    # which is ordinary English often enough to stay opt-in. The lookahead skips the objects the
+    # core rule already charges, so --broad does not count one phrase twice.
+    pattern: "\\bthe strong(?:er|est) version of\\b(?!\\s+(?:(?:this|that|the|their|his|her|your|my|our|its|the opposing|the other side's|the skeptics'?|the critics'?) (?:[\\w'-]+ ){0,2}?(?:argument|case|claim|view|position|objection|critique|thesis|point|idea|counterargument|counterpoint|pushback|worry|concern|critic|skeptic)s?\\b|(?:this|that|it)(?:\\s*[,.;:!?)]|\\s*$|\\s+(?:is|goes|runs|says|would|deserves|holds)\\b)))"
+    explanation: "'the strongest version of' — charity-announcing frame; a tell at density."
+    source: "human-reader catch, agentic bank run post (2026-09)"
+
   - rule_id: INSIGHT_BROAD_CHARITABLE
     severity: low
     pattern: "\\bthe (?:most )?charitable (?:interpretation|reading|version)\\b"

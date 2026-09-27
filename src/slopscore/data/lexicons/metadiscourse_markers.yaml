@@ -27,6 +27,7 @@ markers:
   - "\\blet(?:'s| us) (?:delve|dive|explore|dig|unpack|turn|begin|start|look)\\b"
   - "\\b(?:two|three|four|several|a few) things (?:to (?:notice|note)|stand out|are worth)\\b"
   - "\\bthere are (?:two|three|four) things\\b"
+  - "\\bthe (?:argument|logic|reasoning|thinking|story) goes (?:something )?like this\\b"
 
   # endophoric markers: pointing at other parts of the same text
   - "\\bas (?:mentioned|noted|discussed|stated|described|explained|shown|we saw|we discussed) (?:above|earlier|previously|before|already)\\b"
@@ -50,7 +51,7 @@ markers:
 
   # emphasis and clarity scaffolds that announce rather than state
   - "{CLAUSE_START}(?:to be clear|to be precise|let me be (?:clear|precise)|for the avoidance of doubt|to put a finer point on it),"
-  - "\\bit(?:'s| is) (?:also )?worth (?:noting|mentioning|pointing out)\\b"
+  - "\\bit(?:'s| is) (?:also )?worth (?:noting|mentioning|pointing out|remembering|keeping in mind|bearing in mind)\\b"
   - "\\bit should be noted\\b"
   - "\\b(?:make no mistake|the bottom line is|the reality is)\\b"
   - "{CLAUSE_START}(?:that (?:being )?said|with that (?:said|in mind)),"
