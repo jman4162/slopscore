@@ -129,3 +129,24 @@ rules:
     pattern: "\\bthe (?:strong(?:er|est)|best|most (?:compelling|serious|persuasive)) (?:version|form|case|reading) of (?:(?:(?:this|that|the|their|his|her|your|my|our|its|the opposing|the other side's|the skeptics'?|the critics'?) (?:[\\w'-]+ ){0,2}?(?:argument|case|claim|view|position|objection|critique|thesis|point|idea|counterargument|counterpoint|pushback|worry|concern|critic|skeptic)s?\\b)|(?:this|that|it)(?=\\s*[,.;:!?)]|\\s*$|\\s+(?:is|goes|runs|says|would|deserves|holds)\\b))|\\b(?:this|that|the|their|his|her|each) (?:[\\w'-]+ ){0,3}?(?:argument|view|objection|position|critique|claim|idea|counterargument|worry|concern|thesis)s? deserves? a (?:fair|full|serious) hearing\\b"
     explanation: "'the stronger version of this argument' announces charity to the other side instead of making their argument."
     source: "human-reader catch, agentic bank run post (2026-09)"
+
+  - rule_id: INSIGHT_EARNS_ITS_PLACE
+    severity: medium
+    # Gatekeeping metaphor: "X earns its place" says a strict standard was applied without
+    # stating it ("is justified when it beats a feasible alternative" says the same thing).
+    # Sports selection, admissions, and legacy prose use the phrase literally, so every arm is
+    # gated and past-tense "earned" fires only in the container arm. Every span starts at the
+    # "earn" token so INSIGHT_BROAD_EARN_PLACE can skip it with one lookahead. Arms:
+    #   1. modal + "its": "must earn its place". Only "its", so "players have to earn their
+    #      place" stays quiet.
+    #   2. causative: "make active bets earn their place". A pronoun or people-noun object
+    #      ("make them earn their place") is a coach talking about players, so it is skipped.
+    #   3. habitual present + a means or condition: "they earn their place by serving the
+    #      ends"; "earns its place" alone before clause punctuation.
+    #   4. a non-sport container: "earns a place in a cash-heavy portfolio", "has earned a
+    #      place in my workflow". No squad/team/side/lineup/final.
+    # Known limit: arm 3 cannot see the subject, so "players earn their place by training
+    # hard" fires. The bare phrase is INSIGHT_BROAD_EARN_PLACE under --broad.
+    pattern: "\\b(?:(?<=\\b(?:must|should|has to|have to|needs? to|ought to)\\s)earn its (?:place|spot|seat)\\b|(?<=\\b(?:make|makes|making|let|lets|letting|force|forces|forcing)\\s(?!(?:them|him|her|us|me|you|players|kids|people|everyone|everybody)\\b)(?:[\\w'-]+\\s){1,3})earn (?:its|their) (?:place|spot|seat)\\b|earns? (?:its|their) (?:place|spot|seat)(?=\\s+(?:by|through|when|only|if|because)\\b)|earns its (?:place|spot|seat)(?=\\s*(?:[.,;:!?)]|$))|(?:earns?|(?<=\\b(?:has|have)\\s)earned) (?:a|its|their) (?:place|spot|seat) in (?:[\\w'-]+\\s){0,3}?(?:portfolio|toolkit|tool kit|workflow|stack|pipeline|codebase|routine|allocation)s?\\b)"
+    explanation: "'earns its place' — gatekeeping metaphor; state the criterion it meets."
+    source: "human-reader catch, liberal-techno-optimism essay (2026-10)"

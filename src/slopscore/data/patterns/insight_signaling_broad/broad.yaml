@@ -114,3 +114,12 @@ rules:
     pattern: "\\bland(?:s|ed|ing)? cleanly\\b"
     explanation: "'lands cleanly' — craft-metaphor praise standing in for an actual judgment."
     source: "AI-tell (2024-2026)"
+
+  - rule_id: INSIGHT_BROAD_EARN_PLACE
+    severity: low
+    # The bare phrase, including past tense and "earns its keep". Broad rather than core because
+    # sports, admissions, and obituaries use it literally ("earned a place at Oxford"). The
+    # lookahead repeats core INSIGHT_EARNS_ITS_PLACE so --broad does not count one phrase twice.
+    pattern: "\\b(?!(?:(?<=\\b(?:must|should|has to|have to|needs? to|ought to)\\s)earn its (?:place|spot|seat)\\b|(?<=\\b(?:make|makes|making|let|lets|letting|force|forces|forcing)\\s(?!(?:them|him|her|us|me|you|players|kids|people|everyone|everybody)\\b)(?:[\\w'-]+\\s){1,3})earn (?:its|their) (?:place|spot|seat)\\b|earns? (?:its|their) (?:place|spot|seat)(?=\\s+(?:by|through|when|only|if|because)\\b)|earns its (?:place|spot|seat)(?=\\s*(?:[.,;:!?)]|$))|(?:earns?|(?<=\\b(?:has|have)\\s)earned) (?:a|its|their) (?:place|spot|seat) in (?:[\\w'-]+\\s){0,3}?(?:portfolio|toolkit|tool kit|workflow|stack|pipeline|codebase|routine|allocation)s?\\b))earn(?:s|ed|ing)? (?:its|their|a) (?:place|keep|spot|seat)\\b"
+    explanation: "'earn its place / earn its keep' — gatekeeping metaphor; a tell at density."
+    source: "human-reader catch, liberal-techno-optimism essay (2026-10)"

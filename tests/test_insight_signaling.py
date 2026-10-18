@@ -156,6 +156,60 @@ def test_not_nothing_fires_and_lands_cleanly_is_broad() -> None:
     assert "INSIGHT_BROAD_LANDS_CLEANLY" in on
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        # The reader-flagged essay sentences (2026-10).
+        "Markets sit in the middle layer. They earn their place by serving the ends.",
+        "An intervention earns its place by beating a feasible alternative.",
+        "## Make active bets earn their place",
+        "Every feature must earn its place.",
+        "When a picture earns its place, draw it.",
+        "BOXX earns a place in a cash-heavy portfolio when rates are high.",
+        "The tool has earned a place in my workflow.",
+    ],
+)
+def test_earns_its_place_fires(text: str) -> None:
+    spans = [
+        e
+        for e in InsightSignaling.extract(_doc(text), "blog").spans
+        if e.rule_id == "INSIGHT_EARNS_ITS_PLACE"
+    ]
+    assert len(spans) == 1
+
+
+EARN_PLACE_LITERALS = [
+    "He earned his place in the starting eleven.",
+    "Young players have to earn their place in the squad.",
+    "The club earned its place in the final by beating Leeds.",
+    "The novel earned its place in history.",
+    "The dog earns its keep on the farm.",
+    "She earned a place at Oxford.",
+    "Coaches make them earn their place.",
+]
+
+
+@pytest.mark.parametrize("text", EARN_PLACE_LITERALS)
+def test_earns_its_place_literal_sense_stays_quiet(text: str) -> None:
+    rule_ids = {e.rule_id for e in InsightSignaling.extract(_doc(text), "blog").spans}
+    assert "INSIGHT_EARNS_ITS_PLACE" not in rule_ids
+
+
+@pytest.mark.parametrize("text", [t for t in EARN_PLACE_LITERALS if "his place" not in t])
+def test_bare_earn_place_is_broad_only(text: str) -> None:
+    on = {e.rule_id for e in InsightSignaling.extract(_doc(text), "blog", broad=True).spans}
+    assert "INSIGHT_BROAD_EARN_PLACE" in on
+
+
+def test_earns_its_place_is_charged_once_under_broad() -> None:
+    doc = _doc(
+        "An intervention earns its place by beating a feasible alternative. Make active bets "
+        "earn their place. The fund has earned a place in my portfolio."
+    )
+    spans = [e for e in InsightSignaling.extract(doc, "blog", broad=True).spans if "earn" in e.span]
+    assert [e.rule_id for e in spans] == ["INSIGHT_EARNS_ITS_PLACE"] * 3
+
+
 def test_insight_signaling_quiet_on_specific_prose() -> None:
     doc = _doc(
         "The bridge opened in 1937. Workers poured 389,000 cubic yards of concrete. "
@@ -167,7 +221,8 @@ def test_insight_signaling_quiet_on_specific_prose() -> None:
 def test_insight_offsets_round_trip() -> None:
     doc = _doc(
         "The operative word is leverage, and that is doing the real work in this sentence. "
-        "Here is the uncomfortable truth: the crux of the matter is elsewhere."
+        "Here is the uncomfortable truth: the crux of the matter is elsewhere. Every chart "
+        "must earn its place, and the dog earns its keep."
     )
     for e in InsightSignaling.extract(doc, "blog", broad=True).spans:
         assert doc.original_text[e.start_char : e.end_char] == e.span

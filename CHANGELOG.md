@@ -3,6 +3,24 @@
 All notable changes to slopscore. The PyPI distribution is `slopscore-lint`; the import package
 and the tool are named `slopscore`.
 
+## 0.14.3
+
+The "earns its place" metaphor. Schema unchanged (0.14.0); two rule additions, no weight or
+gate changes.
+
+- **`INSIGHT_EARNS_ITS_PLACE`** (medium, core): "An intervention earns its place by beating a
+  feasible alternative", "Make active bets earn their place", "BOXX earns a place in a cash-heavy
+  portfolio". The metaphor says a standard was applied without stating it. A reader flagged three
+  uses in one essay, which scored no span findings. Sports selection, admissions, and legacy
+  prose use the phrase literally, so the rule fires only under a modal with "its", a causative
+  with a non-person object, the habitual present followed by by/through/when/only/if/because, or
+  a place in a portfolio, toolkit, workflow, stack, pipeline, codebase, routine, or allocation.
+  Past-tense "earned" fires only in that last arm. Known limit: "players earn their place by
+  training hard" fires, because the rule cannot see the subject. Zero hits on the fairness
+  slices; eval output unchanged.
+- **`INSIGHT_BROAD_EARN_PLACE`** (low, `--broad`): the bare phrase, including "earned a place"
+  and "earns its keep". It skips spans the core rule charges.
+
 ## 0.14.2
 
 Argued op-ed rhetoric. Schema unchanged (0.14.0); five rule changes, no weight or gate changes.
